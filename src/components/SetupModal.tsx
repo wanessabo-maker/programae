@@ -79,13 +79,13 @@ export function SetupModal({ open, onOpenChange }: SetupModalProps) {
           </TabsList>
           
           <div className="overflow-y-auto max-h-[60vh] py-4">
-            <TabsContent value="areas"><AreasTab /></TabsContent>
-            <TabsContent value="equipe"><EquipeTab /></TabsContent>
-            <TabsContent value="metas"><MetasTab /></TabsContent>
-            <TabsContent value="tipos-acao"><TiposAcaoTab /></TabsContent>
-            <TabsContent value="programa"><ProgramaTab /></TabsContent>
-            <TabsContent value="tipos-prof"><TiposProfTab /></TabsContent>
-            <TabsContent value="categorias"><CategoriasTab /></TabsContent>
+            <TabsContent value="areas">{AreasTabContent()}</TabsContent>
+            <TabsContent value="equipe">{EquipeTabContent()}</TabsContent>
+            <TabsContent value="metas">{MetasTabContent()}</TabsContent>
+            <TabsContent value="tipos-acao">{TiposAcaoTabContent()}</TabsContent>
+            <TabsContent value="programa">{ProgramaTabContent()}</TabsContent>
+            <TabsContent value="tipos-prof">{TiposProfTabContent()}</TabsContent>
+            <TabsContent value="categorias">{CategoriasTabContent()}</TabsContent>
           </div>
         </Tabs>
       </DialogContent>
@@ -93,7 +93,7 @@ export function SetupModal({ open, onOpenChange }: SetupModalProps) {
   );
 }
 
-function AreasTab() {
+function AreasTabContent() {
   const { areas, addArea, updateArea, deleteArea } = useApp();
   const [newName, setNewName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -156,7 +156,7 @@ function AreasTab() {
   );
 }
 
-function EquipeTab() {
+function EquipeTabContent() {
   const { teamMembers, areas, addTeamMember, updateTeamMember, deleteTeamMember } = useApp();
   const [newName, setNewName] = useState('');
   const [newAreaId, setNewAreaId] = useState('');
@@ -268,7 +268,7 @@ function EquipeTab() {
   );
 }
 
-function MetasTab() {
+function MetasTabContent() {
   const { metas, areas, addMeta, updateMeta, deleteMeta } = useApp();
   const [newAreaId, setNewAreaId] = useState('');
   const [newType, setNewType] = useState<'acoes' | 'vendas' | 'captacao' | 'projeto'>('acoes');
@@ -327,7 +327,7 @@ function MetasTab() {
   );
 }
 
-function TiposAcaoTab() {
+function TiposAcaoTabContent() {
   const { actionTypes, addActionType, updateActionType, deleteActionType } = useApp();
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -433,7 +433,7 @@ function TiposAcaoTab() {
   );
 }
 
-function ProgramaTab() {
+function ProgramaTabContent() {
   const { rewards, addReward, updateReward, deleteReward } = useApp();
   const [newName, setNewName] = useState('');
   const [newCost, setNewCost] = useState('');
@@ -523,7 +523,7 @@ function ProgramaTab() {
   );
 }
 
-function TiposProfTab() {
+function TiposProfTabContent() {
   const { professionalTypes, addProfessionalType, updateProfessionalType, deleteProfessionalType } = useApp();
   const [newName, setNewName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -598,7 +598,7 @@ function TiposProfTab() {
   );
 }
 
-function CategoriasTab() {
+function CategoriasTabContent() {
   const { professionalCategories, addProfessionalCategory, updateProfessionalCategory, deleteProfessionalCategory } = useApp();
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
