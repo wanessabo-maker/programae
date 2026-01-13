@@ -86,7 +86,10 @@ export function useUpdateTeamMember() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['team_members'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['team_members'] });
+      queryClient.refetchQueries({ queryKey: ['team_members'] });
+    },
   });
 }
 
