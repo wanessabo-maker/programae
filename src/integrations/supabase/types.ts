@@ -14,7 +14,434 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      action_types: {
+        Row: {
+          additional_fields: boolean | null
+          classification: string
+          created_at: string | null
+          id: string
+          impacts: string[] | null
+          name: string
+          points: number | null
+          requires_value: boolean | null
+        }
+        Insert: {
+          additional_fields?: boolean | null
+          classification: string
+          created_at?: string | null
+          id?: string
+          impacts?: string[] | null
+          name: string
+          points?: number | null
+          requires_value?: boolean | null
+        }
+        Update: {
+          additional_fields?: boolean | null
+          classification?: string
+          created_at?: string | null
+          id?: string
+          impacts?: string[] | null
+          name?: string
+          points?: number | null
+          requires_value?: boolean | null
+        }
+        Relationships: []
+      }
+      actions: {
+        Row: {
+          action_date: string
+          action_type_id: string | null
+          client_age: number | null
+          client_name: string | null
+          client_profession: string | null
+          consultant_id: string | null
+          created_at: string | null
+          id: string
+          notes: string | null
+          presentation_number: string | null
+          professional_id: string | null
+          value: number | null
+        }
+        Insert: {
+          action_date: string
+          action_type_id?: string | null
+          client_age?: number | null
+          client_name?: string | null
+          client_profession?: string | null
+          consultant_id?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          presentation_number?: string | null
+          professional_id?: string | null
+          value?: number | null
+        }
+        Update: {
+          action_date?: string
+          action_type_id?: string | null
+          client_age?: number | null
+          client_name?: string | null
+          client_profession?: string | null
+          consultant_id?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          presentation_number?: string | null
+          professional_id?: string | null
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "actions_action_type_id_fkey"
+            columns: ["action_type_id"]
+            isOneToOne: false
+            referencedRelation: "action_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "actions_consultant_id_fkey"
+            columns: ["consultant_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "actions_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "professionals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      areas: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      credit_transactions: {
+        Row: {
+          action_id: string | null
+          consultant_id: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          points: number
+          professional_id: string | null
+          transaction_date: string | null
+        }
+        Insert: {
+          action_id?: string | null
+          consultant_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          points: number
+          professional_id?: string | null
+          transaction_date?: string | null
+        }
+        Update: {
+          action_id?: string | null
+          consultant_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          points?: number
+          professional_id?: string | null
+          transaction_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_transactions_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_transactions_consultant_id_fkey"
+            columns: ["consultant_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_transactions_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "professionals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goals: {
+        Row: {
+          area_id: string | null
+          created_at: string | null
+          id: string
+          metric: string
+          value: number
+        }
+        Insert: {
+          area_id?: string | null
+          created_at?: string | null
+          id?: string
+          metric: string
+          value?: number
+        }
+        Update: {
+          area_id?: string | null
+          created_at?: string | null
+          id?: string
+          metric?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goals_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "areas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      professional_categories: {
+        Row: {
+          condition: string
+          created_at: string | null
+          days: number
+          hierarchy: number
+          id: string
+          name: string
+          points: number | null
+        }
+        Insert: {
+          condition: string
+          created_at?: string | null
+          days: number
+          hierarchy?: number
+          id?: string
+          name: string
+          points?: number | null
+        }
+        Update: {
+          condition?: string
+          created_at?: string | null
+          days?: number
+          hierarchy?: number
+          id?: string
+          name?: string
+          points?: number | null
+        }
+        Relationships: []
+      }
+      professional_types: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      professionals: {
+        Row: {
+          category_id: string | null
+          consultant_id: string | null
+          created_at: string | null
+          id: string
+          last_action_date: string | null
+          name: string
+          type_id: string | null
+        }
+        Insert: {
+          category_id?: string | null
+          consultant_id?: string | null
+          created_at?: string | null
+          id?: string
+          last_action_date?: string | null
+          name: string
+          type_id?: string | null
+        }
+        Update: {
+          category_id?: string | null
+          consultant_id?: string | null
+          created_at?: string | null
+          id?: string
+          last_action_date?: string | null
+          name?: string
+          type_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "professionals_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "professional_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "professionals_consultant_id_fkey"
+            columns: ["consultant_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "professionals_type_id_fkey"
+            columns: ["type_id"]
+            isOneToOne: false
+            referencedRelation: "professional_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reminders: {
+        Row: {
+          consultant_id: string | null
+          created_at: string | null
+          id: string
+          recurrence: string | null
+          reminder_date: string
+          title: string
+        }
+        Insert: {
+          consultant_id?: string | null
+          created_at?: string | null
+          id?: string
+          recurrence?: string | null
+          reminder_date: string
+          title: string
+        }
+        Update: {
+          consultant_id?: string | null
+          created_at?: string | null
+          id?: string
+          recurrence?: string | null
+          reminder_date?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminders_consultant_id_fkey"
+            columns: ["consultant_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rewards: {
+        Row: {
+          cost: number
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          cost?: number
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          cost?: number
+          created_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      special_dates: {
+        Row: {
+          created_at: string | null
+          date_value: string
+          id: string
+          professional_id: string | null
+          reason: string | null
+          recurrence: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          date_value: string
+          id?: string
+          professional_id?: string | null
+          reason?: string | null
+          recurrence?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          date_value?: string
+          id?: string
+          professional_id?: string | null
+          reason?: string | null
+          recurrence?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "special_dates_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "professionals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_members: {
+        Row: {
+          active: boolean | null
+          area_id: string | null
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          active?: boolean | null
+          area_id?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          active?: boolean | null
+          area_id?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "areas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
