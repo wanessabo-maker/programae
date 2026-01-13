@@ -1,8 +1,11 @@
 import { ReactNode, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Settings } from 'lucide-react';
+import { Settings, LogOut } from 'lucide-react';
 import { SetupModal } from './SetupModal';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 import logo from '@/assets/logo.png';
+
 interface LayoutProps {
   children: ReactNode;
 }
@@ -10,12 +13,22 @@ interface LayoutProps {
 export function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const [showSetup, setShowSetup] = useState(false);
+  const { user, isAdmin, signOut } = useAuthContext();
   
   const navItems = [
     { path: '/', label: 'Dashboard' },
     { path: '/profissionais', label: 'Profissionais' },
     { path: '/programa-e-mais', label: 'Programa E+' },
   ];
+
+  const handleLogout = async () => {
+    const { error } = await signOut();
+    if (error) {
+      toast.error('Erro ao sair');
+    } else {
+      toast.success('Logout realizado');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -46,6 +59,21 @@ export function Layout({ children }: LayoutProps) {
                 </Link>
               ))}
             </nav>
+
+            {/* User Info & Logout */}
+            <div className="flex items-center gap-4">
+              <span className="text-xs tracking-widest uppercase text-muted-foreground">
+                {user?.email?.split('@')[0]}
+                {isAdmin && <span className="ml-2 text-primary">(Admin)</span>}
+              </span>
+              <button
+                onClick={handleLogout}
+                className="p-2 hover:bg-muted rounded transition-colors"
+                title="Sair"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -55,17 +83,19 @@ export function Layout({ children }: LayoutProps) {
         {children}
       </main>
 
-      {/* Floating Setup Button */}
-      <button
-        onClick={() => setShowSetup(true)}
-        className="floating-button"
-        title="Setup"
-      >
-        <Settings className="w-5 h-5" />
-      </button>
+      {/* Floating Setup Button - Only for Admins */}
+      {isAdmin && (
+        <button
+          onClick={() => setShowSetup(true)}
+          className="floating-button"
+          title="Setup (Admin)"
+        >
+          <Settings className="w-5 h-5" />
+        </button>
+      )}
 
-      {/* Setup Modal */}
-      <SetupModal open={showSetup} onOpenChange={setShowSetup} />
+      {/* Setup Modal - Only for Admins */}
+      {isAdmin && <SetupModal open={showSetup} onOpenChange={setShowSetup} />}
     </div>
   );
 }
