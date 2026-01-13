@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useApp } from '@/contexts/AppContext';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 interface ActionModalProps {
   open: boolean;
@@ -17,7 +18,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     addAction, 
     addProfessional,
     addCreditTransaction,
-    updateProfessional 
+    updateProfessional,
+    addReminder,
   } = useApp();
 
   const activeMembers = teamMembers.filter(m => m.active);
@@ -39,83 +41,130 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     name: '',
     typeId: '',
   });
+  const [specialDate, setSpecialDate] = useState({
+    date: '',
+    reason: '',
+    type: 'anual' as 'unica' | 'mensal' | 'anual',
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const selectedActionType = actionTypes.find(t => t.id === form.actionTypeId);
   const consultantProfessionals = professionals.filter(p => p.consultantId === form.consultantId);
 
-  const handleSubmit = () => {
-    if (!form.consultantId || !form.actionTypeId || !form.date) return;
-
-    let professionalId = form.professionalId;
-
-    // Create new professional if needed
-    if (isNewProfessional && newProfessional.name && newProfessional.typeId) {
-      const newId = Math.random().toString(36).substr(2, 9);
-      addProfessional({
-        name: newProfessional.name,
-        typeId: newProfessional.typeId,
-        consultantId: form.consultantId,
-        categoryId: '1', // Default to first category
-        lastActionDate: form.date,
-        lastActionType: selectedActionType?.name,
-      });
-      professionalId = newId;
-    } else if (professionalId) {
-      // Update existing professional
-      updateProfessional(professionalId, {
-        lastActionDate: form.date,
-        lastActionType: selectedActionType?.name,
-      });
+  const handleSubmit = async () => {
+    if (!form.consultantId || !form.actionTypeId || !form.date) {
+      toast.error('Preencha os campos obrigatórios');
+      return;
     }
 
-    const points = selectedActionType?.programPoints || 0;
+    setIsSubmitting(true);
+    
+    try {
+      let professionalId = form.professionalId;
 
-    // Add action
-    addAction({
-      consultantId: form.consultantId,
-      professionalId,
-      actionTypeId: form.actionTypeId,
-      date: form.date,
-      value: form.value ? Number(form.value) : undefined,
-      clientName: form.clientName || undefined,
-      clientAge: form.clientAge ? Number(form.clientAge) : undefined,
-      clientProfession: form.clientProfession || undefined,
-      presentationNumber: form.presentationNumber || undefined,
-      pointsGenerated: points,
-    });
+      // Create new professional if needed
+      if (isNewProfessional && newProfessional.name && newProfessional.typeId) {
+        const newId = await addProfessional({
+          name: newProfessional.name,
+          typeId: newProfessional.typeId,
+          consultantId: form.consultantId,
+          categoryId: '1', // Default to first category
+          lastActionDate: form.date,
+          lastActionType: selectedActionType?.name,
+        });
+        
+        if (!newId) {
+          toast.error('Erro ao criar profissional');
+          setIsSubmitting(false);
+          return;
+        }
+        
+        professionalId = newId;
 
-    // Add credits
-    if (points > 0) {
-      const professional = professionals.find(p => p.id === professionalId);
-      addCreditTransaction({
+        // Create reminder for special date if provided
+        if (specialDate.date && specialDate.reason) {
+          const consultant = teamMembers.find(m => m.id === form.consultantId);
+          addReminder({
+            title: `${specialDate.reason} - ${newProfessional.name}`,
+            date: specialDate.date,
+            consultantId: form.consultantId,
+            type: specialDate.type === 'unica' ? 'avulso' : 'recorrente',
+            professionalId: newId,
+          });
+          toast.success(`Lembrete criado para ${specialDate.reason}`);
+        }
+      } else if (professionalId) {
+        // Update existing professional
+        updateProfessional(professionalId, {
+          lastActionDate: form.date,
+          lastActionType: selectedActionType?.name,
+        });
+      }
+
+      const points = selectedActionType?.programPoints || 0;
+
+      // Add action
+      const actionId = await addAction({
         consultantId: form.consultantId,
-        amount: points,
-        type: 'ganho',
-        description: `${selectedActionType?.name} - ${professional?.name || newProfessional.name}`,
+        professionalId,
+        actionTypeId: form.actionTypeId,
         date: form.date,
+        value: form.value ? Number(form.value) : undefined,
+        clientName: form.clientName || undefined,
+        clientAge: form.clientAge ? Number(form.clientAge) : undefined,
+        clientProfession: form.clientProfession || undefined,
+        presentationNumber: form.presentationNumber || undefined,
+        pointsGenerated: points,
       });
-    }
 
-    // Reset form
-    setForm({
-      consultantId: '',
-      professionalId: '',
-      actionTypeId: '',
-      date: format(new Date(), 'yyyy-MM-dd'),
-      value: '',
-      clientName: '',
-      clientAge: '',
-      clientProfession: '',
-      presentationNumber: '',
-    });
-    setIsNewProfessional(false);
-    setNewProfessional({ name: '', typeId: '' });
-    onOpenChange(false);
+      if (!actionId) {
+        toast.error('Erro ao registrar ação');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Add credits
+      if (points > 0) {
+        const professional = professionals.find(p => p.id === professionalId);
+        addCreditTransaction({
+          consultantId: form.consultantId,
+          amount: points,
+          type: 'ganho',
+          description: `${selectedActionType?.name} - ${professional?.name || newProfessional.name}`,
+          date: form.date,
+          actionId: actionId,
+        });
+      }
+
+      toast.success('Ação registrada com sucesso!');
+
+      // Reset form
+      setForm({
+        consultantId: '',
+        professionalId: '',
+        actionTypeId: '',
+        date: format(new Date(), 'yyyy-MM-dd'),
+        value: '',
+        clientName: '',
+        clientAge: '',
+        clientProfession: '',
+        presentationNumber: '',
+      });
+      setIsNewProfessional(false);
+      setNewProfessional({ name: '', typeId: '' });
+      setSpecialDate({ date: '', reason: '', type: 'anual' });
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error submitting action:', error);
+      toast.error('Erro ao registrar ação');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card text-card-foreground border-black max-w-lg">
+      <DialogContent className="bg-card text-card-foreground border-black max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>REGISTRAR AÇÃO</DialogTitle>
         </DialogHeader>
@@ -167,7 +216,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   ))}
                 </select>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <input
                     value={newProfessional.name}
                     onChange={(e) => setNewProfessional({ ...newProfessional, name: e.target.value })}
@@ -184,6 +233,35 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                       <option key={t.id} value={t.id}>{t.name}</option>
                     ))}
                   </select>
+                  
+                  {/* Special Date Section for New Professional */}
+                  <div className="border border-border rounded-md p-3 space-y-2 bg-muted/30">
+                    <label className="text-xs tracking-widest uppercase text-muted-foreground block">Data Especial (opcional)</label>
+                    <input
+                      type="date"
+                      value={specialDate.date}
+                      onChange={(e) => setSpecialDate({ ...specialDate, date: e.target.value })}
+                      className="input-flat w-full text-card-foreground"
+                    />
+                    <input
+                      value={specialDate.reason}
+                      onChange={(e) => setSpecialDate({ ...specialDate, reason: e.target.value })}
+                      placeholder="Motivo (ex: Aniversário)"
+                      className="input-flat w-full text-card-foreground"
+                    />
+                    <select
+                      value={specialDate.type}
+                      onChange={(e) => setSpecialDate({ ...specialDate, type: e.target.value as 'unica' | 'mensal' | 'anual' })}
+                      className="input-flat w-full text-card-foreground"
+                    >
+                      <option value="anual">Anual (recorrente)</option>
+                      <option value="mensal">Mensal (recorrente)</option>
+                      <option value="unica">Única vez</option>
+                    </select>
+                    {specialDate.date && specialDate.reason && (
+                      <p className="text-xs text-green-600">✓ Lembrete será criado automaticamente</p>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -266,8 +344,12 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             </>
           )}
 
-          <button onClick={handleSubmit} className="btn-primary w-full bg-card-foreground text-card mt-4">
-            Registrar
+          <button 
+            onClick={handleSubmit} 
+            disabled={isSubmitting}
+            className="btn-primary w-full bg-card-foreground text-card mt-4 disabled:opacity-50"
+          >
+            {isSubmitting ? 'Registrando...' : 'Registrar'}
           </button>
         </div>
       </DialogContent>

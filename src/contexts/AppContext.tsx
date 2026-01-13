@@ -79,12 +79,12 @@ interface AppContextType {
   deleteReward: (id: string) => void;
   
   // Professionals
-  addProfessional: (professional: Omit<Professional, 'id'>) => void;
+  addProfessional: (professional: Omit<Professional, 'id'>) => Promise<string | undefined>;
   updateProfessional: (id: string, professional: Partial<Professional>) => void;
   deleteProfessional: (id: string) => void;
   
   // Actions
-  addAction: (action: Omit<Action, 'id'>) => void;
+  addAction: (action: Omit<Action, 'id'>) => Promise<string | undefined>;
   updateAction: (id: string, action: Partial<Action>) => void;
   deleteAction: (id: string) => void;
   
@@ -453,14 +453,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     deleteRewardMutation.mutate(id);
   }, [deleteRewardMutation]);
 
-  const addProfessional = useCallback((professional: Omit<Professional, 'id'>) => {
-    createProfessional.mutate({
-      name: professional.name,
-      type_id: professional.typeId || null,
-      consultant_id: professional.consultantId || null,
-      category_id: professional.categoryId || null,
-      last_action_date: professional.lastActionDate || null,
-    });
+  const addProfessional = useCallback(async (professional: Omit<Professional, 'id'>): Promise<string | undefined> => {
+    try {
+      const result = await createProfessional.mutateAsync({
+        name: professional.name,
+        type_id: professional.typeId || null,
+        consultant_id: professional.consultantId || null,
+        category_id: professional.categoryId || null,
+        last_action_date: professional.lastActionDate || null,
+      });
+      return result?.id;
+    } catch (error) {
+      console.error('Error creating professional:', error);
+      return undefined;
+    }
   }, [createProfessional]);
 
   const updateProfessional = useCallback((id: string, professional: Partial<Professional>) => {
@@ -478,18 +484,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
     deleteProfessionalMutation.mutate(id);
   }, [deleteProfessionalMutation]);
 
-  const addAction = useCallback((action: Omit<Action, 'id'>) => {
-    createAction.mutate({
-      consultant_id: action.consultantId || null,
-      professional_id: action.professionalId || null,
-      action_type_id: action.actionTypeId || null,
-      action_date: action.date,
-      value: action.value ?? null,
-      client_name: action.clientName ?? null,
-      client_age: action.clientAge ?? null,
-      client_profession: action.clientProfession ?? null,
-      presentation_number: action.presentationNumber ?? null,
-    });
+  const addAction = useCallback(async (action: Omit<Action, 'id'>): Promise<string | undefined> => {
+    try {
+      const result = await createAction.mutateAsync({
+        consultant_id: action.consultantId || null,
+        professional_id: action.professionalId || null,
+        action_type_id: action.actionTypeId || null,
+        action_date: action.date,
+        value: action.value ?? null,
+        client_name: action.clientName ?? null,
+        client_age: action.clientAge ?? null,
+        client_profession: action.clientProfession ?? null,
+        presentation_number: action.presentationNumber ?? null,
+      });
+      return result?.id;
+    } catch (error) {
+      console.error('Error creating action:', error);
+      return undefined;
+    }
   }, [createAction]);
 
   const updateAction = useCallback((id: string, action: Partial<Action>) => {
