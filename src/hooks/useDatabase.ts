@@ -21,7 +21,10 @@ export function useCreateArea() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['areas'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['areas'] });
+      queryClient.refetchQueries({ queryKey: ['areas'] });
+    },
   });
 }
 
@@ -68,7 +71,10 @@ export function useCreateTeamMember() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['team_members'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['team_members'] });
+      queryClient.refetchQueries({ queryKey: ['team_members'] });
+    },
   });
 }
 
@@ -115,7 +121,10 @@ export function useCreateProfessionalType() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['professional_types'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['professional_types'] });
+      queryClient.refetchQueries({ queryKey: ['professional_types'] });
+    },
   });
 }
 
@@ -162,7 +171,10 @@ export function useCreateProfessionalCategory() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['professional_categories'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['professional_categories'] });
+      queryClient.refetchQueries({ queryKey: ['professional_categories'] });
+    },
   });
 }
 
@@ -216,7 +228,10 @@ export function useCreateActionType() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['action_types'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['action_types'] });
+      queryClient.refetchQueries({ queryKey: ['action_types'] });
+    },
   });
 }
 
@@ -271,7 +286,10 @@ export function useCreateGoal() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['goals'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['goals'] });
+      queryClient.refetchQueries({ queryKey: ['goals'] });
+    },
   });
 }
 
@@ -318,7 +336,10 @@ export function useCreateReward() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['rewards'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rewards'] });
+      queryClient.refetchQueries({ queryKey: ['rewards'] });
+    },
   });
 }
 
@@ -374,7 +395,10 @@ export function useCreateProfessional() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['professionals'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['professionals'] });
+      queryClient.refetchQueries({ queryKey: ['professionals'] });
+    },
   });
 }
 
@@ -446,6 +470,7 @@ export function useCreateAction() {
       queryClient.invalidateQueries({ queryKey: ['actions'] });
       queryClient.invalidateQueries({ queryKey: ['professionals'] });
       queryClient.invalidateQueries({ queryKey: ['credit_transactions'] });
+      queryClient.refetchQueries({ queryKey: ['actions'] });
     },
   });
 }
@@ -520,7 +545,10 @@ export function useCreateReminder() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['reminders'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reminders'] });
+      queryClient.refetchQueries({ queryKey: ['reminders'] });
+    },
   });
 }
 
@@ -583,7 +611,10 @@ export function useCreateCreditTransaction() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['credit_transactions'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['credit_transactions'] });
+      queryClient.refetchQueries({ queryKey: ['credit_transactions'] });
+    },
   });
 }
 
@@ -626,7 +657,10 @@ export function useCreateSpecialDate() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['special_dates'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['special_dates'] });
+      queryClient.refetchQueries({ queryKey: ['special_dates'] });
+    },
   });
 }
 
