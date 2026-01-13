@@ -10,54 +10,10 @@ interface SetupModalProps {
 }
 
 export function SetupModal({ open, onOpenChange }: SetupModalProps) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-
-  const handleLogin = () => {
-    if (password === 'admin123') {
-      setIsAuthenticated(true);
-      setError('');
-    } else {
-      setError('Senha incorreta');
-    }
-  };
-
+  // No more password authentication - access is controlled by isAdmin in Layout
   const handleClose = () => {
     onOpenChange(false);
-    setIsAuthenticated(false);
-    setPassword('');
-    setError('');
   };
-
-  if (!isAuthenticated) {
-    return (
-      <Dialog open={open} onOpenChange={handleClose}>
-        <DialogContent className="bg-card text-card-foreground border-black max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-center">SETUP</DialogTitle>
-          </DialogHeader>
-          <div className="p-6 space-y-4">
-            <p className="text-xs tracking-widest uppercase text-center text-muted-foreground">
-              Digite a senha de administrador
-            </p>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-              className="input-flat w-full text-card-foreground"
-              placeholder="Senha"
-            />
-            {error && <p className="text-destructive text-xs text-center">{error}</p>}
-            <button onClick={handleLogin} className="btn-primary w-full bg-card-foreground text-card">
-              Entrar
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
