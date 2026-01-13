@@ -47,12 +47,33 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     type: 'anual' as 'unica' | 'mensal' | 'anual',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, boolean>>({});
 
   const selectedActionType = actionTypes.find(t => t.id === form.actionTypeId);
   const consultantProfessionals = professionals.filter(p => p.consultantId === form.consultantId);
 
+  const validateForm = () => {
+    const newErrors: Record<string, boolean> = {};
+    
+    if (!form.consultantId) newErrors.consultantId = true;
+    if (!form.actionTypeId) newErrors.actionTypeId = true;
+    if (!form.date) newErrors.date = true;
+    
+    if (isNewProfessional) {
+      if (!newProfessional.name) newErrors.professionalName = true;
+      if (!newProfessional.typeId) newErrors.professionalType = true;
+    }
+    
+    if (selectedActionType?.requiresValue && !form.value) {
+      newErrors.value = true;
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async () => {
-    if (!form.consultantId || !form.actionTypeId || !form.date) {
+    if (!validateForm()) {
       toast.error('Preencha os campos obrigatórios');
       return;
     }
@@ -170,17 +191,23 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div>
-            <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Consultor</label>
+            <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.consultantId ? 'text-destructive' : 'text-muted-foreground'}`}>
+              Consultor *
+            </label>
             <select
               value={form.consultantId}
-              onChange={(e) => setForm({ ...form, consultantId: e.target.value, professionalId: '' })}
-              className="input-flat w-full text-card-foreground"
+              onChange={(e) => {
+                setForm({ ...form, consultantId: e.target.value, professionalId: '' });
+                setErrors({ ...errors, consultantId: false });
+              }}
+              className={`input-flat w-full text-card-foreground ${errors.consultantId ? 'border-destructive ring-1 ring-destructive' : ''}`}
             >
               <option value="">Selecione</option>
               {activeMembers.map((m) => (
                 <option key={m.id} value={m.id}>{m.name}</option>
               ))}
             </select>
+            {errors.consultantId && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
           </div>
 
           {form.consultantId && (
@@ -217,22 +244,34 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 </select>
               ) : (
                 <div className="space-y-3">
-                  <input
-                    value={newProfessional.name}
-                    onChange={(e) => setNewProfessional({ ...newProfessional, name: e.target.value })}
-                    placeholder="Nome do profissional"
-                    className="input-flat w-full text-card-foreground"
-                  />
-                  <select
-                    value={newProfessional.typeId}
-                    onChange={(e) => setNewProfessional({ ...newProfessional, typeId: e.target.value })}
-                    className="input-flat w-full text-card-foreground"
-                  >
-                    <option value="">Tipo de profissional</option>
-                    {professionalTypes.map((t) => (
-                      <option key={t.id} value={t.id}>{t.name}</option>
-                    ))}
-                  </select>
+                  <div>
+                    <input
+                      value={newProfessional.name}
+                      onChange={(e) => {
+                        setNewProfessional({ ...newProfessional, name: e.target.value });
+                        setErrors({ ...errors, professionalName: false });
+                      }}
+                      placeholder="Nome do profissional *"
+                      className={`input-flat w-full text-card-foreground ${errors.professionalName ? 'border-destructive ring-1 ring-destructive' : ''}`}
+                    />
+                    {errors.professionalName && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
+                  </div>
+                  <div>
+                    <select
+                      value={newProfessional.typeId}
+                      onChange={(e) => {
+                        setNewProfessional({ ...newProfessional, typeId: e.target.value });
+                        setErrors({ ...errors, professionalType: false });
+                      }}
+                      className={`input-flat w-full text-card-foreground ${errors.professionalType ? 'border-destructive ring-1 ring-destructive' : ''}`}
+                    >
+                      <option value="">Tipo de profissional *</option>
+                      {professionalTypes.map((t) => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                    </select>
+                    {errors.professionalType && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
+                  </div>
                   
                   {/* Special Date Section for New Professional */}
                   <div className="border border-border rounded-md p-3 space-y-2 bg-muted/30">
@@ -268,39 +307,57 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           )}
 
           <div>
-            <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Tipo de Ação</label>
+            <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.actionTypeId ? 'text-destructive' : 'text-muted-foreground'}`}>
+              Tipo de Ação *
+            </label>
             <select
               value={form.actionTypeId}
-              onChange={(e) => setForm({ ...form, actionTypeId: e.target.value })}
-              className="input-flat w-full text-card-foreground"
+              onChange={(e) => {
+                setForm({ ...form, actionTypeId: e.target.value });
+                setErrors({ ...errors, actionTypeId: false });
+              }}
+              className={`input-flat w-full text-card-foreground ${errors.actionTypeId ? 'border-destructive ring-1 ring-destructive' : ''}`}
             >
               <option value="">Selecione</option>
               {actionTypes.map((t) => (
                 <option key={t.id} value={t.id}>{t.name}</option>
               ))}
             </select>
+            {errors.actionTypeId && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
           </div>
 
           <div>
-            <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Data</label>
+            <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.date ? 'text-destructive' : 'text-muted-foreground'}`}>
+              Data *
+            </label>
             <input
               type="date"
               value={form.date}
-              onChange={(e) => setForm({ ...form, date: e.target.value })}
-              className="input-flat w-full text-card-foreground"
+              onChange={(e) => {
+                setForm({ ...form, date: e.target.value });
+                setErrors({ ...errors, date: false });
+              }}
+              className={`input-flat w-full text-card-foreground ${errors.date ? 'border-destructive ring-1 ring-destructive' : ''}`}
             />
+            {errors.date && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
           </div>
 
           {selectedActionType?.requiresValue && (
             <div>
-              <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Valor da Venda</label>
+              <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.value ? 'text-destructive' : 'text-muted-foreground'}`}>
+                Valor da Venda *
+              </label>
               <input
                 type="number"
                 value={form.value}
-                onChange={(e) => setForm({ ...form, value: e.target.value })}
+                onChange={(e) => {
+                  setForm({ ...form, value: e.target.value });
+                  setErrors({ ...errors, value: false });
+                }}
                 placeholder="R$ 0,00"
-                className="input-flat w-full text-card-foreground"
+                className={`input-flat w-full text-card-foreground ${errors.value ? 'border-destructive ring-1 ring-destructive' : ''}`}
               />
+              {errors.value && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
             </div>
           )}
 
