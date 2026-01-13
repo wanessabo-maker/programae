@@ -2,7 +2,7 @@ import { ReactNode, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Settings } from 'lucide-react';
 import { SetupModal } from './SetupModal';
-
+import logo from '@/assets/logo.png';
 interface LayoutProps {
   children: ReactNode;
 }
@@ -26,9 +26,9 @@ export function Layout({ children }: LayoutProps) {
             {/* Logo */}
             <div className="flex items-center gap-4">
               <img 
-                src="https://i.imgur.com/0Nj4uHy.png" 
-                alt="Logo" 
-                className="h-8 w-auto invert"
+                src={logo} 
+                alt="Evviva Logo" 
+                className="h-10 w-auto"
               />
             </div>
             
