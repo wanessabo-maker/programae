@@ -160,12 +160,29 @@ function EquipeTab() {
   const { teamMembers, areas, addTeamMember, updateTeamMember, deleteTeamMember } = useApp();
   const [newName, setNewName] = useState('');
   const [newAreaId, setNewAreaId] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ name: '', areaId: '' });
 
   const handleAdd = () => {
     if (newName.trim() && newAreaId) {
       addTeamMember({ name: newName.trim(), areaId: newAreaId, active: true });
       setNewName('');
       setNewAreaId('');
+    }
+  };
+
+  const handleEdit = (id: string) => {
+    const member = teamMembers.find(m => m.id === id);
+    if (member) {
+      setEditForm({ name: member.name, areaId: member.areaId });
+      setEditingId(id);
+    }
+  };
+
+  const handleSaveEdit = () => {
+    if (editingId && editForm.name.trim()) {
+      updateTeamMember(editingId, { name: editForm.name.trim(), areaId: editForm.areaId });
+      setEditingId(null);
     }
   };
 
@@ -195,19 +212,55 @@ function EquipeTab() {
       <div className="space-y-2">
         {teamMembers.map((member) => (
           <div key={member.id} className="flex items-center justify-between p-3 border border-black">
-            <div className="flex items-center gap-4">
-              <span className="text-sm">{member.name}</span>
-              <span className="text-xs text-muted-foreground">{areas.find(a => a.id === member.areaId)?.name}</span>
-              <button
-                onClick={() => updateTeamMember(member.id, { active: !member.active })}
-                className={`text-xs px-2 py-1 border ${member.active ? 'border-success text-success' : 'border-muted-foreground text-muted-foreground'}`}
-              >
-                {member.active ? 'ATIVO' : 'INATIVO'}
-              </button>
-            </div>
-            <button onClick={() => deleteTeamMember(member.id)} className="p-2 opacity-60 hover:opacity-100 text-destructive">
-              <Trash2 className="w-4 h-4" />
-            </button>
+            {editingId === member.id ? (
+              <>
+                <div className="flex items-center gap-2 flex-1">
+                  <input
+                    value={editForm.name}
+                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                    className="input-flat flex-1 text-card-foreground"
+                  />
+                  <select
+                    value={editForm.areaId}
+                    onChange={(e) => setEditForm({ ...editForm, areaId: e.target.value })}
+                    className="input-flat text-card-foreground"
+                  >
+                    {areas.map((area) => (
+                      <option key={area.id} value={area.id}>{area.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex gap-1">
+                  <button onClick={handleSaveEdit} className="p-2">
+                    <Check className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => setEditingId(null)} className="p-2">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-4">
+                  <span className="text-sm">{member.name}</span>
+                  <span className="text-xs text-muted-foreground">{areas.find(a => a.id === member.areaId)?.name}</span>
+                  <button
+                    onClick={() => updateTeamMember(member.id, { active: !member.active })}
+                    className={`text-xs px-2 py-1 border ${member.active ? 'border-success text-success' : 'border-muted-foreground text-muted-foreground'}`}
+                  >
+                    {member.active ? 'ATIVO' : 'INATIVO'}
+                  </button>
+                </div>
+                <div className="flex gap-1">
+                  <button onClick={() => handleEdit(member.id)} className="p-2 opacity-60 hover:opacity-100">
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => deleteTeamMember(member.id)} className="p-2 opacity-60 hover:opacity-100 text-destructive">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         ))}
       </div>
@@ -275,29 +328,58 @@ function MetasTab() {
 }
 
 function TiposAcaoTab() {
-  const { actionTypes, addActionType, deleteActionType } = useApp();
+  const { actionTypes, addActionType, updateActionType, deleteActionType } = useApp();
   const [formOpen, setFormOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: '',
-    classification: 'relacionamento' as const,
+    classification: 'relacionamento' as 'relacionamento' | 'venda' | 'projeto' | 'outro',
     impactsMetas: [] as string[],
     requiresValue: false,
     additionalFields: false,
     programPoints: 0,
   });
 
+  const classLabels = { relacionamento: 'Relacionamento', venda: 'Venda', projeto: 'Projeto', outro: 'Outro' };
+
+  const resetForm = () => {
+    setForm({ name: '', classification: 'relacionamento', impactsMetas: [], requiresValue: false, additionalFields: false, programPoints: 0 });
+    setFormOpen(false);
+    setEditingId(null);
+  };
+
   const handleAdd = () => {
     if (form.name.trim()) {
-      addActionType({
-        ...form,
-        impactsMetas: form.impactsMetas as ('acoes' | 'vendas' | 'captacao' | 'projeto')[],
-      });
-      setForm({ name: '', classification: 'relacionamento', impactsMetas: [], requiresValue: false, additionalFields: false, programPoints: 0 });
-      setFormOpen(false);
+      if (editingId) {
+        updateActionType(editingId, {
+          ...form,
+          impactsMetas: form.impactsMetas as ('acoes' | 'vendas' | 'captacao' | 'projeto')[],
+        });
+      } else {
+        addActionType({
+          ...form,
+          impactsMetas: form.impactsMetas as ('acoes' | 'vendas' | 'captacao' | 'projeto')[],
+        });
+      }
+      resetForm();
     }
   };
 
-  const classLabels = { relacionamento: 'Relacionamento', venda: 'Venda', projeto: 'Projeto', outro: 'Outro' };
+  const handleEdit = (id: string) => {
+    const type = actionTypes.find(t => t.id === id);
+    if (type) {
+      setForm({
+        name: type.name,
+        classification: type.classification,
+        impactsMetas: type.impactsMetas,
+        requiresValue: type.requiresValue,
+        additionalFields: type.additionalFields,
+        programPoints: type.programPoints,
+      });
+      setEditingId(id);
+      setFormOpen(true);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -323,8 +405,8 @@ function TiposAcaoTab() {
           </div>
           <input type="number" value={form.programPoints} onChange={(e) => setForm({ ...form, programPoints: Number(e.target.value) })} placeholder="Pontos E+" className="input-flat w-full text-card-foreground" />
           <div className="flex gap-2">
-            <button onClick={handleAdd} className="btn-primary bg-card-foreground text-card">Salvar</button>
-            <button onClick={() => setFormOpen(false)} className="btn-secondary border-card-foreground text-card-foreground">Cancelar</button>
+            <button onClick={handleAdd} className="btn-primary bg-card-foreground text-card">{editingId ? 'Atualizar' : 'Salvar'}</button>
+            <button onClick={resetForm} className="btn-secondary border-card-foreground text-card-foreground">Cancelar</button>
           </div>
         </div>
       )}
@@ -336,9 +418,14 @@ function TiposAcaoTab() {
               <span className="text-xs text-muted-foreground uppercase">{classLabels[type.classification]}</span>
               <span className="text-xs text-muted-foreground">{type.programPoints} pts</span>
             </div>
-            <button onClick={() => deleteActionType(type.id)} className="p-2 opacity-60 hover:opacity-100 text-destructive">
-              <Trash2 className="w-4 h-4" />
-            </button>
+            <div className="flex gap-1">
+              <button onClick={() => handleEdit(type.id)} className="p-2 opacity-60 hover:opacity-100">
+                <Pencil className="w-4 h-4" />
+              </button>
+              <button onClick={() => deleteActionType(type.id)} className="p-2 opacity-60 hover:opacity-100 text-destructive">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         ))}
       </div>
@@ -347,15 +434,32 @@ function TiposAcaoTab() {
 }
 
 function ProgramaTab() {
-  const { rewards, addReward, deleteReward } = useApp();
+  const { rewards, addReward, updateReward, deleteReward } = useApp();
   const [newName, setNewName] = useState('');
   const [newCost, setNewCost] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ name: '', cost: '' });
 
   const handleAdd = () => {
     if (newName.trim() && newCost) {
       addReward({ name: newName.trim(), cost: Number(newCost) });
       setNewName('');
       setNewCost('');
+    }
+  };
+
+  const handleEdit = (id: string) => {
+    const reward = rewards.find(r => r.id === id);
+    if (reward) {
+      setEditForm({ name: reward.name, cost: String(reward.cost) });
+      setEditingId(id);
+    }
+  };
+
+  const handleSaveEdit = () => {
+    if (editingId && editForm.name.trim() && editForm.cost) {
+      updateReward(editingId, { name: editForm.name.trim(), cost: Number(editForm.cost) });
+      setEditingId(null);
     }
   };
 
@@ -372,13 +476,46 @@ function ProgramaTab() {
       <div className="space-y-2">
         {rewards.map((reward) => (
           <div key={reward.id} className="flex items-center justify-between p-3 border border-black">
-            <div className="flex items-center gap-4">
-              <span className="text-sm">{reward.name}</span>
-              <span className="text-xs text-muted-foreground">{reward.cost} créditos</span>
-            </div>
-            <button onClick={() => deleteReward(reward.id)} className="p-2 opacity-60 hover:opacity-100 text-destructive">
-              <Trash2 className="w-4 h-4" />
-            </button>
+            {editingId === reward.id ? (
+              <>
+                <div className="flex items-center gap-2 flex-1">
+                  <input
+                    value={editForm.name}
+                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                    className="input-flat flex-1 text-card-foreground"
+                  />
+                  <input
+                    type="number"
+                    value={editForm.cost}
+                    onChange={(e) => setEditForm({ ...editForm, cost: e.target.value })}
+                    className="input-flat w-24 text-card-foreground"
+                  />
+                </div>
+                <div className="flex gap-1">
+                  <button onClick={handleSaveEdit} className="p-2">
+                    <Check className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => setEditingId(null)} className="p-2">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-4">
+                  <span className="text-sm">{reward.name}</span>
+                  <span className="text-xs text-muted-foreground">{reward.cost} créditos</span>
+                </div>
+                <div className="flex gap-1">
+                  <button onClick={() => handleEdit(reward.id)} className="p-2 opacity-60 hover:opacity-100">
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => deleteReward(reward.id)} className="p-2 opacity-60 hover:opacity-100 text-destructive">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         ))}
       </div>
@@ -387,13 +524,30 @@ function ProgramaTab() {
 }
 
 function TiposProfTab() {
-  const { professionalTypes, addProfessionalType, deleteProfessionalType } = useApp();
+  const { professionalTypes, addProfessionalType, updateProfessionalType, deleteProfessionalType } = useApp();
   const [newName, setNewName] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
 
   const handleAdd = () => {
     if (newName.trim()) {
       addProfessionalType({ name: newName.trim() });
       setNewName('');
+    }
+  };
+
+  const handleEdit = (id: string) => {
+    const type = professionalTypes.find(t => t.id === id);
+    if (type) {
+      setEditName(type.name);
+      setEditingId(id);
+    }
+  };
+
+  const handleSaveEdit = () => {
+    if (editingId && editName.trim()) {
+      updateProfessionalType(editingId, { name: editName.trim() });
+      setEditingId(null);
     }
   };
 
@@ -408,10 +562,35 @@ function TiposProfTab() {
       <div className="space-y-2">
         {professionalTypes.map((type) => (
           <div key={type.id} className="flex items-center justify-between p-3 border border-black">
-            <span className="text-sm">{type.name}</span>
-            <button onClick={() => deleteProfessionalType(type.id)} className="p-2 opacity-60 hover:opacity-100 text-destructive">
-              <Trash2 className="w-4 h-4" />
-            </button>
+            {editingId === type.id ? (
+              <>
+                <input
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="input-flat flex-1 mr-2 text-card-foreground"
+                />
+                <div className="flex gap-1">
+                  <button onClick={handleSaveEdit} className="p-2">
+                    <Check className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => setEditingId(null)} className="p-2">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <span className="text-sm">{type.name}</span>
+                <div className="flex gap-1">
+                  <button onClick={() => handleEdit(type.id)} className="p-2 opacity-60 hover:opacity-100">
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => deleteProfessionalType(type.id)} className="p-2 opacity-60 hover:opacity-100 text-destructive">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         ))}
       </div>
@@ -422,17 +601,36 @@ function TiposProfTab() {
 function CategoriasTab() {
   const { professionalCategories, addProfessionalCategory, updateProfessionalCategory, deleteProfessionalCategory } = useApp();
   const [formOpen, setFormOpen] = useState(false);
-  const [form, setForm] = useState({ name: '', condition: 'relacionamento' as const, daysToChange: 30 });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState({ name: '', condition: 'relacionamento' as 'relacionamento' | 'venda' | 'projeto' | 'outro', daysToChange: 30 });
+
+  const condLabels = { relacionamento: 'Relacionamento', venda: 'Venda', projeto: 'Projeto', outro: 'Outro' };
+
+  const resetForm = () => {
+    setForm({ name: '', condition: 'relacionamento', daysToChange: 30 });
+    setFormOpen(false);
+    setEditingId(null);
+  };
 
   const handleAdd = () => {
     if (form.name.trim()) {
-      addProfessionalCategory({ ...form, order: professionalCategories.length + 1 });
-      setForm({ name: '', condition: 'relacionamento', daysToChange: 30 });
-      setFormOpen(false);
+      if (editingId) {
+        updateProfessionalCategory(editingId, form);
+      } else {
+        addProfessionalCategory({ ...form, order: professionalCategories.length + 1 });
+      }
+      resetForm();
     }
   };
 
-  const condLabels = { relacionamento: 'Relacionamento', venda: 'Venda', projeto: 'Projeto', outro: 'Outro' };
+  const handleEdit = (id: string) => {
+    const cat = professionalCategories.find(c => c.id === id);
+    if (cat) {
+      setForm({ name: cat.name, condition: cat.condition, daysToChange: cat.daysToChange });
+      setEditingId(id);
+      setFormOpen(true);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -448,8 +646,8 @@ function CategoriasTab() {
           </select>
           <input type="number" value={form.daysToChange} onChange={(e) => setForm({ ...form, daysToChange: Number(e.target.value) })} placeholder="Dias para mudar" className="input-flat w-full text-card-foreground" />
           <div className="flex gap-2">
-            <button onClick={handleAdd} className="btn-primary bg-card-foreground text-card">Salvar</button>
-            <button onClick={() => setFormOpen(false)} className="btn-secondary border-card-foreground text-card-foreground">Cancelar</button>
+            <button onClick={handleAdd} className="btn-primary bg-card-foreground text-card">{editingId ? 'Atualizar' : 'Salvar'}</button>
+            <button onClick={resetForm} className="btn-secondary border-card-foreground text-card-foreground">Cancelar</button>
           </div>
         </div>
       )}
@@ -460,17 +658,16 @@ function CategoriasTab() {
               <span className="text-xs text-muted-foreground">#{cat.order}</span>
               <span className="text-sm">{cat.name}</span>
               <span className="text-xs text-muted-foreground uppercase">{condLabels[cat.condition]}</span>
-              <input
-                type="number"
-                value={cat.daysToChange}
-                onChange={(e) => updateProfessionalCategory(cat.id, { daysToChange: Number(e.target.value) })}
-                className="input-flat w-20 text-card-foreground"
-              />
-              <span className="text-xs text-muted-foreground">dias</span>
+              <span className="text-xs text-muted-foreground">{cat.daysToChange} dias</span>
             </div>
-            <button onClick={() => deleteProfessionalCategory(cat.id)} className="p-2 opacity-60 hover:opacity-100 text-destructive">
-              <Trash2 className="w-4 h-4" />
-            </button>
+            <div className="flex gap-1">
+              <button onClick={() => handleEdit(cat.id)} className="p-2 opacity-60 hover:opacity-100">
+                <Pencil className="w-4 h-4" />
+              </button>
+              <button onClick={() => deleteProfessionalCategory(cat.id)} className="p-2 opacity-60 hover:opacity-100 text-destructive">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         ))}
       </div>
