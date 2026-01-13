@@ -1,0 +1,270 @@
+import { useState, useMemo } from 'react';
+import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { useApp } from '@/contexts/AppContext';
+import { MetricCard } from '@/components/MetricCard';
+import { ActionModal } from '@/components/ActionModal';
+import { format, parseISO, isThisMonth } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+
+export default function Dashboard() {
+  const [showActionModal, setShowActionModal] = useState(false);
+  const { 
+    actions, 
+    metas, 
+    areas, 
+    teamMembers, 
+    actionTypes, 
+    professionals,
+    professionalCategories,
+    deleteAction 
+  } = useApp();
+
+  const activeMembers = teamMembers.filter(m => m.active);
+
+  // Calculate monthly metrics
+  const monthlyMetrics = useMemo(() => {
+    const thisMonthActions = actions.filter(a => isThisMonth(parseISO(a.date)));
+    
+    const totalSales = thisMonthActions
+      .filter(a => {
+        const type = actionTypes.find(t => t.id === a.actionTypeId);
+        return type?.classification === 'venda';
+      })
+      .reduce((sum, a) => sum + (a.value || 0), 0);
+
+    const totalCaptacoes = thisMonthActions.filter(a => {
+      const type = actionTypes.find(t => t.id === a.actionTypeId);
+      return type?.impactsMetas.includes('captacao');
+    }).length;
+
+    const totalAcoes = thisMonthActions.length;
+
+    // Get metas
+    const salesMeta = metas.filter(m => m.type === 'vendas').reduce((sum, m) => sum + m.value, 0);
+    const captacaoMeta = metas.filter(m => m.type === 'captacao').reduce((sum, m) => sum + m.value, 0);
+    const acoesMeta = metas.filter(m => m.type === 'acoes').reduce((sum, m) => sum + m.value, 0);
+
+    return {
+      sales: { value: totalSales, meta: salesMeta, percentage: salesMeta > 0 ? (totalSales / salesMeta) * 100 : 0 },
+      captacoes: { value: totalCaptacoes, meta: captacaoMeta, percentage: captacaoMeta > 0 ? (totalCaptacoes / captacaoMeta) * 100 : 0 },
+      acoes: { value: totalAcoes, meta: acoesMeta, percentage: acoesMeta > 0 ? (totalAcoes / acoesMeta) * 100 : 0 },
+    };
+  }, [actions, metas, actionTypes]);
+
+  // Metrics by consultant
+  const consultantMetrics = useMemo(() => {
+    return activeMembers.map(member => {
+      const memberArea = areas.find(a => a.id === member.areaId);
+      const thisMonthActions = actions.filter(a => 
+        a.consultantId === member.id && isThisMonth(parseISO(a.date))
+      );
+      
+      const totalSales = thisMonthActions
+        .filter(a => {
+          const type = actionTypes.find(t => t.id === a.actionTypeId);
+          return type?.classification === 'venda';
+        })
+        .reduce((sum, a) => sum + (a.value || 0), 0);
+
+      const totalAcoes = thisMonthActions.length;
+
+      // Get member's professionals by category
+      const memberProfessionals = professionals.filter(p => p.consultantId === member.id);
+      const categoryBreakdown = professionalCategories.map(cat => ({
+        name: cat.name,
+        count: memberProfessionals.filter(p => p.categoryId === cat.id).length,
+      }));
+
+      // Area metas divided by active members in that area
+      const areaMembers = activeMembers.filter(m => m.areaId === member.areaId).length;
+      const areaSalesMeta = metas.find(m => m.areaId === member.areaId && m.type === 'vendas')?.value || 0;
+      const areaAcoesMeta = metas.find(m => m.areaId === member.areaId && m.type === 'acoes')?.value || 0;
+      
+      const individualSalesMeta = areaMembers > 0 ? areaSalesMeta / areaMembers : 0;
+      const individualAcoesMeta = areaMembers > 0 ? areaAcoesMeta / areaMembers : 0;
+
+      return {
+        ...member,
+        area: memberArea?.name || '',
+        sales: totalSales,
+        salesMeta: individualSalesMeta,
+        salesPercentage: individualSalesMeta > 0 ? (totalSales / individualSalesMeta) * 100 : 0,
+        acoes: totalAcoes,
+        acoesMeta: individualAcoesMeta,
+        acoesPercentage: individualAcoesMeta > 0 ? (totalAcoes / individualAcoesMeta) * 100 : 0,
+        categoryBreakdown,
+        totalProfessionals: memberProfessionals.length,
+      };
+    });
+  }, [activeMembers, actions, areas, metas, actionTypes, professionals, professionalCategories]);
+
+  // Recent actions
+  const recentActions = useMemo(() => {
+    return [...actions]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 10)
+      .map(action => {
+        const consultant = teamMembers.find(m => m.id === action.consultantId);
+        const professional = professionals.find(p => p.id === action.professionalId);
+        const actionType = actionTypes.find(t => t.id === action.actionTypeId);
+        return {
+          ...action,
+          consultantName: consultant?.name || '-',
+          professionalName: professional?.name || '-',
+          actionTypeName: actionType?.name || '-',
+        };
+      });
+  }, [actions, teamMembers, professionals, actionTypes]);
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+  };
+
+  return (
+    <div className="space-y-8 animate-fade-in">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl">Dashboard</h1>
+        <span className="text-xs tracking-widest uppercase text-muted-foreground">
+          {format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })}
+        </span>
+      </div>
+
+      {/* General Metrics */}
+      <section>
+        <h2 className="title-section mb-4">Indicadores Mensais</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <MetricCard
+            value={formatCurrency(monthlyMetrics.sales.value)}
+            label="Valor Vendido"
+            percentage={monthlyMetrics.sales.percentage}
+            subtitle={`Meta: ${formatCurrency(monthlyMetrics.sales.meta)}`}
+          />
+          <MetricCard
+            value={monthlyMetrics.captacoes.value}
+            label="Captações"
+            percentage={monthlyMetrics.captacoes.percentage}
+            subtitle={`Meta: ${monthlyMetrics.captacoes.meta}`}
+          />
+          <MetricCard
+            value={monthlyMetrics.acoes.value}
+            label="Ações"
+            percentage={monthlyMetrics.acoes.percentage}
+            subtitle={`Meta: ${monthlyMetrics.acoes.meta}`}
+          />
+        </div>
+      </section>
+
+      {/* Register Action */}
+      <section>
+        <button
+          onClick={() => setShowActionModal(true)}
+          className="btn-primary flex items-center gap-2"
+        >
+          <Plus className="w-4 h-4" />
+          Registrar Ação
+        </button>
+      </section>
+
+      {/* Recent Actions */}
+      <section>
+        <h2 className="title-section mb-4">Ações Recentes</h2>
+        <div className="card-flat overflow-hidden">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-black">
+                <th className="table-header text-left p-3">Data</th>
+                <th className="table-header text-left p-3">Consultor</th>
+                <th className="table-header text-left p-3">Profissional</th>
+                <th className="table-header text-left p-3">Tipo</th>
+                <th className="table-header text-left p-3">Valor</th>
+                <th className="table-header text-left p-3">Pts</th>
+                <th className="table-header text-right p-3"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {recentActions.map((action) => (
+                <tr key={action.id} className="border-b border-black/10 last:border-0">
+                  <td className="p-3 text-sm">{format(parseISO(action.date), 'dd/MM')}</td>
+                  <td className="p-3 text-sm">{action.consultantName}</td>
+                  <td className="p-3 text-sm">{action.professionalName}</td>
+                  <td className="p-3 text-sm">{action.actionTypeName}</td>
+                  <td className="p-3 text-sm">{action.value ? formatCurrency(action.value) : '-'}</td>
+                  <td className="p-3 text-sm">{action.pointsGenerated}</td>
+                  <td className="p-3 text-right">
+                    <button
+                      onClick={() => deleteAction(action.id)}
+                      className="p-2 opacity-40 hover:opacity-100 text-destructive"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* Metrics by Consultant */}
+      <section>
+        <h2 className="title-section mb-4">Por Colaborador</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {consultantMetrics.map((consultant) => (
+            <div key={consultant.id} className="card-flat">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-sm font-medium">{consultant.name}</h3>
+                  <span className="text-xs text-muted-foreground">{consultant.area}</span>
+                </div>
+                <span className="text-xs text-muted-foreground">{consultant.totalProfessionals} prof.</span>
+              </div>
+              
+              <div className="space-y-3">
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-muted-foreground">VENDAS</span>
+                    <span>{formatCurrency(consultant.sales)}</span>
+                  </div>
+                  <div className="h-1 bg-muted">
+                    <div 
+                      className="h-full bg-card-foreground" 
+                      style={{ width: `${Math.min(consultant.salesPercentage, 100)}%` }}
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-muted-foreground">AÇÕES</span>
+                    <span>{consultant.acoes}</span>
+                  </div>
+                  <div className="h-1 bg-muted">
+                    <div 
+                      className="h-full bg-card-foreground" 
+                      style={{ width: `${Math.min(consultant.acoesPercentage, 100)}%` }}
+                    />
+                  </div>
+                </div>
+
+                {consultant.categoryBreakdown.length > 0 && (
+                  <div className="pt-2 border-t border-black/10">
+                    <div className="flex flex-wrap gap-2">
+                      {consultant.categoryBreakdown.filter(c => c.count > 0).map((cat) => (
+                        <span key={cat.name} className="text-xs text-muted-foreground">
+                          {cat.name}: {cat.count}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <ActionModal open={showActionModal} onOpenChange={setShowActionModal} />
+    </div>
+  );
+}
