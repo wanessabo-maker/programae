@@ -133,7 +133,6 @@ export default function Dashboard() {
             value: totalProjetos,
             meta: individualMeta,
             percentage: individualMeta > 0 ? (totalProjetos / individualMeta) * 100 : 0,
-            isCurrency: true,
           });
         } else if (meta.type === 'categoria' && meta.categoryId) {
           // Calculate percentage of professionals in the specified category
@@ -152,15 +151,39 @@ export default function Dashboard() {
         }
       });
 
+      // Check if consultant has any goals > 1 or performed actions this month
+      const hasGoals = metricsForArea.length > 0;
+      const hasActions = thisMonthActions.length > 0;
+
       return {
         ...member,
+        areaId: member.areaId,
         area: memberArea?.name || '',
         metricsForArea,
         categoryBreakdown,
         totalProfessionals: memberProfessionals.length,
+        hasGoals,
+        hasActions,
+        shouldDisplay: hasGoals || hasActions,
       };
     });
   }, [activeMembers, actions, areas, metas, actionTypes, professionals, professionalCategories]);
+
+  // Group consultants by area (only those that should be displayed)
+  const consultantsByArea = useMemo(() => {
+    const filtered = consultantMetrics.filter(c => c.shouldDisplay);
+    const grouped: Record<string, typeof filtered> = {};
+    
+    filtered.forEach(consultant => {
+      const areaName = consultant.area || 'Sem Área';
+      if (!grouped[areaName]) {
+        grouped[areaName] = [];
+      }
+      grouped[areaName].push(consultant);
+    });
+    
+    return grouped;
+  }, [consultantMetrics]);
 
   // Recent actions
   const recentActions = useMemo(() => {
@@ -270,55 +293,67 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {/* Metrics by Consultant */}
+      {/* Metrics by Consultant - Grouped by Area */}
       <section>
         <h2 className="title-section mb-4">Por Colaborador</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {consultantMetrics.map((consultant) => (
-            <div key={consultant.id} className="card-flat">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-sm font-medium">{consultant.name}</h3>
-                  <span className="text-xs text-muted-foreground">{consultant.area}</span>
-                </div>
-                <span className="text-xs text-muted-foreground">{consultant.totalProfessionals} prof.</span>
-              </div>
-              
-              <div className="space-y-3">
-                {consultant.metricsForArea.map((metric) => (
-                  <div key={metric.type}>
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="text-muted-foreground">{metric.label}</span>
-                      <span>
-                        {metric.isCurrency 
-                          ? formatCurrency(metric.value as number) 
-                          : metric.value}
-                      </span>
-                    </div>
-                    <div className="h-1 bg-muted">
-                      <div 
-                        className="h-full bg-card-foreground" 
-                        style={{ width: `${Math.min(metric.percentage, 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
+        {Object.keys(consultantsByArea).length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhum colaborador com metas ou ações registradas.</p>
+        ) : (
+          <div className="space-y-6">
+            {Object.entries(consultantsByArea).map(([areaName, consultants]) => (
+              <div key={areaName}>
+                <h3 className="text-xs tracking-widest uppercase text-muted-foreground mb-3 border-b border-black/10 pb-2">
+                  {areaName}
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {consultants.map((consultant) => (
+                    <div key={consultant.id} className="card-flat">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <h3 className="text-sm font-medium">{consultant.name}</h3>
+                        </div>
+                        <span className="text-xs text-muted-foreground">{consultant.totalProfessionals} prof.</span>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        {consultant.metricsForArea.map((metric) => (
+                          <div key={metric.type}>
+                            <div className="flex justify-between text-xs mb-1">
+                              <span className="text-muted-foreground">{metric.label}</span>
+                              <span>
+                                {metric.isCurrency 
+                                  ? formatCurrency(metric.value as number) 
+                                  : metric.value}
+                              </span>
+                            </div>
+                            <div className="h-1 bg-muted">
+                              <div 
+                                className="h-full bg-card-foreground" 
+                                style={{ width: `${Math.min(metric.percentage, 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        ))}
 
-                {consultant.categoryBreakdown.length > 0 && (
-                  <div className="pt-2 border-t border-black/10">
-                    <div className="flex flex-wrap gap-2">
-                      {consultant.categoryBreakdown.filter(c => c.count > 0).map((cat) => (
-                        <span key={cat.name} className="text-xs text-muted-foreground">
-                          {cat.name}: {cat.count}
-                        </span>
-                      ))}
+                        {consultant.categoryBreakdown.length > 0 && (
+                          <div className="pt-2 border-t border-black/10">
+                            <div className="flex flex-wrap gap-2">
+                              {consultant.categoryBreakdown.filter(c => c.count > 0).map((cat) => (
+                                <span key={cat.name} className="text-xs text-muted-foreground">
+                                  {cat.name}: {cat.count}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
 
       <ActionModal open={showActionModal} onOpenChange={setShowActionModal} />
