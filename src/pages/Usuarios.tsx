@@ -44,15 +44,16 @@ export default function Usuarios() {
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      // Refresh session to ensure a valid token before calling edge function
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError || !refreshData.session) {
         toast.error('Sessão expirada');
         return;
       }
 
       const response = await supabase.functions.invoke('list-users', {
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${refreshData.session.access_token}`,
         },
       });
 
@@ -139,15 +140,16 @@ export default function Usuarios() {
     setProcessingUserId(deletingUser.id);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      // Refresh session to ensure a valid token before calling edge function
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError || !refreshData.session) {
         toast.error('Sessão expirada');
         return;
       }
 
       const response = await supabase.functions.invoke('delete-user', {
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${refreshData.session.access_token}`,
         },
         body: { userId: deletingUser.id },
       });
