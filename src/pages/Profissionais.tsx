@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, Pencil, Trash2, Calendar, Clock, Upload } from 'lucide-react';
+import { Plus, Pencil, Trash2, Calendar, Clock, Users } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ImportProfessionalsModal } from '@/components/ImportProfessionalsModal';
+import { BulkAddProfessionalsModal } from '@/components/BulkAddProfessionalsModal';
 import { format, parseISO, differenceInDays, addDays, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { calculateProfessionalCategory } from '@/hooks/useProfessionalCategory';
@@ -24,7 +24,7 @@ export default function Profissionais() {
   } = useApp();
 
   const [showProfessionalModal, setShowProfessionalModal] = useState(false);
-  const [showImportModal, setShowImportModal] = useState(false);
+  const [showBulkModal, setShowBulkModal] = useState(false);
   const [showReminderModal, setShowReminderModal] = useState(false);
   const [editingProfessional, setEditingProfessional] = useState<string | null>(null);
   const [editingReminder, setEditingReminder] = useState<string | null>(null);
@@ -202,12 +202,12 @@ export default function Profissionais() {
             Novo Profissional
           </button>
           <button
-            onClick={() => setShowImportModal(true)}
+            onClick={() => setShowBulkModal(true)}
             className="btn-secondary border-card-foreground text-card-foreground flex items-center gap-2 justify-center w-full sm:w-auto"
           >
-            <Upload className="w-4 h-4" />
-            <span className="hidden sm:inline">Adicionar profissionais em massa</span>
-            <span className="sm:hidden">Importar em massa</span>
+            <Users className="w-4 h-4" />
+            <span className="hidden sm:inline">Adicionar em Massa</span>
+            <span className="sm:hidden">Em Massa</span>
           </button>
         </div>
       </div>
@@ -472,8 +472,8 @@ export default function Profissionais() {
         </DialogContent>
       </Dialog>
 
-      {/* Import Modal */}
-      <ImportProfessionalsModal open={showImportModal} onOpenChange={setShowImportModal} />
+      {/* Bulk Add Modal */}
+      <BulkAddProfessionalsModal open={showBulkModal} onOpenChange={setShowBulkModal} />
     </div>
   );
 }
