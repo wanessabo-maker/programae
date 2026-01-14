@@ -15,7 +15,6 @@ export default function Dashboard() {
     teamMembers, 
     actionTypes, 
     professionals,
-    professionalTypes,
     professionalCategories,
     deleteAction 
   } = useApp();
@@ -136,18 +135,16 @@ export default function Dashboard() {
             percentage: individualMeta > 0 ? (totalProjetos / individualMeta) * 100 : 0,
             isCurrency: true,
           });
-        } else if (meta.type === 'especificador') {
-          // Calculate percentage of professionals that are "especificador" type
-          const especificadorCount = memberProfessionals.filter(p => {
-            const profType = professionalTypes.find(t => t.id === p.typeId);
-            return profType?.name.toLowerCase().includes('especificador');
-          }).length;
+        } else if (meta.type === 'categoria' && meta.categoryId) {
+          // Calculate percentage of professionals in the specified category
+          const categoryCount = memberProfessionals.filter(p => p.categoryId === meta.categoryId).length;
           const percentage = memberProfessionals.length > 0 
-            ? (especificadorCount / memberProfessionals.length) * 100 
+            ? (categoryCount / memberProfessionals.length) * 100 
             : 0;
+          const category = professionalCategories.find(c => c.id === meta.categoryId);
           metricsForArea.push({
-            type: 'especificador',
-            label: '% ESPECIFICADOR',
+            type: 'categoria',
+            label: `% ${category?.name?.toUpperCase() || 'CATEGORIA'}`,
             value: `${percentage.toFixed(0)}%`,
             meta: individualMeta,
             percentage: individualMeta > 0 ? (percentage / individualMeta) * 100 : 0,

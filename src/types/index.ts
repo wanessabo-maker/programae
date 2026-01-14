@@ -23,8 +23,9 @@ export interface ActionType {
 export interface Meta {
   id: string;
   areaId: string;
-  type: 'acoes' | 'vendas' | 'captacao' | 'projeto' | 'especificador';
+  type: 'acoes' | 'vendas' | 'captacao' | 'projeto' | 'categoria' | 'especificador'; // especificador for backwards compatibility
   value: number;
+  categoryId?: string; // For 'categoria' type metas
 }
 
 export interface ProfessionalType {

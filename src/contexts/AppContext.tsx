@@ -135,12 +135,13 @@ function transformActionType(dbType: {
   };
 }
 
-function transformGoal(dbGoal: { id: string; area_id: string | null; metric: string; value: number }): Meta {
+function transformGoal(dbGoal: { id: string; area_id: string | null; metric: string; value: number; category_id?: string | null }): Meta {
   return {
     id: dbGoal.id,
     areaId: dbGoal.area_id || '',
     type: dbGoal.metric as Meta['type'],
     value: Number(dbGoal.value),
+    categoryId: dbGoal.category_id || undefined,
   };
 }
 
@@ -392,6 +393,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       area_id: meta.areaId,
       metric: meta.type,
       value: meta.value,
+      category_id: meta.categoryId,
     });
   }, [createGoal]);
 
@@ -401,6 +403,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       area_id: meta.areaId,
       metric: meta.type,
       value: meta.value,
+      category_id: meta.categoryId,
     });
   }, [updateGoalMutation]);
 
