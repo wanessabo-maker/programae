@@ -316,6 +316,11 @@ export default function Dashboard() {
                       </div>
                       
                       <div className="space-y-3">
+                        {consultant.metricsForArea.length === 0 && consultant.hasActions && (
+                          <div className="text-xs text-muted-foreground italic">
+                            Ações registradas (sem metas definidas para a área)
+                          </div>
+                        )}
                         {consultant.metricsForArea.map((metric) => (
                           <div key={metric.type}>
                             <div className="flex justify-between text-xs mb-1">
