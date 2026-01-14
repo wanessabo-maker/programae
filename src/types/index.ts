@@ -102,4 +102,12 @@ export interface CreditTransaction {
   date: string;
   actionId?: string;
   rewardId?: string;
+  expiresAt?: string;
+  status: 'active' | 'expired' | 'used';
+  professionalId?: string;
+}
+
+export interface CreditValiditySettings {
+  type: 'mensal' | 'anual' | 'dias' | 'sem_validade';
+  days?: number; // For 'dias' type
 }
