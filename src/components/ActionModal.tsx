@@ -91,7 +91,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     setIsSubmitting(true);
     
     try {
-      let professionalId = form.professionalId;
+      // Handle "Sem Especificador" - treat 'none' as no professional
+      let professionalId = form.professionalId === 'none' ? '' : form.professionalId;
 
       // Determine the category based on action type
       const targetCategory = selectedActionType 
@@ -128,7 +129,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           });
           toast.success(`Lembrete criado para ${specialDate.reason}`);
         }
-      } else if (professionalId) {
+      } else if (professionalId && professionalId !== '') {
         // Update existing professional with new category based on action
         updateProfessional(professionalId, {
           lastActionDate: form.date,
@@ -161,12 +162,13 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
 
       // Add credits
       if (points > 0) {
-        const professional = professionals.find(p => p.id === professionalId);
+        const professional = professionalId ? professionals.find(p => p.id === professionalId) : null;
+        const professionalName = professional?.name || newProfessional.name || 'Sem Especificador';
         addCreditTransaction({
           consultantId: form.consultantId,
           amount: points,
           type: 'ganho',
-          description: `${selectedActionType?.name} - ${professional?.name || newProfessional.name}`,
+          description: `${selectedActionType?.name} - ${professionalName}`,
           date: form.date,
           actionId: actionId,
           status: 'active',
@@ -229,12 +231,15 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           {form.consultantId && (
             <div>
               <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Especificador</label>
-              <div className="flex items-center gap-4 mb-2">
+              <div className="flex items-center gap-4 mb-2 flex-wrap">
                 <label className="flex items-center gap-2 text-sm">
                   <input
                     type="radio"
-                    checked={!isNewProfessional}
-                    onChange={() => setIsNewProfessional(false)}
+                    checked={!isNewProfessional && form.professionalId !== 'none'}
+                    onChange={() => {
+                      setIsNewProfessional(false);
+                      setForm({ ...form, professionalId: '' });
+                    }}
                   />
                   Existente
                 </label>
@@ -242,12 +247,26 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   <input
                     type="radio"
                     checked={isNewProfessional}
-                    onChange={() => setIsNewProfessional(true)}
+                    onChange={() => {
+                      setIsNewProfessional(true);
+                      setForm({ ...form, professionalId: '' });
+                    }}
                   />
                   Novo
                 </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    checked={!isNewProfessional && form.professionalId === 'none'}
+                    onChange={() => {
+                      setIsNewProfessional(false);
+                      setForm({ ...form, professionalId: 'none' });
+                    }}
+                  />
+                  Sem Especificador
+                </label>
               </div>
-              {!isNewProfessional ? (
+              {!isNewProfessional && form.professionalId !== 'none' ? (
                 <select
                   value={form.professionalId}
                   onChange={(e) => setForm({ ...form, professionalId: e.target.value })}
@@ -258,7 +277,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
                 </select>
-              ) : (
+              ) : isNewProfessional ? (
                 <div className="space-y-3">
                   <div>
                     <input
@@ -318,6 +337,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                     )}
                   </div>
                 </div>
+              ) : (
+                <p className="text-sm text-muted-foreground italic">Ação será registrada sem especificador vinculado.</p>
               )}
             </div>
           )}
