@@ -227,7 +227,7 @@ const EquipeTab = () => {
 const MetasTab = () => {
   const { metas, areas, addMeta, updateMeta, deleteMeta } = useApp();
   const [newAreaId, setNewAreaId] = useState('');
-  const [newType, setNewType] = useState<'acoes' | 'vendas' | 'captacao' | 'projeto'>('acoes');
+  const [newType, setNewType] = useState<'acoes' | 'vendas' | 'captacao' | 'projeto' | 'especificador'>('acoes');
   const [newValue, setNewValue] = useState('');
 
   const handleAdd = () => {
@@ -237,7 +237,13 @@ const MetasTab = () => {
     }
   };
 
-  const typeLabels = { acoes: 'Ações', vendas: 'Vendas', captacao: 'Captação', projeto: 'Projeto' };
+  const typeLabels: Record<string, string> = { 
+    acoes: 'Ações', 
+    vendas: 'Vendas', 
+    captacao: 'Captação', 
+    projeto: 'Projeto',
+    especificador: '% Tipo Especificador'
+  };
 
   return (
     <div className="space-y-4">
