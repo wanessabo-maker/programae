@@ -1,6 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Settings, LogOut } from 'lucide-react';
+import { Settings, LogOut, Users } from 'lucide-react';
 import { SetupModal } from './SetupModal';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -19,6 +19,7 @@ export function Layout({ children }: LayoutProps) {
     { path: '/', label: 'Dashboard' },
     { path: '/profissionais', label: 'Profissionais' },
     { path: '/programa-e-mais', label: 'Programa E+' },
+    ...(isAdmin ? [{ path: '/usuarios', label: 'Usuários' }] : []),
   ];
 
   const handleLogout = async () => {

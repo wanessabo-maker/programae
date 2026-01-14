@@ -9,6 +9,7 @@ import { Layout } from "@/components/Layout";
 import Index from "./pages/Index";
 import Profissionais from "./pages/Profissionais";
 import ProgramaEMais from "./pages/ProgramaEMais";
+import Usuarios from "./pages/Usuarios";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -29,6 +30,30 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (!user) {
     return <Navigate to="/auth" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { user, isAdmin, isLoading } = useAuthContext();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-xs tracking-widest uppercase text-muted-foreground">
+          Carregando...
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  if (!isAdmin) {
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;
@@ -93,6 +118,16 @@ function AppRoutes() {
               <ProgramaEMais />
             </Layout>
           </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/usuarios"
+        element={
+          <AdminRoute>
+            <Layout>
+              <Usuarios />
+            </Layout>
+          </AdminRoute>
         }
       />
       <Route path="*" element={<NotFound />} />
