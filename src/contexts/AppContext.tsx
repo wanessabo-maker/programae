@@ -96,7 +96,7 @@ interface AppContextType {
   deleteReminder: (id: string) => void;
   
   // Credits
-  addCreditTransaction: (transaction: Omit<CreditTransaction, 'id'>) => void;
+  addCreditTransaction: (transaction: Omit<CreditTransaction, 'id'> & { actionTypeId?: string }) => void;
   updateCreditTransaction: (id: string, updates: Partial<CreditTransaction>) => void;
   deleteCreditTransaction: (id: string) => void;
   getConsultantBalance: (consultantId: string) => number;
@@ -130,6 +130,8 @@ function transformActionType(dbType: {
   requires_value: boolean | null;
   additional_fields: boolean | null;
   points: number | null;
+  credit_validity_type: string | null;
+  credit_validity_days: number | null;
 }): ActionType {
   return {
     id: dbType.id,
@@ -139,6 +141,8 @@ function transformActionType(dbType: {
     requiresValue: dbType.requires_value ?? false,
     additionalFields: dbType.additional_fields ?? false,
     programPoints: dbType.points ?? 0,
+    creditValidityType: (dbType.credit_validity_type as ActionType['creditValidityType']) ?? 'global',
+    creditValidityDays: dbType.credit_validity_days ?? undefined,
   };
 }
 
@@ -403,6 +407,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       requires_value: type.requiresValue,
       additional_fields: type.additionalFields,
       points: type.programPoints,
+      credit_validity_type: type.creditValidityType,
+      credit_validity_days: type.creditValidityDays ?? null,
     });
   }, [createActionType]);
 
@@ -415,6 +421,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       requires_value: type.requiresValue,
       additional_fields: type.additionalFields,
       points: type.programPoints,
+      credit_validity_type: type.creditValidityType,
+      credit_validity_days: type.creditValidityDays ?? null,
     });
   }, [updateActionTypeMutation]);
 
@@ -609,31 +617,45 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [upsertSystemSetting]);
 
   // Calculate expiration date based on settings
-  const calculateExpirationDate = useCallback((transactionDate: string): string | undefined => {
-    if (creditValiditySettings.type === 'sem_validade') {
+  // Calculate expiration date based on action type settings or global settings
+  const calculateExpirationDate = useCallback((transactionDate: string, actionTypeId?: string): string | undefined => {
+    // Get the action type's validity settings
+    const actionType = actionTypeId ? actionTypes.find(t => t.id === actionTypeId) : null;
+    
+    // Determine which validity settings to use
+    let validityType: string = creditValiditySettings.type;
+    let validityDays: number | undefined = creditValiditySettings.days;
+    
+    if (actionType && actionType.creditValidityType !== 'global') {
+      validityType = actionType.creditValidityType;
+      validityDays = actionType.creditValidityDays;
+    }
+    
+    if (validityType === 'sem_validade') {
       return undefined;
     }
 
     const date = new Date(transactionDate);
     
-    switch (creditValiditySettings.type) {
+    switch (validityType) {
       case 'mensal':
         return new Date(date.getFullYear(), date.getMonth() + 1, 0).toISOString().split('T')[0];
       case 'anual':
         return new Date(date.getFullYear(), 11, 31).toISOString().split('T')[0];
       case 'dias':
-        const days = creditValiditySettings.days || 30;
+      case 'personalizado':
+        const days = validityDays || 30;
         date.setDate(date.getDate() + days);
         return date.toISOString().split('T')[0];
       default:
         return undefined;
     }
-  }, [creditValiditySettings]);
+  }, [creditValiditySettings, actionTypes]);
 
-  const addCreditTransaction = useCallback((transaction: Omit<CreditTransaction, 'id'>) => {
+  const addCreditTransaction = useCallback((transaction: Omit<CreditTransaction, 'id'> & { actionTypeId?: string }) => {
     const points = transaction.type === 'ganho' ? transaction.amount : -transaction.amount;
     const expiresAt = transaction.type === 'ganho' 
-      ? (transaction.expiresAt || calculateExpirationDate(transaction.date))
+      ? (transaction.expiresAt || calculateExpirationDate(transaction.date, transaction.actionTypeId))
       : undefined;
     
     createCreditTransaction.mutate({

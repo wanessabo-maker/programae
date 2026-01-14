@@ -19,6 +19,8 @@ export type Database = {
           additional_fields: boolean | null
           classification: string
           created_at: string | null
+          credit_validity_days: number | null
+          credit_validity_type: string | null
           id: string
           impacts: string[] | null
           name: string
@@ -29,6 +31,8 @@ export type Database = {
           additional_fields?: boolean | null
           classification: string
           created_at?: string | null
+          credit_validity_days?: number | null
+          credit_validity_type?: string | null
           id?: string
           impacts?: string[] | null
           name: string
@@ -39,6 +43,8 @@ export type Database = {
           additional_fields?: boolean | null
           classification?: string
           created_at?: string | null
+          credit_validity_days?: number | null
+          credit_validity_type?: string | null
           id?: string
           impacts?: string[] | null
           name?: string

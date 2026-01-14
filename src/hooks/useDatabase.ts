@@ -226,6 +226,8 @@ export function useCreateActionType() {
       requires_value: boolean;
       additional_fields: boolean;
       points: number;
+      credit_validity_type?: string;
+      credit_validity_days?: number | null;
     }) => {
       const { data, error } = await supabase.from('action_types').insert(actionType).select().single();
       if (error) throw error;
@@ -249,6 +251,8 @@ export function useUpdateActionType() {
       requires_value?: boolean;
       additional_fields?: boolean;
       points?: number;
+      credit_validity_type?: string;
+      credit_validity_days?: number | null;
     }) => {
       const { data, error } = await supabase.from('action_types').update(updates).eq('id', id).select().single();
       if (error) throw error;
