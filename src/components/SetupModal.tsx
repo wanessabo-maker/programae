@@ -571,12 +571,22 @@ const TiposAcaoTab = () => {
     requiresValue: false,
     additionalFields: false,
     programPoints: 0,
+    creditValidityType: 'global' as 'global' | 'mensal' | 'anual' | 'dias' | 'personalizado' | 'sem_validade',
+    creditValidityDays: undefined as number | undefined,
   });
 
   const classLabels = { relacionamento: 'Relacionamento', venda: 'Venda', projeto: 'Projeto', outro: 'Outro' };
+  const validityLabels: Record<string, string> = {
+    global: 'Usar configuração global',
+    mensal: 'Mensal (até o fim do mês)',
+    anual: 'Anual (até o fim do ano)',
+    dias: 'Por número de dias',
+    personalizado: 'Personalizado (dias)',
+    sem_validade: 'Sem validade',
+  };
 
   const resetForm = () => {
-    setForm({ name: '', classification: 'relacionamento', impactsMetas: [], requiresValue: false, additionalFields: false, programPoints: 0 });
+    setForm({ name: '', classification: 'relacionamento', impactsMetas: [], requiresValue: false, additionalFields: false, programPoints: 0, creditValidityType: 'global', creditValidityDays: undefined });
     setFormOpen(false);
     setEditingId(null);
   };
@@ -608,6 +618,8 @@ const TiposAcaoTab = () => {
         requiresValue: type.requiresValue,
         additionalFields: type.additionalFields,
         programPoints: type.programPoints,
+        creditValidityType: type.creditValidityType,
+        creditValidityDays: type.creditValidityDays,
       });
       setEditingId(id);
       setFormOpen(true);
@@ -637,6 +649,29 @@ const TiposAcaoTab = () => {
             </label>
           </div>
           <input type="number" value={form.programPoints} onChange={(e) => setForm({ ...form, programPoints: Number(e.target.value) })} placeholder="Pontos E+" className="input-flat w-full text-card-foreground" />
+          
+          {/* Credit Validity Settings */}
+          <div className="border-t border-border pt-3 mt-3 space-y-2">
+            <p className="text-xs uppercase tracking-widest text-muted-foreground">Validade dos Créditos</p>
+            <select 
+              value={form.creditValidityType} 
+              onChange={(e) => setForm({ ...form, creditValidityType: e.target.value as typeof form.creditValidityType })} 
+              className="input-flat w-full text-card-foreground"
+            >
+              {Object.entries(validityLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+            {(form.creditValidityType === 'dias' || form.creditValidityType === 'personalizado') && (
+              <input 
+                type="number" 
+                value={form.creditValidityDays || ''} 
+                onChange={(e) => setForm({ ...form, creditValidityDays: e.target.value ? Number(e.target.value) : undefined })} 
+                placeholder="Número de dias" 
+                min="1"
+                className="input-flat w-full text-card-foreground" 
+              />
+            )}
+          </div>
+          
           <div className="flex gap-2">
             <button onClick={handleAdd} className="btn-primary bg-card-foreground text-card">{editingId ? 'Atualizar' : 'Salvar'}</button>
             <button onClick={resetForm} className="btn-secondary border-card-foreground text-card-foreground">Cancelar</button>

@@ -18,6 +18,8 @@ export interface ActionType {
   requiresValue: boolean;
   additionalFields: boolean;
   programPoints: number;
+  creditValidityType: 'global' | 'mensal' | 'anual' | 'dias' | 'personalizado' | 'sem_validade';
+  creditValidityDays?: number;
 }
 
 export interface Meta {
