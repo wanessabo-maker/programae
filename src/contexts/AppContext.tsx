@@ -10,7 +10,7 @@ import {
   useProfessionals, useCreateProfessional, useUpdateProfessional, useDeleteProfessional,
   useActions, useCreateAction, useUpdateAction, useDeleteAction,
   useReminders, useCreateReminder, useUpdateReminder, useDeleteReminder,
-  useCreditTransactions, useCreateCreditTransaction,
+  useCreditTransactions, useCreateCreditTransaction, useDeleteCreditTransaction,
 } from '@/hooks/useDatabase';
 import {
   Area,
@@ -95,6 +95,7 @@ interface AppContextType {
   
   // Credits
   addCreditTransaction: (transaction: Omit<CreditTransaction, 'id'>) => void;
+  deleteCreditTransaction: (id: string) => void;
   getConsultantBalance: (consultantId: string) => number;
 }
 
@@ -306,6 +307,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const deleteReminderMutation = useDeleteReminder();
   
   const createCreditTransaction = useCreateCreditTransaction();
+  const deleteCreditTransactionMutation = useDeleteCreditTransaction();
 
   // Transform data
   const areas = useMemo(() => areasData?.map(transformArea) || [], [areasData]);
@@ -557,6 +559,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
   }, [createCreditTransaction]);
 
+  const deleteCreditTransaction = useCallback((id: string) => {
+    deleteCreditTransactionMutation.mutate(id);
+  }, [deleteCreditTransactionMutation]);
+
   const getConsultantBalance = useCallback((consultantId: string) => {
     return creditTransactions
       .filter(t => t.consultantId === consultantId)
@@ -607,6 +613,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     updateReminder,
     deleteReminder,
     addCreditTransaction,
+    deleteCreditTransaction,
     getConsultantBalance,
   };
 
