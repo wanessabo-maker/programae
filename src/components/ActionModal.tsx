@@ -63,6 +63,9 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     if (isNewProfessional) {
       if (!newProfessional.name) newErrors.professionalName = true;
       if (!newProfessional.typeId) newErrors.professionalType = true;
+      if (professionalCategories.length === 0) {
+        newErrors.noCategories = true;
+      }
     }
     
     if (selectedActionType?.requiresValue && !form.value) {
@@ -75,7 +78,11 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
 
   const handleSubmit = async () => {
     if (!validateForm()) {
-      toast.error('Preencha os campos obrigatórios');
+      if (errors.noCategories || (isNewProfessional && professionalCategories.length === 0)) {
+        toast.error('Configure pelo menos uma Categoria de Profissional no Setup antes de registrar novos profissionais');
+      } else {
+        toast.error('Preencha os campos obrigatórios');
+      }
       return;
     }
 
