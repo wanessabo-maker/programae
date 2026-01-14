@@ -23,7 +23,7 @@ export interface ActionType {
 export interface Meta {
   id: string;
   areaId: string;
-  type: 'acoes' | 'vendas' | 'captacao' | 'projeto';
+  type: 'acoes' | 'vendas' | 'captacao' | 'projeto' | 'especificador';
   value: number;
 }
 

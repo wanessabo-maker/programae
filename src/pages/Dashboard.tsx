@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { MetricCard } from '@/components/MetricCard';
 import { ActionModal } from '@/components/ActionModal';
@@ -15,6 +15,7 @@ export default function Dashboard() {
     teamMembers, 
     actionTypes, 
     professionals,
+    professionalTypes,
     professionalCategories,
     deleteAction 
   } = useApp();
@@ -89,7 +90,8 @@ export default function Dashboard() {
         isCurrency?: boolean;
       }> = [];
 
-      areaMetas.forEach(meta => {
+      // Build metrics only for goals that exist in this area AND have value > 1
+      areaMetas.filter(meta => meta.value > 1).forEach(meta => {
         const individualMeta = areaMembers > 0 ? meta.value / areaMembers : 0;
         
         if (meta.type === 'vendas') {
@@ -133,6 +135,22 @@ export default function Dashboard() {
             meta: individualMeta,
             percentage: individualMeta > 0 ? (totalProjetos / individualMeta) * 100 : 0,
             isCurrency: true,
+          });
+        } else if (meta.type === 'especificador') {
+          // Calculate percentage of professionals that are "especificador" type
+          const especificadorCount = memberProfessionals.filter(p => {
+            const profType = professionalTypes.find(t => t.id === p.typeId);
+            return profType?.name.toLowerCase().includes('especificador');
+          }).length;
+          const percentage = memberProfessionals.length > 0 
+            ? (especificadorCount / memberProfessionals.length) * 100 
+            : 0;
+          metricsForArea.push({
+            type: 'especificador',
+            label: '% ESPECIFICADOR',
+            value: `${percentage.toFixed(0)}%`,
+            meta: individualMeta,
+            percentage: individualMeta > 0 ? (percentage / individualMeta) * 100 : 0,
           });
         }
       });
