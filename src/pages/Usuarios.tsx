@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Shield, ShieldOff, Users, Loader2 } from 'lucide-react';
+import { Shield, ShieldOff, Users, Loader2, RefreshCw } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface UserWithRole {
   id: string;
@@ -20,40 +22,23 @@ export default function Usuarios() {
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      // Fetch user roles from user_roles table
-      const { data: rolesData, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id, role');
-
-      if (rolesError) throw rolesError;
-
-      // Group roles by user_id
-      const userRolesMap: Record<string, string[]> = {};
-      rolesData?.forEach((r) => {
-        if (!userRolesMap[r.user_id]) {
-          userRolesMap[r.user_id] = [];
-        }
-        userRolesMap[r.user_id].push(r.role);
-      });
-
-      // Get unique user IDs and create user objects
-      // Since we can't query auth.users directly, we'll use the roles data
-      const usersList: UserWithRole[] = Object.entries(userRolesMap).map(([userId, roles]) => ({
-        id: userId,
-        email: userId === currentUser?.id ? currentUser.email || 'Email não disponível' : 'Usuário',
-        created_at: new Date().toISOString(),
-        roles,
-      }));
-
-      // If current user is in the list, update their email
-      if (currentUser) {
-        const currentUserIndex = usersList.findIndex(u => u.id === currentUser.id);
-        if (currentUserIndex >= 0) {
-          usersList[currentUserIndex].email = currentUser.email || 'Email não disponível';
-        }
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Sessão expirada');
+        return;
       }
 
-      setUsers(usersList);
+      const response = await supabase.functions.invoke('list-users', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      setUsers(response.data.users || []);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast.error('Erro ao carregar usuários');
@@ -125,9 +110,18 @@ export default function Usuarios() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Users className="w-6 h-6" />
-        <h1 className="text-lg tracking-widest uppercase">Gerenciar Usuários</h1>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Users className="w-6 h-6" />
+          <h1 className="text-lg tracking-widest uppercase">Gerenciar Usuários</h1>
+        </div>
+        <button
+          onClick={fetchUsers}
+          className="flex items-center gap-2 px-3 py-1.5 text-xs tracking-widest uppercase border border-border hover:bg-muted transition-colors"
+        >
+          <RefreshCw className="w-3 h-3" />
+          Atualizar
+        </button>
       </div>
 
       {/* Users List */}
@@ -136,7 +130,10 @@ export default function Usuarios() {
           <thead>
             <tr className="border-b border-border">
               <th className="text-left text-xs tracking-widest uppercase text-muted-foreground px-4 py-3">
-                Usuário
+                Email
+              </th>
+              <th className="text-left text-xs tracking-widest uppercase text-muted-foreground px-4 py-3">
+                Cadastro
               </th>
               <th className="text-left text-xs tracking-widest uppercase text-muted-foreground px-4 py-3">
                 Papéis
@@ -162,10 +159,10 @@ export default function Usuarios() {
                           <span className="ml-2 text-xs text-muted-foreground">(você)</span>
                         )}
                       </span>
-                      <span className="text-xs text-muted-foreground font-mono">
-                        {user.id.slice(0, 8)}...
-                      </span>
                     </div>
+                  </td>
+                  <td className="px-4 py-3 text-sm text-muted-foreground">
+                    {format(new Date(user.created_at), "dd/MM/yyyy", { locale: ptBR })}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-2">
