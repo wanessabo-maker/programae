@@ -154,6 +154,11 @@ export default function Dashboard() {
       // Check if consultant has any goals > 1 or performed actions this month
       const hasGoals = metricsForArea.length > 0;
       const hasActions = thisMonthActions.length > 0;
+      const actionCount = thisMonthActions.length;
+
+      // RULE: Display consultant if they have actions OR goals
+      // Actions take priority - never hide a consultant who has generated actions
+      const shouldDisplay = hasActions || hasGoals;
 
       return {
         ...member,
@@ -164,7 +169,8 @@ export default function Dashboard() {
         totalProfessionals: memberProfessionals.length,
         hasGoals,
         hasActions,
-        shouldDisplay: hasGoals || hasActions,
+        actionCount,
+        shouldDisplay,
       };
     });
   }, [activeMembers, actions, areas, metas, actionTypes, professionals, professionalCategories]);
@@ -348,9 +354,18 @@ export default function Dashboard() {
                       </div>
                       
                       <div className="space-y-3">
+                        {/* Show action count when consultant has actions but no goals */}
                         {consultant.metricsForArea.length === 0 && consultant.hasActions && (
-                          <div className="text-xs text-muted-foreground italic">
-                            Ações registradas (sem metas definidas para a área)
+                          <div className="space-y-2">
+                            <div className="text-xs text-amber-600 font-medium">
+                              Sem meta definida
+                            </div>
+                            <div className="text-sm">
+                              <span className="font-medium">{consultant.actionCount}</span>
+                              <span className="text-muted-foreground ml-1">
+                                {consultant.actionCount === 1 ? 'ação registrada' : 'ações registradas'}
+                              </span>
+                            </div>
                           </div>
                         )}
                         {consultant.metricsForArea.map((metric) => (
