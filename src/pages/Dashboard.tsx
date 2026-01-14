@@ -75,23 +75,72 @@ export default function Dashboard() {
         count: memberProfessionals.filter(p => p.categoryId === cat.id).length,
       }));
 
-      // Area metas divided by active members in that area
+      // Get all metas for this area
+      const areaMetas = metas.filter(m => m.areaId === member.areaId);
       const areaMembers = activeMembers.filter(m => m.areaId === member.areaId).length;
-      const areaSalesMeta = metas.find(m => m.areaId === member.areaId && m.type === 'vendas')?.value || 0;
-      const areaAcoesMeta = metas.find(m => m.areaId === member.areaId && m.type === 'acoes')?.value || 0;
       
-      const individualSalesMeta = areaMembers > 0 ? areaSalesMeta / areaMembers : 0;
-      const individualAcoesMeta = areaMembers > 0 ? areaAcoesMeta / areaMembers : 0;
+      // Build metrics only for goals that exist in this area
+      const metricsForArea: Array<{
+        type: string;
+        label: string;
+        value: number | string;
+        meta: number;
+        percentage: number;
+        isCurrency?: boolean;
+      }> = [];
+
+      areaMetas.forEach(meta => {
+        const individualMeta = areaMembers > 0 ? meta.value / areaMembers : 0;
+        
+        if (meta.type === 'vendas') {
+          metricsForArea.push({
+            type: 'vendas',
+            label: 'VENDAS',
+            value: totalSales,
+            meta: individualMeta,
+            percentage: individualMeta > 0 ? (totalSales / individualMeta) * 100 : 0,
+            isCurrency: true,
+          });
+        } else if (meta.type === 'acoes') {
+          metricsForArea.push({
+            type: 'acoes',
+            label: 'AÇÕES',
+            value: totalAcoes,
+            meta: individualMeta,
+            percentage: individualMeta > 0 ? (totalAcoes / individualMeta) * 100 : 0,
+          });
+        } else if (meta.type === 'captacao') {
+          const totalCaptacoes = thisMonthActions.filter(a => {
+            const type = actionTypes.find(t => t.id === a.actionTypeId);
+            return type?.impactsMetas.includes('captacao');
+          }).length;
+          metricsForArea.push({
+            type: 'captacao',
+            label: 'CAPTAÇÕES',
+            value: totalCaptacoes,
+            meta: individualMeta,
+            percentage: individualMeta > 0 ? (totalCaptacoes / individualMeta) * 100 : 0,
+          });
+        } else if (meta.type === 'projeto') {
+          const totalProjetos = thisMonthActions.filter(a => {
+            const type = actionTypes.find(t => t.id === a.actionTypeId);
+            return type?.impactsMetas.includes('projeto');
+          }).reduce((sum, a) => sum + (a.value || 0), 0);
+          metricsForArea.push({
+            type: 'projeto',
+            label: 'PROJETOS',
+            value: totalProjetos,
+            meta: individualMeta,
+            percentage: individualMeta > 0 ? (totalProjetos / individualMeta) * 100 : 0,
+            isCurrency: true,
+          });
+        }
+      });
 
       return {
         ...member,
         area: memberArea?.name || '',
-        sales: totalSales,
-        salesMeta: individualSalesMeta,
-        salesPercentage: individualSalesMeta > 0 ? (totalSales / individualSalesMeta) * 100 : 0,
-        acoes: totalAcoes,
-        acoesMeta: individualAcoesMeta,
-        acoesPercentage: individualAcoesMeta > 0 ? (totalAcoes / individualAcoesMeta) * 100 : 0,
+        metricsForArea,
         categoryBreakdown,
         totalProfessionals: memberProfessionals.length,
       };
@@ -221,31 +270,24 @@ export default function Dashboard() {
               </div>
               
               <div className="space-y-3">
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-muted-foreground">VENDAS</span>
-                    <span>{formatCurrency(consultant.sales)}</span>
+                {consultant.metricsForArea.map((metric) => (
+                  <div key={metric.type}>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-muted-foreground">{metric.label}</span>
+                      <span>
+                        {metric.isCurrency 
+                          ? formatCurrency(metric.value as number) 
+                          : metric.value}
+                      </span>
+                    </div>
+                    <div className="h-1 bg-muted">
+                      <div 
+                        className="h-full bg-card-foreground" 
+                        style={{ width: `${Math.min(metric.percentage, 100)}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="h-1 bg-muted">
-                    <div 
-                      className="h-full bg-card-foreground" 
-                      style={{ width: `${Math.min(consultant.salesPercentage, 100)}%` }}
-                    />
-                  </div>
-                </div>
-                
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-muted-foreground">AÇÕES</span>
-                    <span>{consultant.acoes}</span>
-                  </div>
-                  <div className="h-1 bg-muted">
-                    <div 
-                      className="h-full bg-card-foreground" 
-                      style={{ width: `${Math.min(consultant.acoesPercentage, 100)}%` }}
-                    />
-                  </div>
-                </div>
+                ))}
 
                 {consultant.categoryBreakdown.length > 0 && (
                   <div className="pt-2 border-t border-black/10">
