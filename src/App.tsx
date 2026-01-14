@@ -6,7 +6,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppProvider } from "@/contexts/AppContext";
 import { AuthProvider, useAuthContext } from "@/contexts/AuthContext";
 import { Layout } from "@/components/Layout";
-import { LoadingSpinner } from "@/components/LoadingSpinner";
 import Index from "./pages/Index";
 import Profissionais from "./pages/Profissionais";
 import ProgramaEMais from "./pages/ProgramaEMais";
@@ -22,7 +21,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <LoadingSpinner size="lg" text="Carregando" />
+        <div className="text-xs tracking-widest uppercase text-muted-foreground">
+          Carregando...
+        </div>
       </div>
     );
   }
@@ -40,7 +41,9 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <LoadingSpinner size="lg" text="Carregando" />
+        <div className="text-xs tracking-widest uppercase text-muted-foreground">
+          Carregando...
+        </div>
       </div>
     );
   }
@@ -62,7 +65,9 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <LoadingSpinner size="lg" text="Carregando" />
+        <div className="text-xs tracking-widest uppercase text-muted-foreground">
+          Carregando...
+        </div>
       </div>
     );
   }

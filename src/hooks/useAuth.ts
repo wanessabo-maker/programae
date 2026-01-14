@@ -61,16 +61,14 @@ export function useAuth() {
 
     // Check initial session first
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (isMounted) {
-        fetchRolesAndUpdateState(session);
-      }
+      fetchRolesAndUpdateState(session);
     });
 
     // Set up auth state listener for future changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        // Handle auth state changes (excluding INITIAL_SESSION since we handle it above)
-        if (event !== 'INITIAL_SESSION') {
+        // Only handle actual auth changes, not initial events
+        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
           fetchRolesAndUpdateState(session);
         }
       }
