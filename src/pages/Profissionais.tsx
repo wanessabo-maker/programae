@@ -1,10 +1,12 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, Pencil, Trash2, Calendar, Clock } from 'lucide-react';
+import { Plus, Pencil, Trash2, Calendar, Clock, Upload } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ImportProfessionalsModal } from '@/components/ImportProfessionalsModal';
 import { format, parseISO, differenceInDays, addDays, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { calculateProfessionalCategory } from '@/hooks/useProfessionalCategory';
+
 export default function Profissionais() {
   const {
     professionals,
@@ -21,6 +23,7 @@ export default function Profissionais() {
   } = useApp();
 
   const [showProfessionalModal, setShowProfessionalModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [showReminderModal, setShowReminderModal] = useState(false);
   const [editingProfessional, setEditingProfessional] = useState<string | null>(null);
   const [editingReminder, setEditingReminder] = useState<string | null>(null);
@@ -172,13 +175,22 @@ export default function Profissionais() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl">Profissionais</h1>
-        <button
-          onClick={() => setShowProfessionalModal(true)}
-          className="btn-primary flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Novo Profissional
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="btn-secondary border-card-foreground text-card-foreground flex items-center gap-2"
+          >
+            <Upload className="w-4 h-4" />
+            Importar Excel
+          </button>
+          <button
+            onClick={() => setShowProfessionalModal(true)}
+            className="btn-primary flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Novo Profissional
+          </button>
+        </div>
       </div>
 
       {/* Reminders */}
@@ -401,6 +413,9 @@ export default function Profissionais() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Import Modal */}
+      <ImportProfessionalsModal open={showImportModal} onOpenChange={setShowImportModal} />
     </div>
   );
 }
