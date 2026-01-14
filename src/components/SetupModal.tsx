@@ -679,23 +679,39 @@ const TiposAcaoTab = () => {
         </div>
       )}
       <div className="space-y-2">
-        {actionTypes.map((type) => (
-          <div key={type.id} className="flex items-center justify-between p-3 border border-black">
-            <div className="flex items-center gap-4">
-              <span className="text-sm">{type.name}</span>
-              <span className="text-xs text-muted-foreground uppercase">{classLabels[type.classification]}</span>
-              <span className="text-xs text-muted-foreground">{type.programPoints} pts</span>
+        {actionTypes.map((type) => {
+          const getValidityLabel = () => {
+            if (type.creditValidityType === 'global') return 'Global';
+            if (type.creditValidityType === 'mensal') return 'Mensal';
+            if (type.creditValidityType === 'anual') return 'Anual';
+            if (type.creditValidityType === 'dias' || type.creditValidityType === 'personalizado') {
+              return `${type.creditValidityDays || 0} dias`;
+            }
+            if (type.creditValidityType === 'sem_validade') return 'Sem validade';
+            return 'Global';
+          };
+          
+          return (
+            <div key={type.id} className="flex items-center justify-between p-3 border border-black">
+              <div className="flex items-center gap-4 flex-wrap">
+                <span className="text-sm font-medium">{type.name}</span>
+                <span className="text-xs text-muted-foreground uppercase">{classLabels[type.classification]}</span>
+                <span className="text-xs text-muted-foreground">{type.programPoints} pts</span>
+                <span className="text-xs px-2 py-0.5 bg-muted rounded-sm text-muted-foreground">
+                  Validade: {getValidityLabel()}
+                </span>
+              </div>
+              <div className="flex gap-1">
+                <button onClick={() => handleEdit(type.id)} className="p-2 opacity-60 hover:opacity-100">
+                  <Pencil className="w-4 h-4" />
+                </button>
+                <button onClick={() => deleteActionType(type.id)} className="p-2 opacity-60 hover:opacity-100 text-destructive">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
-            <div className="flex gap-1">
-              <button onClick={() => handleEdit(type.id)} className="p-2 opacity-60 hover:opacity-100">
-                <Pencil className="w-4 h-4" />
-              </button>
-              <button onClick={() => deleteActionType(type.id)} className="p-2 opacity-60 hover:opacity-100 text-destructive">
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
