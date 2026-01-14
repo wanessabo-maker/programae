@@ -1,11 +1,14 @@
-import { useState, useMemo, useRef } from 'react';
-import { Gift, Award, FileText, Printer } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Gift, Award, Printer, Trash2 } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
+import { useAuth } from '@/hooks/useAuth';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { format, parseISO, isThisMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export default function ProgramaEMais() {
+  const { isAdmin } = useAuth();
   const {
     teamMembers,
     creditTransactions,
@@ -13,12 +16,14 @@ export default function ProgramaEMais() {
     actionTypes,
     getConsultantBalance,
     addCreditTransaction,
+    deleteCreditTransaction,
   } = useApp();
 
   const [showRedeemModal, setShowRedeemModal] = useState(false);
   const [selectedConsultant, setSelectedConsultant] = useState<string | null>(null);
   const [selectedReward, setSelectedReward] = useState<string | null>(null);
   const [showReceipt, setShowReceipt] = useState(false);
+  const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
   const [receiptData, setReceiptData] = useState<{
     consultantName: string;
     rewardName: string;
@@ -88,6 +93,13 @@ export default function ProgramaEMais() {
   };
 
   const selectedConsultantBalance = selectedConsultant ? getConsultantBalance(selectedConsultant) : 0;
+
+  const handleDeleteTransaction = () => {
+    if (transactionToDelete) {
+      deleteCreditTransaction(transactionToDelete);
+      setTransactionToDelete(null);
+    }
+  };
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -167,6 +179,7 @@ export default function ProgramaEMais() {
                   <th className="table-header text-left p-3">Colaborador</th>
                   <th className="table-header text-left p-3">Descrição</th>
                   <th className="table-header text-right p-3">Créditos</th>
+                  {isAdmin && <th className="table-header text-center p-3 w-16"></th>}
                 </tr>
               </thead>
               <tbody>
@@ -182,6 +195,17 @@ export default function ProgramaEMais() {
                       }`}>
                         {transaction.type === 'ganho' ? '+' : '-'}{transaction.amount}
                       </td>
+                      {isAdmin && (
+                        <td className="p-3 text-center">
+                          <button
+                            onClick={() => setTransactionToDelete(transaction.id)}
+                            className="text-destructive hover:text-destructive/80 transition-colors"
+                            title="Excluir transação"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   );
                 })}
@@ -291,6 +315,24 @@ export default function ProgramaEMais() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!transactionToDelete} onOpenChange={(open) => !open && setTransactionToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta transação? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteTransaction} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
