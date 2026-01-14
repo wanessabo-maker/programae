@@ -225,15 +225,23 @@ const EquipeTab = () => {
 }
 
 const MetasTab = () => {
-  const { metas, areas, addMeta, updateMeta, deleteMeta } = useApp();
+  const { metas, areas, professionalCategories, addMeta, updateMeta, deleteMeta } = useApp();
   const [newAreaId, setNewAreaId] = useState('');
-  const [newType, setNewType] = useState<'acoes' | 'vendas' | 'captacao' | 'projeto' | 'especificador'>('acoes');
+  const [newType, setNewType] = useState<'acoes' | 'vendas' | 'captacao' | 'projeto' | 'categoria'>('acoes');
+  const [newCategoryId, setNewCategoryId] = useState('');
   const [newValue, setNewValue] = useState('');
 
   const handleAdd = () => {
     if (newAreaId && newValue) {
-      addMeta({ areaId: newAreaId, type: newType, value: Number(newValue) });
+      if (newType === 'categoria' && !newCategoryId) return;
+      addMeta({ 
+        areaId: newAreaId, 
+        type: newType, 
+        value: Number(newValue),
+        ...(newType === 'categoria' ? { categoryId: newCategoryId } : {})
+      });
       setNewValue('');
+      setNewCategoryId('');
     }
   };
 
@@ -242,12 +250,20 @@ const MetasTab = () => {
     vendas: 'Vendas', 
     captacao: 'Captação', 
     projeto: 'Projeto',
-    especificador: '% Tipo Especificador'
+    categoria: '% Categoria'
+  };
+
+  const getMetaLabel = (meta: typeof metas[0]) => {
+    if (meta.type === 'categoria' && meta.categoryId) {
+      const cat = professionalCategories.find(c => c.id === meta.categoryId);
+      return `% ${cat?.name || 'Categoria'}`;
+    }
+    return typeLabels[meta.type];
   };
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
         <select value={newAreaId} onChange={(e) => setNewAreaId(e.target.value)} className="input-flat text-card-foreground">
           <option value="">Área</option>
           {areas.map((area) => <option key={area.id} value={area.id}>{area.name}</option>)}
@@ -255,11 +271,17 @@ const MetasTab = () => {
         <select value={newType} onChange={(e) => setNewType(e.target.value as typeof newType)} className="input-flat text-card-foreground">
           {Object.entries(typeLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
+        {newType === 'categoria' && (
+          <select value={newCategoryId} onChange={(e) => setNewCategoryId(e.target.value)} className="input-flat text-card-foreground">
+            <option value="">Selecione a Categoria</option>
+            {professionalCategories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+          </select>
+        )}
         <input
           type="number"
           value={newValue}
           onChange={(e) => setNewValue(e.target.value)}
-          placeholder="Valor"
+          placeholder="Valor %"
           className="input-flat w-32 text-card-foreground"
         />
         <button onClick={handleAdd} className="btn-primary bg-card-foreground text-card">
@@ -271,7 +293,7 @@ const MetasTab = () => {
           <div key={meta.id} className="flex items-center justify-between p-3 border border-black">
             <div className="flex items-center gap-4">
               <span className="text-sm">{areas.find(a => a.id === meta.areaId)?.name}</span>
-              <span className="text-xs text-muted-foreground uppercase">{typeLabels[meta.type]}</span>
+              <span className="text-xs text-muted-foreground uppercase">{getMetaLabel(meta)}</span>
               <input
                 type="number"
                 value={meta.value}

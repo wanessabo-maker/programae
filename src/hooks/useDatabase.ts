@@ -284,7 +284,7 @@ export function useGoals() {
 export function useCreateGoal() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (goal: { area_id: string; metric: string; value: number }) => {
+    mutationFn: async (goal: { area_id: string; metric: string; value: number; category_id?: string }) => {
       const { data, error } = await supabase.from('goals').insert(goal).select().single();
       if (error) throw error;
       return data;
@@ -299,7 +299,7 @@ export function useCreateGoal() {
 export function useUpdateGoal() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string; area_id?: string; metric?: string; value?: number }) => {
+    mutationFn: async ({ id, ...updates }: { id: string; area_id?: string; metric?: string; value?: number; category_id?: string }) => {
       const { data, error } = await supabase.from('goals').update(updates).eq('id', id).select().single();
       if (error) throw error;
       return data;
