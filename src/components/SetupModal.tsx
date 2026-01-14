@@ -3,8 +3,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useApp } from '@/contexts/AppContext';
-import { Plus, Pencil, Trash2, X, Check } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Check, Calendar } from 'lucide-react';
 import { BulkProfessionalsTab } from './setup/BulkProfessionalsTab';
+import { ValiditySettingsTab } from './setup/ValiditySettingsTab';
+import { format, addMonths, addDays, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear } from 'date-fns';
 
 interface SetupModalProps {
   open: boolean;
@@ -25,6 +27,7 @@ export function SetupModal({ open, onOpenChange }: SetupModalProps) {
     { label: 'Programa E+', value: 'programa' },
     { label: 'Tipos Prof.', value: 'tipos-prof' },
     { label: 'Categorias', value: 'categorias' },
+    { label: 'Validade', value: 'validade' },
     { label: 'Prof. em Massa', value: 'bulk-prof' },
   ];
 
@@ -58,6 +61,7 @@ export function SetupModal({ open, onOpenChange }: SetupModalProps) {
             <TabsContent value="programa"><ProgramaTab /></TabsContent>
             <TabsContent value="tipos-prof"><TiposProfTab /></TabsContent>
             <TabsContent value="categorias"><CategoriasTab /></TabsContent>
+            <TabsContent value="validade"><ValiditySettingsTab /></TabsContent>
             <TabsContent value="bulk-prof"><BulkProfessionalsTab /></TabsContent>
           </div>
         </Tabs>
@@ -247,6 +251,59 @@ const MetasTab = () => {
   const [newType, setNewType] = useState<'acoes' | 'vendas' | 'captacao' | 'projeto' | 'categoria'>('acoes');
   const [newCategoryId, setNewCategoryId] = useState('');
   const [newValue, setNewValue] = useState('');
+  const [newValidityType, setNewValidityType] = useState<'mensal' | 'trimestral' | 'semestral' | 'anual' | 'personalizada'>('mensal');
+  const [newStartDate, setNewStartDate] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
+  const [newEndDate, setNewEndDate] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
+  const [editingMetaId, setEditingMetaId] = useState<string | null>(null);
+  const [editValidityType, setEditValidityType] = useState<'mensal' | 'trimestral' | 'semestral' | 'anual' | 'personalizada'>('mensal');
+  const [editStartDate, setEditStartDate] = useState('');
+  const [editEndDate, setEditEndDate] = useState('');
+
+  // Calculate end date based on validity type
+  const calculateEndDate = (validityType: string, startDate: string) => {
+    const start = new Date(startDate);
+    switch (validityType) {
+      case 'mensal':
+        return format(endOfMonth(start), 'yyyy-MM-dd');
+      case 'trimestral':
+        return format(endOfQuarter(start), 'yyyy-MM-dd');
+      case 'semestral':
+        return format(addMonths(start, 6), 'yyyy-MM-dd');
+      case 'anual':
+        return format(endOfYear(start), 'yyyy-MM-dd');
+      default:
+        return format(addMonths(start, 1), 'yyyy-MM-dd');
+    }
+  };
+
+  // Auto-update end date when validity type or start date changes
+  const handleValidityTypeChange = (type: typeof newValidityType, isEdit = false) => {
+    if (isEdit) {
+      setEditValidityType(type);
+      if (type !== 'personalizada') {
+        setEditEndDate(calculateEndDate(type, editStartDate));
+      }
+    } else {
+      setNewValidityType(type);
+      if (type !== 'personalizada') {
+        setNewEndDate(calculateEndDate(type, newStartDate));
+      }
+    }
+  };
+
+  const handleStartDateChange = (date: string, isEdit = false) => {
+    if (isEdit) {
+      setEditStartDate(date);
+      if (editValidityType !== 'personalizada') {
+        setEditEndDate(calculateEndDate(editValidityType, date));
+      }
+    } else {
+      setNewStartDate(date);
+      if (newValidityType !== 'personalizada') {
+        setNewEndDate(calculateEndDate(newValidityType, date));
+      }
+    }
+  };
 
   const handleAdd = () => {
     if (newAreaId && newValue) {
@@ -255,11 +312,31 @@ const MetasTab = () => {
         areaId: newAreaId, 
         type: newType, 
         value: Number(newValue),
+        validityType: newValidityType,
+        startDate: newStartDate,
+        endDate: newEndDate,
+        isActive: true,
         ...(newType === 'categoria' ? { categoryId: newCategoryId } : {})
       });
       setNewValue('');
       setNewCategoryId('');
     }
+  };
+
+  const handleEditValidity = (meta: typeof metas[0]) => {
+    setEditingMetaId(meta.id);
+    setEditValidityType((meta.validityType as typeof editValidityType) || 'mensal');
+    setEditStartDate(meta.startDate || format(startOfMonth(new Date()), 'yyyy-MM-dd'));
+    setEditEndDate(meta.endDate || format(endOfMonth(new Date()), 'yyyy-MM-dd'));
+  };
+
+  const handleSaveValidity = (metaId: string) => {
+    updateMeta(metaId, {
+      validityType: editValidityType,
+      startDate: editStartDate,
+      endDate: editEndDate,
+    });
+    setEditingMetaId(null);
   };
 
   const typeLabels: Record<string, string> = { 
@@ -270,6 +347,14 @@ const MetasTab = () => {
     categoria: '% Categoria'
   };
 
+  const validityLabels: Record<string, string> = {
+    mensal: 'Mensal',
+    trimestral: 'Trimestral',
+    semestral: 'Semestral',
+    anual: 'Anual',
+    personalizada: 'Personalizada',
+  };
+
   const getMetaLabel = (meta: typeof metas[0]) => {
     if (meta.type === 'categoria' && meta.categoryId) {
       const cat = professionalCategories.find(c => c.id === meta.categoryId);
@@ -278,65 +363,169 @@ const MetasTab = () => {
     return typeLabels[meta.type];
   };
 
+  const isMetaExpired = (meta: typeof metas[0]) => {
+    if (!meta.endDate) return false;
+    return new Date(meta.endDate) < new Date();
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex gap-2 flex-wrap">
-        <select value={newAreaId} onChange={(e) => setNewAreaId(e.target.value)} className="input-flat text-card-foreground">
-          <option value="">Área</option>
-          {areas.map((area) => <option key={area.id} value={area.id}>{area.name}</option>)}
-        </select>
-        <select value={newType} onChange={(e) => setNewType(e.target.value as typeof newType)} className="input-flat text-card-foreground">
-          {Object.entries(typeLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-        </select>
-        {newType === 'categoria' && (
-          <select value={newCategoryId} onChange={(e) => setNewCategoryId(e.target.value)} className="input-flat text-card-foreground">
-            <option value="">Selecione a Categoria</option>
-            {professionalCategories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+      {/* Add new meta form */}
+      <div className="border border-black/20 p-4 space-y-3">
+        <div className="flex gap-2 flex-wrap">
+          <select value={newAreaId} onChange={(e) => setNewAreaId(e.target.value)} className="input-flat text-card-foreground">
+            <option value="">Área</option>
+            {areas.map((area) => <option key={area.id} value={area.id}>{area.name}</option>)}
           </select>
-        )}
-        <div className="relative">
-          {newType === 'vendas' && (
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+          <select value={newType} onChange={(e) => setNewType(e.target.value as typeof newType)} className="input-flat text-card-foreground">
+            {Object.entries(typeLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+          {newType === 'categoria' && (
+            <select value={newCategoryId} onChange={(e) => setNewCategoryId(e.target.value)} className="input-flat text-card-foreground">
+              <option value="">Selecione a Categoria</option>
+              {professionalCategories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+            </select>
           )}
-          <input
-            type="number"
-            value={newValue}
-            onChange={(e) => setNewValue(e.target.value)}
-            placeholder={newType === 'vendas' ? 'Valor R$' : newType === 'categoria' ? 'Valor %' : 'Quantidade'}
-            className={`input-flat w-32 text-card-foreground ${newType === 'vendas' ? 'pl-10' : ''}`}
-          />
+          <div className="relative">
+            {newType === 'vendas' && (
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+            )}
+            <input
+              type="number"
+              value={newValue}
+              onChange={(e) => setNewValue(e.target.value)}
+              placeholder={newType === 'vendas' ? 'Valor R$' : newType === 'categoria' ? 'Valor %' : 'Quantidade'}
+              className={`input-flat w-32 text-card-foreground ${newType === 'vendas' ? 'pl-10' : ''}`}
+            />
+          </div>
         </div>
-        <button onClick={handleAdd} className="btn-primary bg-card-foreground text-card">
-          <Plus className="w-4 h-4" />
-        </button>
+        
+        {/* Validity configuration */}
+        <div className="flex gap-2 flex-wrap items-center">
+          <select 
+            value={newValidityType} 
+            onChange={(e) => handleValidityTypeChange(e.target.value as typeof newValidityType)}
+            className="input-flat text-card-foreground"
+          >
+            {Object.entries(validityLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+          <div className="flex items-center gap-1">
+            <Calendar className="w-4 h-4 text-muted-foreground" />
+            <input 
+              type="date" 
+              value={newStartDate}
+              onChange={(e) => handleStartDateChange(e.target.value)}
+              className="input-flat text-card-foreground text-xs"
+            />
+            <span className="text-xs text-muted-foreground">até</span>
+            <input 
+              type="date" 
+              value={newEndDate}
+              onChange={(e) => setNewEndDate(e.target.value)}
+              disabled={newValidityType !== 'personalizada'}
+              className="input-flat text-card-foreground text-xs disabled:opacity-50"
+            />
+          </div>
+          <button onClick={handleAdd} className="btn-primary bg-card-foreground text-card">
+            <Plus className="w-4 h-4" />
+          </button>
+        </div>
       </div>
+
+      {/* Metas list */}
       <div className="space-y-2">
         {metas.map((meta) => (
-          <div key={meta.id} className="flex items-center justify-between p-3 border border-black">
-            <div className="flex items-center gap-4">
-              <span className="text-sm">{areas.find(a => a.id === meta.areaId)?.name}</span>
-              <span className="text-xs text-muted-foreground uppercase">{getMetaLabel(meta)}</span>
-              <div className="relative">
-                {meta.type === 'vendas' && (
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
-                )}
-                <input
-                  type="number"
-                  value={meta.value}
-                  onChange={(e) => updateMeta(meta.id, { value: Number(e.target.value) })}
-                  className={`input-flat w-32 text-card-foreground ${meta.type === 'vendas' ? 'pl-10' : ''}`}
-                />
-                {meta.type !== 'vendas' && meta.type !== 'categoria' && (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">un.</span>
-                )}
-                {meta.type === 'categoria' && (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">%</span>
+          <div 
+            key={meta.id} 
+            className={`p-3 border ${isMetaExpired(meta) ? 'border-destructive/50 bg-destructive/5' : 'border-black'}`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4 flex-wrap">
+                <span className="text-sm">{areas.find(a => a.id === meta.areaId)?.name}</span>
+                <span className="text-xs text-muted-foreground uppercase">{getMetaLabel(meta)}</span>
+                <div className="relative">
+                  {meta.type === 'vendas' && (
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                  )}
+                  <input
+                    type="number"
+                    value={meta.value}
+                    onChange={(e) => updateMeta(meta.id, { value: Number(e.target.value) })}
+                    className={`input-flat w-32 text-card-foreground ${meta.type === 'vendas' ? 'pl-10' : ''}`}
+                  />
+                  {meta.type !== 'vendas' && meta.type !== 'categoria' && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">un.</span>
+                  )}
+                  {meta.type === 'categoria' && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">%</span>
+                  )}
+                </div>
+                {isMetaExpired(meta) && (
+                  <span className="text-xs text-destructive font-medium">EXPIRADA</span>
                 )}
               </div>
+              <div className="flex items-center gap-1">
+                <button 
+                  onClick={() => handleEditValidity(meta)} 
+                  className="p-2 opacity-60 hover:opacity-100"
+                  title="Editar validade"
+                >
+                  <Calendar className="w-4 h-4" />
+                </button>
+                <button onClick={() => deleteMeta(meta.id)} className="p-2 opacity-60 hover:opacity-100 text-destructive">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
-            <button onClick={() => deleteMeta(meta.id)} className="p-2 opacity-60 hover:opacity-100 text-destructive">
-              <Trash2 className="w-4 h-4" />
-            </button>
+            
+            {/* Validity info or editor */}
+            {editingMetaId === meta.id ? (
+              <div className="mt-3 pt-3 border-t border-black/10 flex items-center gap-2 flex-wrap">
+                <select 
+                  value={editValidityType}
+                  onChange={(e) => handleValidityTypeChange(e.target.value as typeof editValidityType, true)}
+                  className="input-flat text-card-foreground text-xs"
+                >
+                  {Object.entries(validityLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+                <input 
+                  type="date" 
+                  value={editStartDate}
+                  onChange={(e) => handleStartDateChange(e.target.value, true)}
+                  className="input-flat text-card-foreground text-xs"
+                />
+                <span className="text-xs text-muted-foreground">até</span>
+                <input 
+                  type="date" 
+                  value={editEndDate}
+                  onChange={(e) => setEditEndDate(e.target.value)}
+                  disabled={editValidityType !== 'personalizada'}
+                  className="input-flat text-card-foreground text-xs disabled:opacity-50"
+                />
+                <button 
+                  onClick={() => handleSaveValidity(meta.id)}
+                  className="p-1 bg-card-foreground text-card"
+                >
+                  <Check className="w-4 h-4" />
+                </button>
+                <button 
+                  onClick={() => setEditingMetaId(null)}
+                  className="p-1 border border-black/30"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="mt-2 text-xs text-muted-foreground flex items-center gap-2">
+                <Calendar className="w-3 h-3" />
+                <span>{validityLabels[meta.validityType || 'mensal']}</span>
+                {meta.startDate && meta.endDate && (
+                  <span>
+                    ({format(new Date(meta.startDate), 'dd/MM/yy')} - {format(new Date(meta.endDate), 'dd/MM/yy')})
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         ))}
       </div>

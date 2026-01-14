@@ -26,6 +26,21 @@ export interface Meta {
   type: 'acoes' | 'vendas' | 'captacao' | 'projeto' | 'categoria' | 'especificador'; // especificador for backwards compatibility
   value: number;
   categoryId?: string; // For 'categoria' type metas
+  validityType?: 'mensal' | 'trimestral' | 'semestral' | 'anual' | 'personalizada';
+  startDate?: string;
+  endDate?: string;
+  isActive?: boolean;
+}
+
+export interface SystemSettings {
+  id: string;
+  key: string;
+  value: Record<string, unknown>;
+}
+
+export interface CreditValiditySettings {
+  type: 'mensal' | 'anual' | 'dias' | 'sem_validade';
+  days?: number;
 }
 
 export interface ProfessionalType {
@@ -98,4 +113,6 @@ export interface CreditTransaction {
   date: string;
   actionId?: string;
   rewardId?: string;
+  expiresAt?: string;
+  status?: 'active' | 'expired' | 'used';
 }

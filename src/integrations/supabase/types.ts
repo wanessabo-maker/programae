@@ -138,9 +138,11 @@ export type Database = {
           consultant_id: string | null
           created_at: string | null
           description: string | null
+          expires_at: string | null
           id: string
           points: number
           professional_id: string | null
+          status: string | null
           transaction_date: string | null
         }
         Insert: {
@@ -148,9 +150,11 @@ export type Database = {
           consultant_id?: string | null
           created_at?: string | null
           description?: string | null
+          expires_at?: string | null
           id?: string
           points: number
           professional_id?: string | null
+          status?: string | null
           transaction_date?: string | null
         }
         Update: {
@@ -158,9 +162,11 @@ export type Database = {
           consultant_id?: string | null
           created_at?: string | null
           description?: string | null
+          expires_at?: string | null
           id?: string
           points?: number
           professional_id?: string | null
+          status?: string | null
           transaction_date?: string | null
         }
         Relationships: [
@@ -192,24 +198,36 @@ export type Database = {
           area_id: string | null
           category_id: string | null
           created_at: string | null
+          end_date: string | null
           id: string
+          is_active: boolean | null
           metric: string
+          start_date: string | null
+          validity_type: string | null
           value: number
         }
         Insert: {
           area_id?: string | null
           category_id?: string | null
           created_at?: string | null
+          end_date?: string | null
           id?: string
+          is_active?: boolean | null
           metric: string
+          start_date?: string | null
+          validity_type?: string | null
           value?: number
         }
         Update: {
           area_id?: string | null
           category_id?: string | null
           created_at?: string | null
+          end_date?: string | null
           id?: string
+          is_active?: boolean | null
           metric?: string
+          start_date?: string | null
+          validity_type?: string | null
           value?: number
         }
         Relationships: [
@@ -429,6 +447,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      system_settings: {
+        Row: {
+          created_at: string
+          id: string
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key: string
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
       }
       team_members: {
         Row: {
