@@ -219,7 +219,7 @@ export default function Dashboard() {
 
       {/* General Metrics */}
       <section>
-        <h2 className="title-section mb-4">Indicadores Mensais</h2>
+        <h2 className="title-section mb-4">Metas Mensais</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <MetricCard
             value={formatCurrency(monthlyMetrics.sales.value)}
@@ -295,7 +295,7 @@ export default function Dashboard() {
 
       {/* Metrics by Consultant - Grouped by Area */}
       <section>
-        <h2 className="title-section mb-4">Por Colaborador</h2>
+        <h2 className="title-section mb-4">Indicadores por Colaborador</h2>
         {Object.keys(consultantsByArea).length === 0 ? (
           <p className="text-sm text-muted-foreground">Nenhum colaborador com metas ou ações registradas.</p>
         ) : (
