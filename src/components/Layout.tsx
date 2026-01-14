@@ -1,10 +1,11 @@
 import { ReactNode, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Settings, LogOut, Users } from 'lucide-react';
+import { Settings, LogOut, Menu, X } from 'lucide-react';
 import { SetupModal } from './SetupModal';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import logo from '@/assets/logo.png';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 interface LayoutProps {
   children: ReactNode;
@@ -13,6 +14,7 @@ interface LayoutProps {
 export function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const [showSetup, setShowSetup] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, isAdmin, signOut } = useAuthContext();
   
   const navItems = [
@@ -35,19 +37,19 @@ export function Layout({ children }: LayoutProps) {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border">
-        <div className="max-w-7xl mx-auto px-6 py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
           <div className="flex items-center justify-between">
             {/* Logo */}
             <div className="flex items-center gap-4">
               <img 
                 src={logo} 
                 alt="Evviva Logo" 
-                className="h-10 w-auto"
+                className="h-8 sm:h-10 w-auto"
               />
             </div>
             
-            {/* Navigation */}
-            <nav className="flex items-center gap-8">
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center gap-8">
               {navItems.map((item) => (
                 <Link
                   key={item.path}
@@ -61,8 +63,8 @@ export function Layout({ children }: LayoutProps) {
               ))}
             </nav>
 
-            {/* User Info & Logout */}
-            <div className="flex items-center gap-4">
+            {/* Desktop User Info & Logout */}
+            <div className="hidden md:flex items-center gap-4">
               <span className="text-xs tracking-widest uppercase text-muted-foreground">
                 {user?.email?.split('@')[0]}
                 {isAdmin && <span className="ml-2 text-primary">(Admin)</span>}
@@ -75,12 +77,62 @@ export function Layout({ children }: LayoutProps) {
                 <LogOut className="w-4 h-4" />
               </button>
             </div>
+
+            {/* Mobile Menu Button */}
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild className="md:hidden">
+                <button className="p-2 hover:bg-muted rounded transition-colors">
+                  <Menu className="w-5 h-5" />
+                </button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[280px] bg-card">
+                <div className="flex flex-col h-full pt-8">
+                  {/* Mobile User Info */}
+                  <div className="px-2 pb-4 border-b border-border mb-4">
+                    <span className="text-xs tracking-widest uppercase text-muted-foreground">
+                      {user?.email?.split('@')[0]}
+                      {isAdmin && <span className="ml-2 text-primary">(Admin)</span>}
+                    </span>
+                  </div>
+
+                  {/* Mobile Navigation */}
+                  <nav className="flex flex-col gap-2 flex-1">
+                    {navItems.map((item) => (
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`px-4 py-3 rounded-md text-sm tracking-widest uppercase transition-colors ${
+                          location.pathname === item.path 
+                            ? 'bg-muted font-medium' 
+                            : 'opacity-60 hover:opacity-100 hover:bg-muted/50'
+                        }`}
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                  </nav>
+
+                  {/* Mobile Logout */}
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="flex items-center gap-2 px-4 py-3 text-sm tracking-widest uppercase opacity-60 hover:opacity-100 border-t border-border mt-4"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sair
+                  </button>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {children}
       </main>
 

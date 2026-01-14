@@ -208,10 +208,10 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-6 sm:space-y-8 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl">Dashboard</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <h1 className="text-xl sm:text-2xl">Dashboard</h1>
         <span className="text-xs tracking-widest uppercase text-muted-foreground">
           {format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })}
         </span>
@@ -220,7 +220,7 @@ export default function Dashboard() {
       {/* General Metrics */}
       <section>
         <h2 className="title-section mb-4">Metas Mensais</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           <MetricCard
             value={formatCurrency(monthlyMetrics.sales.value)}
             label="Valor Vendido"
@@ -246,7 +246,7 @@ export default function Dashboard() {
       <section>
         <button
           onClick={() => setShowActionModal(true)}
-          className="btn-primary flex items-center gap-2"
+          className="btn-primary flex items-center gap-2 w-full sm:w-auto justify-center"
         >
           <Plus className="w-4 h-4" />
           Registrar Ação
@@ -256,7 +256,9 @@ export default function Dashboard() {
       {/* Recent Actions */}
       <section>
         <h2 className="title-section mb-4">Ações Recentes</h2>
-        <div className="card-flat overflow-hidden">
+        
+        {/* Desktop Table */}
+        <div className="card-flat overflow-hidden hidden md:block">
           <table className="w-full">
             <thead>
               <tr className="border-b border-black">
@@ -291,6 +293,36 @@ export default function Dashboard() {
             </tbody>
           </table>
         </div>
+
+        {/* Mobile Cards */}
+        <div className="space-y-3 md:hidden">
+          {recentActions.map((action) => (
+            <div key={action.id} className="card-flat">
+              <div className="flex justify-between items-start mb-2">
+                <div>
+                  <p className="text-sm font-medium">{action.professionalName}</p>
+                  <p className="text-xs text-muted-foreground">{action.consultantName}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">{format(parseISO(action.date), 'dd/MM')}</span>
+                  <button
+                    onClick={() => deleteAction(action.id)}
+                    className="p-1 opacity-40 hover:opacity-100 text-destructive"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-muted-foreground">{action.actionTypeName}</span>
+                <div className="flex gap-3">
+                  {action.value && <span>{formatCurrency(action.value)}</span>}
+                  <span className="text-muted-foreground">{action.pointsGenerated} pts</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* Metrics by Consultant - Grouped by Area */}
@@ -305,7 +337,7 @@ export default function Dashboard() {
                 <h3 className="text-xs tracking-widest uppercase text-muted-foreground mb-3 border-b border-black/10 pb-2">
                   {areaName}
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   {consultants.map((consultant) => (
                     <div key={consultant.id} className="card-flat">
                       <div className="flex items-center justify-between mb-4">
