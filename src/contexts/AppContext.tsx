@@ -177,6 +177,7 @@ function transformProfessional(dbProf: {
   consultant_id: string | null;
   category_id: string | null;
   last_action_date: string | null;
+  last_action_type_id: string | null;
 }): Professional {
   return {
     id: dbProf.id,
@@ -185,6 +186,7 @@ function transformProfessional(dbProf: {
     consultantId: dbProf.consultant_id || '',
     categoryId: dbProf.category_id || '',
     lastActionDate: dbProf.last_action_date || '',
+    lastActionTypeId: dbProf.last_action_type_id || undefined,
   };
 }
 
@@ -466,6 +468,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         consultant_id: professional.consultantId || null,
         category_id: professional.categoryId || null,
         last_action_date: professional.lastActionDate || null,
+        last_action_type_id: professional.lastActionTypeId || null,
       });
       return result?.id;
     } catch (error) {
@@ -482,6 +485,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       consultant_id: professional.consultantId,
       category_id: professional.categoryId,
       last_action_date: professional.lastActionDate,
+      last_action_type_id: professional.lastActionTypeId,
     });
   }, [updateProfessionalMutation]);
 

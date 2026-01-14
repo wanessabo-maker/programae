@@ -284,6 +284,7 @@ export type Database = {
           created_at: string | null
           id: string
           last_action_date: string | null
+          last_action_type_id: string | null
           name: string
           type_id: string | null
         }
@@ -293,6 +294,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           last_action_date?: string | null
+          last_action_type_id?: string | null
           name: string
           type_id?: string | null
         }
@@ -302,6 +304,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           last_action_date?: string | null
+          last_action_type_id?: string | null
           name?: string
           type_id?: string | null
         }
@@ -318,6 +321,13 @@ export type Database = {
             columns: ["consultant_id"]
             isOneToOne: false
             referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "professionals_last_action_type_id_fkey"
+            columns: ["last_action_type_id"]
+            isOneToOne: false
+            referencedRelation: "action_types"
             referencedColumns: ["id"]
           },
           {
