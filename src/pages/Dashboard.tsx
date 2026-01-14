@@ -21,6 +21,17 @@ export default function Dashboard() {
 
   const activeMembers = teamMembers.filter(m => m.active);
 
+  // Filter only active metas (within validity period)
+  const activeMetas = useMemo(() => {
+    const today = new Date();
+    return metas.filter(m => {
+      if (!m.isActive) return false;
+      if (m.endDate && new Date(m.endDate) < today) return false;
+      if (m.startDate && new Date(m.startDate) > today) return false;
+      return true;
+    });
+  }, [metas]);
+
   // Calculate monthly metrics
   const monthlyMetrics = useMemo(() => {
     const thisMonthActions = actions.filter(a => isThisMonth(parseISO(a.date)));
@@ -39,17 +50,17 @@ export default function Dashboard() {
 
     const totalAcoes = thisMonthActions.length;
 
-    // Get metas
-    const salesMeta = metas.filter(m => m.type === 'vendas').reduce((sum, m) => sum + m.value, 0);
-    const captacaoMeta = metas.filter(m => m.type === 'captacao').reduce((sum, m) => sum + m.value, 0);
-    const acoesMeta = metas.filter(m => m.type === 'acoes').reduce((sum, m) => sum + m.value, 0);
+    // Get active metas only
+    const salesMeta = activeMetas.filter(m => m.type === 'vendas').reduce((sum, m) => sum + m.value, 0);
+    const captacaoMeta = activeMetas.filter(m => m.type === 'captacao').reduce((sum, m) => sum + m.value, 0);
+    const acoesMeta = activeMetas.filter(m => m.type === 'acoes').reduce((sum, m) => sum + m.value, 0);
 
     return {
       sales: { value: totalSales, meta: salesMeta, percentage: salesMeta > 0 ? (totalSales / salesMeta) * 100 : 0 },
       captacoes: { value: totalCaptacoes, meta: captacaoMeta, percentage: captacaoMeta > 0 ? (totalCaptacoes / captacaoMeta) * 100 : 0 },
       acoes: { value: totalAcoes, meta: acoesMeta, percentage: acoesMeta > 0 ? (totalAcoes / acoesMeta) * 100 : 0 },
     };
-  }, [actions, metas, actionTypes]);
+  }, [actions, activeMetas, actionTypes]);
 
   // Metrics by consultant
   const consultantMetrics = useMemo(() => {
@@ -75,8 +86,8 @@ export default function Dashboard() {
         count: memberProfessionals.filter(p => p.categoryId === cat.id).length,
       }));
 
-      // Get all metas for this area
-      const areaMetas = metas.filter(m => m.areaId === member.areaId);
+      // Get all ACTIVE metas for this area
+      const areaMetas = activeMetas.filter(m => m.areaId === member.areaId);
       const areaMembers = activeMembers.filter(m => m.areaId === member.areaId).length;
       
       // Build metrics only for goals that exist in this area
@@ -142,7 +153,7 @@ export default function Dashboard() {
             : 0;
           const category = professionalCategories.find(c => c.id === meta.categoryId);
           metricsForArea.push({
-            type: 'categoria',
+            type: `categoria-${meta.categoryId}`, // Unique key per category
             label: `% ${category?.name?.toUpperCase() || 'CATEGORIA'}`,
             value: `${percentage.toFixed(0)}%`,
             meta: individualMeta,
