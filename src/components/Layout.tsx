@@ -85,27 +85,27 @@ export function Layout({ children }: LayoutProps) {
                   <Menu className="w-5 h-5" />
                 </button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[280px] bg-card">
+              <SheetContent side="right" className="w-[280px] bg-background border-l border-border">
                 <div className="flex flex-col h-full pt-8">
                   {/* Mobile User Info */}
                   <div className="px-2 pb-4 border-b border-border mb-4">
-                    <span className="text-xs tracking-widest uppercase text-muted-foreground">
+                    <span className="text-sm tracking-widest uppercase text-foreground font-medium">
                       {user?.email?.split('@')[0]}
-                      {isAdmin && <span className="ml-2 text-primary">(Admin)</span>}
+                      {isAdmin && <span className="ml-2 text-primary font-semibold">(Admin)</span>}
                     </span>
                   </div>
 
                   {/* Mobile Navigation */}
-                  <nav className="flex flex-col gap-2 flex-1">
+                  <nav className="flex flex-col gap-1 flex-1">
                     {navItems.map((item) => (
                       <Link
                         key={item.path}
                         to={item.path}
                         onClick={() => setMobileMenuOpen(false)}
-                        className={`px-4 py-3 rounded-md text-sm tracking-widest uppercase transition-colors ${
+                        className={`px-4 py-3 text-sm tracking-widest uppercase transition-colors ${
                           location.pathname === item.path 
-                            ? 'bg-muted font-medium' 
-                            : 'opacity-60 hover:opacity-100 hover:bg-muted/50'
+                            ? 'bg-primary text-primary-foreground font-semibold' 
+                            : 'text-foreground/80 hover:text-foreground hover:bg-muted'
                         }`}
                       >
                         {item.label}
@@ -119,7 +119,7 @@ export function Layout({ children }: LayoutProps) {
                       handleLogout();
                       setMobileMenuOpen(false);
                     }}
-                    className="flex items-center gap-2 px-4 py-3 text-sm tracking-widest uppercase opacity-60 hover:opacity-100 border-t border-border mt-4"
+                    className="flex items-center gap-2 px-4 py-3 text-sm tracking-widest uppercase text-foreground/80 hover:text-foreground hover:bg-muted border-t border-border mt-4"
                   >
                     <LogOut className="w-4 h-4" />
                     Sair
