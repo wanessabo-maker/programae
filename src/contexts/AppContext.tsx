@@ -10,7 +10,8 @@ import {
   useProfessionals, useCreateProfessional, useUpdateProfessional, useDeleteProfessional,
   useActions, useCreateAction, useUpdateAction, useDeleteAction,
   useReminders, useCreateReminder, useUpdateReminder, useDeleteReminder,
-  useCreditTransactions, useCreateCreditTransaction, useDeleteCreditTransaction,
+  useCreditTransactions, useCreateCreditTransaction, useUpdateCreditTransaction, useDeleteCreditTransaction,
+  useSystemSettings, useUpsertSystemSetting,
 } from '@/hooks/useDatabase';
 import {
   Area,
@@ -24,6 +25,7 @@ import {
   Action,
   Reminder,
   CreditTransaction,
+  CreditValiditySettings,
 } from '@/types';
 
 interface AppContextType {
@@ -95,8 +97,13 @@ interface AppContextType {
   
   // Credits
   addCreditTransaction: (transaction: Omit<CreditTransaction, 'id'>) => void;
+  updateCreditTransaction: (id: string, updates: Partial<CreditTransaction>) => void;
   deleteCreditTransaction: (id: string) => void;
   getConsultantBalance: (consultantId: string) => number;
+  
+  // System Settings
+  creditValiditySettings: CreditValiditySettings;
+  updateCreditValiditySettings: (settings: CreditValiditySettings) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -251,20 +258,26 @@ function transformReminder(dbReminder: {
 function transformCreditTransaction(dbTx: {
   id: string;
   consultant_id: string | null;
+  professional_id?: string | null;
   points: number;
   description: string | null;
   transaction_date: string | null;
   action_id: string | null;
+  expires_at?: string | null;
+  status?: string | null;
 }): CreditTransaction {
   const isGain = dbTx.points >= 0;
   return {
     id: dbTx.id,
     consultantId: dbTx.consultant_id || '',
+    professionalId: dbTx.professional_id || undefined,
     amount: Math.abs(dbTx.points),
     type: isGain ? 'ganho' : 'resgate',
     description: dbTx.description || '',
     date: dbTx.transaction_date || new Date().toISOString().split('T')[0],
     actionId: dbTx.action_id ?? undefined,
+    expiresAt: dbTx.expires_at || undefined,
+    status: (dbTx.status as CreditTransaction['status']) || 'active',
   };
 }
 
@@ -324,7 +337,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const deleteReminderMutation = useDeleteReminder();
   
   const createCreditTransaction = useCreateCreditTransaction();
+  const updateCreditTransactionMutation = useUpdateCreditTransaction();
   const deleteCreditTransactionMutation = useDeleteCreditTransaction();
+  
+  // System settings
+  const { data: systemSettingsData } = useSystemSettings();
+  const upsertSystemSetting = useUpsertSystemSetting();
 
   // Transform data
   const areas = useMemo(() => areasData?.map(transformArea) || [], [areasData]);
@@ -577,24 +595,83 @@ export function AppProvider({ children }: { children: ReactNode }) {
     deleteReminderMutation.mutate(id);
   }, [deleteReminderMutation]);
 
+  // Get credit validity settings from system settings
+  const creditValiditySettings = useMemo((): CreditValiditySettings => {
+    const setting = systemSettingsData?.find(s => s.key === 'credit_validity');
+    if (setting?.value && typeof setting.value === 'object' && 'type' in setting.value) {
+      return setting.value as unknown as CreditValiditySettings;
+    }
+    return { type: 'mensal' }; // Default
+  }, [systemSettingsData]);
+
+  const updateCreditValiditySettings = useCallback((settings: CreditValiditySettings) => {
+    upsertSystemSetting.mutate({ key: 'credit_validity', value: settings });
+  }, [upsertSystemSetting]);
+
+  // Calculate expiration date based on settings
+  const calculateExpirationDate = useCallback((transactionDate: string): string | undefined => {
+    if (creditValiditySettings.type === 'sem_validade') {
+      return undefined;
+    }
+
+    const date = new Date(transactionDate);
+    
+    switch (creditValiditySettings.type) {
+      case 'mensal':
+        return new Date(date.getFullYear(), date.getMonth() + 1, 0).toISOString().split('T')[0];
+      case 'anual':
+        return new Date(date.getFullYear(), 11, 31).toISOString().split('T')[0];
+      case 'dias':
+        const days = creditValiditySettings.days || 30;
+        date.setDate(date.getDate() + days);
+        return date.toISOString().split('T')[0];
+      default:
+        return undefined;
+    }
+  }, [creditValiditySettings]);
+
   const addCreditTransaction = useCallback((transaction: Omit<CreditTransaction, 'id'>) => {
     const points = transaction.type === 'ganho' ? transaction.amount : -transaction.amount;
+    const expiresAt = transaction.type === 'ganho' 
+      ? (transaction.expiresAt || calculateExpirationDate(transaction.date))
+      : undefined;
+    
     createCreditTransaction.mutate({
       consultant_id: transaction.consultantId || null,
       points,
       description: transaction.description,
       transaction_date: transaction.date,
       action_id: transaction.actionId ?? null,
+      expires_at: expiresAt,
+      status: transaction.status || 'active',
     });
-  }, [createCreditTransaction]);
+  }, [createCreditTransaction, calculateExpirationDate]);
+
+  const updateCreditTransaction = useCallback((id: string, updates: Partial<CreditTransaction>) => {
+    updateCreditTransactionMutation.mutate({
+      id,
+      expires_at: updates.expiresAt,
+      status: updates.status,
+      description: updates.description,
+    });
+  }, [updateCreditTransactionMutation]);
 
   const deleteCreditTransaction = useCallback((id: string) => {
     deleteCreditTransactionMutation.mutate(id);
   }, [deleteCreditTransactionMutation]);
 
+  // Get consultant balance - only count active credits
   const getConsultantBalance = useCallback((consultantId: string) => {
+    const today = new Date().toISOString().split('T')[0];
     return creditTransactions
-      .filter(t => t.consultantId === consultantId)
+      .filter(t => {
+        if (t.consultantId !== consultantId) return false;
+        if (t.type === 'resgate') return true; // Always count redemptions
+        // For gains, only count active (not expired, not used)
+        if (t.status === 'expired' || t.status === 'used') return false;
+        if (t.expiresAt && t.expiresAt < today) return false;
+        return true;
+      })
       .reduce((acc, t) => t.type === 'ganho' ? acc + t.amount : acc - t.amount, 0);
   }, [creditTransactions]);
 
@@ -642,8 +719,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     updateReminder,
     deleteReminder,
     addCreditTransaction,
+    updateCreditTransaction,
     deleteCreditTransaction,
     getConsultantBalance,
+    creditValiditySettings,
+    updateCreditValiditySettings,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

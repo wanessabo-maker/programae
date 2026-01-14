@@ -169,6 +169,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           description: `${selectedActionType?.name} - ${professional?.name || newProfessional.name}`,
           date: form.date,
           actionId: actionId,
+          status: 'active',
         });
       }
 

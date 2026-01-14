@@ -630,8 +630,30 @@ export function useCreateCreditTransaction() {
       points: number;
       description?: string;
       transaction_date?: string;
+      expires_at?: string;
+      status?: string;
     }) => {
       const { data, error } = await supabase.from('credit_transactions').insert(transaction).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['credit_transactions'] });
+      queryClient.refetchQueries({ queryKey: ['credit_transactions'] });
+    },
+  });
+}
+
+export function useUpdateCreditTransaction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: {
+      id: string;
+      expires_at?: string;
+      status?: string;
+      description?: string;
+    }) => {
+      const { data, error } = await supabase.from('credit_transactions').update(updates).eq('id', id).select().single();
       if (error) throw error;
       return data;
     },
@@ -650,6 +672,53 @@ export function useDeleteCreditTransaction() {
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['credit_transactions'] }),
+  });
+}
+
+// System Settings
+export function useSystemSettings() {
+  return useQuery({
+    queryKey: ['system_settings'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('system_settings').select('*');
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useUpsertSystemSetting() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ key, value }: { key: string; value: unknown }) => {
+      // First try to find if setting exists
+      const { data: existing } = await supabase.from('system_settings').select('id').eq('key', key).single();
+      
+      if (existing) {
+        // Update existing
+        const { data, error } = await supabase
+          .from('system_settings')
+          .update({ value: value as any, updated_at: new Date().toISOString() })
+          .eq('key', key)
+          .select()
+          .single();
+        if (error) throw error;
+        return data;
+      } else {
+        // Insert new
+        const { data, error } = await supabase
+          .from('system_settings')
+          .insert({ key, value: value as any })
+          .select()
+          .single();
+        if (error) throw error;
+        return data;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['system_settings'] });
+      queryClient.refetchQueries({ queryKey: ['system_settings'] });
+    },
   });
 }
 

@@ -663,11 +663,13 @@ const TiposAcaoTab = () => {
 }
 
 const ProgramaTab = () => {
-  const { rewards, addReward, updateReward, deleteReward } = useApp();
+  const { rewards, addReward, updateReward, deleteReward, creditValiditySettings, updateCreditValiditySettings } = useApp();
   const [newName, setNewName] = useState('');
   const [newCost, setNewCost] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: '', cost: '' });
+  const [validityType, setValidityType] = useState(creditValiditySettings.type);
+  const [validityDays, setValidityDays] = useState(String(creditValiditySettings.days || 30));
 
   const handleAdd = () => {
     if (newName.trim() && newCost) {
@@ -692,61 +694,124 @@ const ProgramaTab = () => {
     }
   };
 
+  const handleSaveValiditySettings = () => {
+    updateCreditValiditySettings({
+      type: validityType,
+      days: validityType === 'dias' ? Number(validityDays) : undefined,
+    });
+  };
+
+  const validityTypeLabels: Record<string, string> = {
+    mensal: 'Mensal (até o fim do mês)',
+    anual: 'Anual (até o fim do ano)',
+    dias: 'Por número de dias',
+    sem_validade: 'Sem validade',
+  };
+
   return (
-    <div className="space-y-4">
-      <p className="title-section">Premiações</p>
-      <div className="flex gap-2">
-        <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Nome da premiação" className="input-flat flex-1 text-card-foreground" />
-        <input type="number" value={newCost} onChange={(e) => setNewCost(e.target.value)} placeholder="Custo" className="input-flat w-24 text-card-foreground" />
-        <button onClick={handleAdd} className="btn-primary bg-card-foreground text-card">
-          <Plus className="w-4 h-4" />
-        </button>
-      </div>
-      <div className="space-y-2">
-        {rewards.map((reward) => (
-          <div key={reward.id} className="flex items-center justify-between p-3 border border-black">
-            {editingId === reward.id ? (
-              <>
-                <div className="flex items-center gap-2 flex-1">
-                  <input
-                    value={editForm.name}
-                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                    className="input-flat flex-1 text-card-foreground"
-                  />
-                  <input
-                    type="number"
-                    value={editForm.cost}
-                    onChange={(e) => setEditForm({ ...editForm, cost: e.target.value })}
-                    className="input-flat w-24 text-card-foreground"
-                  />
-                </div>
-                <div className="flex gap-1">
-                  <button onClick={handleSaveEdit} className="p-2">
-                    <Check className="w-4 h-4" />
-                  </button>
-                  <button onClick={() => setEditingId(null)} className="p-2">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="flex items-center gap-4">
-                  <span className="text-sm">{reward.name}</span>
-                  <span className="text-xs text-muted-foreground">{reward.cost} créditos</span>
-                </div>
-                <div className="flex gap-1">
-                  <button onClick={() => handleEdit(reward.id)} className="p-2 opacity-60 hover:opacity-100">
-                    <Pencil className="w-4 h-4" />
-                  </button>
-                  <button onClick={() => deleteReward(reward.id)} className="p-2 opacity-60 hover:opacity-100 text-destructive">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </>
-            )}
+    <div className="space-y-6">
+      {/* Credit Validity Settings */}
+      <div className="space-y-4 border border-black p-4">
+        <p className="title-section">Validade dos Créditos</p>
+        <p className="text-xs text-muted-foreground">
+          Configure a regra de expiração dos créditos gerados. A regra se aplica apenas a novos créditos.
+        </p>
+        <div className="flex gap-2 flex-wrap items-end">
+          <div className="flex-1 min-w-[200px]">
+            <label className="text-xs text-muted-foreground block mb-1">Tipo de Validade</label>
+            <select 
+              value={validityType} 
+              onChange={(e) => setValidityType(e.target.value as typeof validityType)} 
+              className="input-flat w-full text-card-foreground"
+            >
+              {Object.entries(validityTypeLabels).map(([k, v]) => (
+                <option key={k} value={k}>{v}</option>
+              ))}
+            </select>
           </div>
-        ))}
+          {validityType === 'dias' && (
+            <div className="w-32">
+              <label className="text-xs text-muted-foreground block mb-1">Dias</label>
+              <input
+                type="number"
+                value={validityDays}
+                onChange={(e) => setValidityDays(e.target.value)}
+                min="1"
+                className="input-flat w-full text-card-foreground"
+              />
+            </div>
+          )}
+          <button 
+            onClick={handleSaveValiditySettings} 
+            className="btn-primary bg-card-foreground text-card"
+          >
+            Salvar Regra
+          </button>
+        </div>
+        <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
+          <strong>Regra atual:</strong> {validityTypeLabels[creditValiditySettings.type]}
+          {creditValiditySettings.type === 'dias' && creditValiditySettings.days && (
+            <span> ({creditValiditySettings.days} dias)</span>
+          )}
+        </div>
+      </div>
+
+      {/* Rewards */}
+      <div className="space-y-4">
+        <p className="title-section">Premiações</p>
+        <div className="flex gap-2">
+          <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Nome da premiação" className="input-flat flex-1 text-card-foreground" />
+          <input type="number" value={newCost} onChange={(e) => setNewCost(e.target.value)} placeholder="Custo" className="input-flat w-24 text-card-foreground" />
+          <button onClick={handleAdd} className="btn-primary bg-card-foreground text-card">
+            <Plus className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="space-y-2">
+          {rewards.map((reward) => (
+            <div key={reward.id} className="flex items-center justify-between p-3 border border-black">
+              {editingId === reward.id ? (
+                <>
+                  <div className="flex items-center gap-2 flex-1">
+                    <input
+                      value={editForm.name}
+                      onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                      className="input-flat flex-1 text-card-foreground"
+                    />
+                    <input
+                      type="number"
+                      value={editForm.cost}
+                      onChange={(e) => setEditForm({ ...editForm, cost: e.target.value })}
+                      className="input-flat w-24 text-card-foreground"
+                    />
+                  </div>
+                  <div className="flex gap-1">
+                    <button onClick={handleSaveEdit} className="p-2">
+                      <Check className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => setEditingId(null)} className="p-2">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-4">
+                    <span className="text-sm">{reward.name}</span>
+                    <span className="text-xs text-muted-foreground">{reward.cost} créditos</span>
+                  </div>
+                  <div className="flex gap-1">
+                    <button onClick={() => handleEdit(reward.id)} className="p-2 opacity-60 hover:opacity-100">
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => deleteReward(reward.id)} className="p-2 opacity-60 hover:opacity-100 text-destructive">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
