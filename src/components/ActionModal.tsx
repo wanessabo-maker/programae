@@ -77,12 +77,14 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
   };
 
   const handleSubmit = async () => {
+    // Check for no categories first, before validateForm updates state
+    if (isNewProfessional && professionalCategories.length === 0) {
+      toast.error('Configure pelo menos uma Categoria de Profissional no Setup antes de registrar novos profissionais');
+      return;
+    }
+    
     if (!validateForm()) {
-      if (errors.noCategories || (isNewProfessional && professionalCategories.length === 0)) {
-        toast.error('Configure pelo menos uma Categoria de Profissional no Setup antes de registrar novos profissionais');
-      } else {
-        toast.error('Preencha os campos obrigatórios');
-      }
+      toast.error('Preencha os campos obrigatórios');
       return;
     }
 
