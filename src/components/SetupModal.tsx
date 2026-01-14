@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useApp } from '@/contexts/AppContext';
 import { Plus, Pencil, Trash2, X, Check } from 'lucide-react';
+import { BulkProfessionalsTab } from './setup/BulkProfessionalsTab';
 
 interface SetupModalProps {
   open: boolean;
@@ -15,6 +17,17 @@ export function SetupModal({ open, onOpenChange }: SetupModalProps) {
     onOpenChange(false);
   };
 
+  const tabs = [
+    { label: 'Áreas', value: 'areas' },
+    { label: 'Equipe', value: 'equipe' },
+    { label: 'Metas', value: 'metas' },
+    { label: 'Tipos de Ação', value: 'tipos-acao' },
+    { label: 'Programa E+', value: 'programa' },
+    { label: 'Tipos Prof.', value: 'tipos-prof' },
+    { label: 'Categorias', value: 'categorias' },
+    { label: 'Prof. em Massa', value: 'bulk-prof' },
+  ];
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="bg-card text-card-foreground border-black max-w-4xl max-h-[80vh] overflow-hidden">
@@ -22,17 +35,20 @@ export function SetupModal({ open, onOpenChange }: SetupModalProps) {
           <DialogTitle>SETUP</DialogTitle>
         </DialogHeader>
         <Tabs defaultValue="areas" className="h-full">
-          <TabsList className="bg-transparent border-b border-black rounded-none w-full justify-start gap-0 h-auto p-0">
-            {['Áreas', 'Equipe', 'Metas', 'Tipos de Ação', 'Programa E+', 'Tipos Prof.', 'Categorias'].map((tab, i) => (
-              <TabsTrigger
-                key={tab}
-                value={['areas', 'equipe', 'metas', 'tipos-acao', 'programa', 'tipos-prof', 'categorias'][i]}
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-black data-[state=active]:bg-transparent text-xs tracking-widest uppercase px-4 py-3"
-              >
-                {tab}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+          <ScrollArea className="w-full">
+            <TabsList className="bg-transparent border-b border-black rounded-none w-max min-w-full justify-start gap-0 h-auto p-0">
+              {tabs.map((tab) => (
+                <TabsTrigger
+                  key={tab.value}
+                  value={tab.value}
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-black data-[state=active]:bg-transparent text-xs tracking-widest uppercase px-3 sm:px-4 py-3 whitespace-nowrap"
+                >
+                  {tab.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
           
           <div className="overflow-y-auto max-h-[60vh] py-4">
             <TabsContent value="areas"><AreasTab /></TabsContent>
@@ -42,6 +58,7 @@ export function SetupModal({ open, onOpenChange }: SetupModalProps) {
             <TabsContent value="programa"><ProgramaTab /></TabsContent>
             <TabsContent value="tipos-prof"><TiposProfTab /></TabsContent>
             <TabsContent value="categorias"><CategoriasTab /></TabsContent>
+            <TabsContent value="bulk-prof"><BulkProfessionalsTab /></TabsContent>
           </div>
         </Tabs>
       </DialogContent>
