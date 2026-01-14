@@ -277,13 +277,18 @@ const MetasTab = () => {
             {professionalCategories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
           </select>
         )}
-        <input
-          type="number"
-          value={newValue}
-          onChange={(e) => setNewValue(e.target.value)}
-          placeholder="Valor %"
-          className="input-flat w-32 text-card-foreground"
-        />
+        <div className="relative">
+          {newType === 'vendas' && (
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+          )}
+          <input
+            type="number"
+            value={newValue}
+            onChange={(e) => setNewValue(e.target.value)}
+            placeholder={newType === 'vendas' ? 'Valor R$' : newType === 'categoria' ? 'Valor %' : 'Quantidade'}
+            className={`input-flat w-32 text-card-foreground ${newType === 'vendas' ? 'pl-10' : ''}`}
+          />
+        </div>
         <button onClick={handleAdd} className="btn-primary bg-card-foreground text-card">
           <Plus className="w-4 h-4" />
         </button>
@@ -294,12 +299,23 @@ const MetasTab = () => {
             <div className="flex items-center gap-4">
               <span className="text-sm">{areas.find(a => a.id === meta.areaId)?.name}</span>
               <span className="text-xs text-muted-foreground uppercase">{getMetaLabel(meta)}</span>
-              <input
-                type="number"
-                value={meta.value}
-                onChange={(e) => updateMeta(meta.id, { value: Number(e.target.value) })}
-                className="input-flat w-32 text-card-foreground"
-              />
+              <div className="relative">
+                {meta.type === 'vendas' && (
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                )}
+                <input
+                  type="number"
+                  value={meta.value}
+                  onChange={(e) => updateMeta(meta.id, { value: Number(e.target.value) })}
+                  className={`input-flat w-32 text-card-foreground ${meta.type === 'vendas' ? 'pl-10' : ''}`}
+                />
+                {meta.type !== 'vendas' && meta.type !== 'categoria' && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">un.</span>
+                )}
+                {meta.type === 'categoria' && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">%</span>
+                )}
+              </div>
             </div>
             <button onClick={() => deleteMeta(meta.id)} className="p-2 opacity-60 hover:opacity-100 text-destructive">
               <Trash2 className="w-4 h-4" />
