@@ -1,13 +1,16 @@
 import { useState, useMemo } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { MetricCard } from '@/components/MetricCard';
 import { ActionModal } from '@/components/ActionModal';
+import { YearlyResultsBoard } from '@/components/YearlyResultsBoard';
 import { format, parseISO, isThisMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export default function Dashboard() {
   const [showActionModal, setShowActionModal] = useState(false);
+  const { isAdmin } = useAuthContext();
   const { 
     actions, 
     metas, 
@@ -258,6 +261,9 @@ export default function Dashboard() {
           />
         </div>
       </section>
+
+      {/* Yearly Results Board - Admin Only */}
+      {isAdmin && <YearlyResultsBoard />}
 
       {/* Register Action */}
       <section>
