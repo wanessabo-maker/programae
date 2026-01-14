@@ -193,20 +193,20 @@ export default function Profissionais() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl">Profissionais</h1>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowImportModal(true)}
-            className="btn-secondary border-card-foreground text-card-foreground flex items-center gap-2"
-          >
-            <Upload className="w-4 h-4" />
-            Importar Excel
-          </button>
+        <div className="flex flex-col items-end gap-2">
           <button
             onClick={() => setShowProfessionalModal(true)}
             className="btn-primary flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
             Novo Profissional
+          </button>
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="btn-secondary border-card-foreground text-card-foreground flex items-center gap-2"
+          >
+            <Upload className="w-4 h-4" />
+            Adicionar profissionais em massa
           </button>
         </div>
       </div>
