@@ -1,32 +1,29 @@
 import { useState } from 'react';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import logo from '@/assets/logo.png';
 
+type AuthMode = 'login' | 'signup' | 'forgot' | 'reset';
+
 export default function Auth() {
-  const [isLogin, setIsLogin] = useState(true);
+  const [mode, setMode] = useState<AuthMode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { signIn, signUp } = useAuthContext();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!email || !password) {
-      toast.error('Preencha todos os campos');
-      return;
-    }
-
-    if (password.length < 6) {
-      toast.error('A senha deve ter pelo menos 6 caracteres');
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
-      if (isLogin) {
+      if (mode === 'login') {
+        if (!email || !password) {
+          toast.error('Preencha todos os campos');
+          return;
+        }
         const { error } = await signIn(email, password);
         if (error) {
           if (error.message.includes('Invalid login credentials')) {
@@ -37,7 +34,15 @@ export default function Auth() {
         } else {
           toast.success('Login realizado com sucesso!');
         }
-      } else {
+      } else if (mode === 'signup') {
+        if (!email || !password) {
+          toast.error('Preencha todos os campos');
+          return;
+        }
+        if (password.length < 6) {
+          toast.error('A senha deve ter pelo menos 6 caracteres');
+          return;
+        }
         const { error } = await signUp(email, password);
         if (error) {
           if (error.message.includes('already registered')) {
@@ -48,11 +53,79 @@ export default function Auth() {
         } else {
           toast.success('Conta criada com sucesso!');
         }
+      } else if (mode === 'forgot') {
+        if (!email) {
+          toast.error('Digite seu email');
+          return;
+        }
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/auth?mode=reset`,
+        });
+        if (error) {
+          toast.error(error.message);
+        } else {
+          toast.success('Email de recuperação enviado! Verifique sua caixa de entrada.');
+          setMode('login');
+        }
       }
     } catch (err) {
       toast.error('Erro ao processar solicitação');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!password || !confirmPassword) {
+      toast.error('Preencha todos os campos');
+      return;
+    }
+    
+    if (password.length < 6) {
+      toast.error('A senha deve ter pelo menos 6 caracteres');
+      return;
+    }
+    
+    if (password !== confirmPassword) {
+      toast.error('As senhas não coincidem');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success('Senha alterada com sucesso!');
+        setMode('login');
+        setPassword('');
+        setConfirmPassword('');
+      }
+    } catch (err) {
+      toast.error('Erro ao alterar senha');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Check if we're in reset mode from URL
+  useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('mode') === 'reset') {
+      setMode('reset');
+    }
+  });
+
+  const getTitle = () => {
+    switch (mode) {
+      case 'login': return 'Entrar';
+      case 'signup': return 'Criar Conta';
+      case 'forgot': return 'Recuperar Senha';
+      case 'reset': return 'Nova Senha';
     }
   };
 
@@ -67,56 +140,121 @@ export default function Auth() {
 
           {/* Title */}
           <h1 className="text-xs tracking-widest uppercase text-center mb-8">
-            {isLogin ? 'Entrar' : 'Criar Conta'}
+            {getTitle()}
           </h1>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
-                Email
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="input-flat w-full text-card-foreground"
-                placeholder="seu@email.com"
-                autoComplete="email"
-              />
+          {/* Reset Password Form */}
+          {mode === 'reset' ? (
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <div>
+                <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
+                  Nova Senha
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="input-flat w-full text-card-foreground"
+                  placeholder="••••••"
+                  autoComplete="new-password"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
+                  Confirmar Senha
+                </label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="input-flat w-full text-card-foreground"
+                  placeholder="••••••"
+                  autoComplete="new-password"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="btn-primary w-full bg-card-foreground text-card mt-6 disabled:opacity-50"
+              >
+                {isSubmitting ? 'Aguarde...' : 'Alterar Senha'}
+              </button>
+            </form>
+          ) : (
+            /* Login / Signup / Forgot Form */
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="input-flat w-full text-card-foreground"
+                  placeholder="seu@email.com"
+                  autoComplete="email"
+                />
+              </div>
+
+              {mode !== 'forgot' && (
+                <div>
+                  <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
+                    Senha
+                  </label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="input-flat w-full text-card-foreground"
+                    placeholder="••••••"
+                    autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                  />
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="btn-primary w-full bg-card-foreground text-card mt-6 disabled:opacity-50"
+              >
+                {isSubmitting ? 'Aguarde...' : mode === 'login' ? 'Entrar' : mode === 'signup' ? 'Criar Conta' : 'Enviar Email'}
+              </button>
+            </form>
+          )}
+
+          {/* Forgot Password Link (only on login) */}
+          {mode === 'login' && (
+            <div className="mt-4 text-center">
+              <button
+                onClick={() => setMode('forgot')}
+                className="text-xs tracking-widest uppercase text-muted-foreground hover:text-card-foreground transition-colors"
+              >
+                Esqueci minha senha
+              </button>
             </div>
+          )}
 
-            <div>
-              <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
-                Senha
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="input-flat w-full text-card-foreground"
-                placeholder="••••••"
-                autoComplete={isLogin ? 'current-password' : 'new-password'}
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="btn-primary w-full bg-card-foreground text-card mt-6 disabled:opacity-50"
-            >
-              {isSubmitting ? 'Aguarde...' : isLogin ? 'Entrar' : 'Criar Conta'}
-            </button>
-          </form>
-
-          {/* Toggle */}
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-xs tracking-widest uppercase text-muted-foreground hover:text-card-foreground transition-colors"
-            >
-              {isLogin ? 'Não tem conta? Criar agora' : 'Já tem conta? Entrar'}
-            </button>
+          {/* Mode Toggles */}
+          <div className="mt-6 text-center space-y-2">
+            {mode === 'forgot' && (
+              <button
+                onClick={() => setMode('login')}
+                className="text-xs tracking-widest uppercase text-muted-foreground hover:text-card-foreground transition-colors"
+              >
+                Voltar ao login
+              </button>
+            )}
+            {(mode === 'login' || mode === 'signup') && (
+              <button
+                onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
+                className="text-xs tracking-widest uppercase text-muted-foreground hover:text-card-foreground transition-colors block w-full"
+              >
+                {mode === 'login' ? 'Não tem conta? Criar agora' : 'Já tem conta? Entrar'}
+              </button>
+            )}
           </div>
         </div>
       </div>
