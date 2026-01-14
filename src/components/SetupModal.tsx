@@ -33,7 +33,7 @@ export function SetupModal({ open, onOpenChange }: SetupModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="bg-card text-card-foreground border-black max-w-4xl max-h-[80vh] overflow-hidden">
+      <DialogContent className="bg-card text-card-foreground border-black max-w-4xl max-h-[80vh] overflow-hidden p-6">
         <DialogHeader>
           <DialogTitle>SETUP</DialogTitle>
         </DialogHeader>
