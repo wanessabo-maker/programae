@@ -98,7 +98,7 @@ const AreasTab = () => {
       </div>
       <div className="space-y-2">
         {areas.map((area) => (
-          <div key={area.id} className="flex items-center justify-between p-2 pr-2 border border-black">
+          <div key={area.id} className="flex items-center justify-between p-3 border border-black bg-card">
             {editingId === area.id ? (
               <>
                 <input
@@ -188,7 +188,7 @@ const EquipeTab = () => {
       </div>
       <div className="space-y-2">
         {teamMembers.map((member) => (
-          <div key={member.id} className="flex items-center justify-between p-2 pr-2 border border-black">
+          <div key={member.id} className="flex items-center justify-between p-3 border border-black bg-card">
             {editingId === member.id ? (
               <>
                 <div className="flex items-center gap-2 flex-1">
@@ -437,7 +437,7 @@ const MetasTab = () => {
         {metas.map((meta) => (
           <div 
             key={meta.id} 
-            className={`p-2 pr-2 border ${isMetaExpired(meta) ? 'border-destructive/50 bg-destructive/5' : 'border-black'}`}
+            className={`p-3 border bg-card ${isMetaExpired(meta) ? 'border-destructive/50 bg-destructive/5' : 'border-black'}`}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4 flex-wrap">
@@ -618,7 +618,7 @@ const TiposAcaoTab = () => {
       )}
       <div className="space-y-2">
         {actionTypes.map((type) => (
-          <div key={type.id} className="flex items-center justify-between p-2 pr-2 border border-black">
+          <div key={type.id} className="flex items-center justify-between p-3 border border-black bg-card">
             <div className="flex items-center gap-4">
               <span className="text-sm">{type.name}</span>
               <span className="text-xs text-muted-foreground uppercase">{classLabels[type.classification]}</span>
@@ -681,7 +681,7 @@ const ProgramaTab = () => {
       </div>
       <div className="space-y-2">
         {rewards.map((reward) => (
-          <div key={reward.id} className="flex items-center justify-between p-2 pr-2 border border-black">
+          <div key={reward.id} className="flex items-center justify-between p-3 border border-black bg-card">
             {editingId === reward.id ? (
               <>
                 <div className="flex items-center gap-2 flex-1">
@@ -767,7 +767,7 @@ const TiposProfTab = () => {
       </div>
       <div className="space-y-2">
         {professionalTypes.map((type) => (
-          <div key={type.id} className="flex items-center justify-between p-2 pr-2 border border-black">
+          <div key={type.id} className="flex items-center justify-between p-3 border border-black bg-card">
             {editingId === type.id ? (
               <>
                 <input
@@ -859,7 +859,7 @@ const CategoriasTab = () => {
       )}
       <div className="space-y-2">
         {professionalCategories.sort((a, b) => a.order - b.order).map((cat) => (
-          <div key={cat.id} className="flex items-center justify-between p-2 pr-2 border border-black">
+          <div key={cat.id} className="flex items-center justify-between p-3 border border-black bg-card">
             <div className="flex items-center gap-4">
               <span className="text-xs text-muted-foreground">#{cat.order}</span>
               <span className="text-sm">{cat.name}</span>
