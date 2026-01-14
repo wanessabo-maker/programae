@@ -98,7 +98,7 @@ const AreasTab = () => {
       </div>
       <div className="space-y-2">
         {areas.map((area) => (
-          <div key={area.id} className="flex items-center justify-between p-3 border border-black">
+          <div key={area.id} className="flex items-center justify-between p-2 pr-2 border border-black">
             {editingId === area.id ? (
               <>
                 <input
@@ -116,11 +116,11 @@ const AreasTab = () => {
             ) : (
               <>
                 <span className="text-sm">{area.name}</span>
-                <div className="flex gap-2">
-                  <button onClick={() => { setEditingId(area.id); setEditName(area.name); }} className="p-2 opacity-60 hover:opacity-100">
+                <div className="flex gap-1">
+                  <button onClick={() => { setEditingId(area.id); setEditName(area.name); }} className="p-1.5 opacity-60 hover:opacity-100">
                     <Pencil className="w-4 h-4" />
                   </button>
-                  <button onClick={() => deleteArea(area.id)} className="p-2 opacity-60 hover:opacity-100 text-destructive">
+                  <button onClick={() => deleteArea(area.id)} className="p-1.5 opacity-60 hover:opacity-100 text-destructive">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
@@ -188,7 +188,7 @@ const EquipeTab = () => {
       </div>
       <div className="space-y-2">
         {teamMembers.map((member) => (
-          <div key={member.id} className="flex items-center justify-between p-3 border border-black">
+          <div key={member.id} className="flex items-center justify-between p-2 pr-2 border border-black">
             {editingId === member.id ? (
               <>
                 <div className="flex items-center gap-2 flex-1">
@@ -229,10 +229,10 @@ const EquipeTab = () => {
                   </button>
                 </div>
                 <div className="flex gap-1">
-                  <button onClick={() => handleEdit(member.id)} className="p-2 opacity-60 hover:opacity-100">
+                  <button onClick={() => handleEdit(member.id)} className="p-1.5 opacity-60 hover:opacity-100">
                     <Pencil className="w-4 h-4" />
                   </button>
-                  <button onClick={() => deleteTeamMember(member.id)} className="p-2 opacity-60 hover:opacity-100 text-destructive">
+                  <button onClick={() => deleteTeamMember(member.id)} className="p-1.5 opacity-60 hover:opacity-100 text-destructive">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
@@ -437,7 +437,7 @@ const MetasTab = () => {
         {metas.map((meta) => (
           <div 
             key={meta.id} 
-            className={`p-3 border ${isMetaExpired(meta) ? 'border-destructive/50 bg-destructive/5' : 'border-black'}`}
+            className={`p-2 pr-2 border ${isMetaExpired(meta) ? 'border-destructive/50 bg-destructive/5' : 'border-black'}`}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4 flex-wrap">
@@ -467,12 +467,12 @@ const MetasTab = () => {
               <div className="flex items-center gap-1">
                 <button 
                   onClick={() => handleEditValidity(meta)} 
-                  className="p-2 opacity-60 hover:opacity-100"
+                  className="p-1.5 opacity-60 hover:opacity-100"
                   title="Editar validade"
                 >
                   <Calendar className="w-4 h-4" />
                 </button>
-                <button onClick={() => deleteMeta(meta.id)} className="p-2 opacity-60 hover:opacity-100 text-destructive">
+                <button onClick={() => deleteMeta(meta.id)} className="p-1.5 opacity-60 hover:opacity-100 text-destructive">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
@@ -618,17 +618,17 @@ const TiposAcaoTab = () => {
       )}
       <div className="space-y-2">
         {actionTypes.map((type) => (
-          <div key={type.id} className="flex items-center justify-between p-3 border border-black">
+          <div key={type.id} className="flex items-center justify-between p-2 pr-2 border border-black">
             <div className="flex items-center gap-4">
               <span className="text-sm">{type.name}</span>
               <span className="text-xs text-muted-foreground uppercase">{classLabels[type.classification]}</span>
               <span className="text-xs text-muted-foreground">{type.programPoints} pts</span>
             </div>
             <div className="flex gap-1">
-              <button onClick={() => handleEdit(type.id)} className="p-2 opacity-60 hover:opacity-100">
+              <button onClick={() => handleEdit(type.id)} className="p-1.5 opacity-60 hover:opacity-100">
                 <Pencil className="w-4 h-4" />
               </button>
-              <button onClick={() => deleteActionType(type.id)} className="p-2 opacity-60 hover:opacity-100 text-destructive">
+              <button onClick={() => deleteActionType(type.id)} className="p-1.5 opacity-60 hover:opacity-100 text-destructive">
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>
@@ -681,7 +681,7 @@ const ProgramaTab = () => {
       </div>
       <div className="space-y-2">
         {rewards.map((reward) => (
-          <div key={reward.id} className="flex items-center justify-between p-3 border border-black">
+          <div key={reward.id} className="flex items-center justify-between p-2 pr-2 border border-black">
             {editingId === reward.id ? (
               <>
                 <div className="flex items-center gap-2 flex-1">
@@ -713,10 +713,10 @@ const ProgramaTab = () => {
                   <span className="text-xs text-muted-foreground">{reward.cost} créditos</span>
                 </div>
                 <div className="flex gap-1">
-                  <button onClick={() => handleEdit(reward.id)} className="p-2 opacity-60 hover:opacity-100">
+                  <button onClick={() => handleEdit(reward.id)} className="p-1.5 opacity-60 hover:opacity-100">
                     <Pencil className="w-4 h-4" />
                   </button>
-                  <button onClick={() => deleteReward(reward.id)} className="p-2 opacity-60 hover:opacity-100 text-destructive">
+                  <button onClick={() => deleteReward(reward.id)} className="p-1.5 opacity-60 hover:opacity-100 text-destructive">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
@@ -767,7 +767,7 @@ const TiposProfTab = () => {
       </div>
       <div className="space-y-2">
         {professionalTypes.map((type) => (
-          <div key={type.id} className="flex items-center justify-between p-3 border border-black">
+          <div key={type.id} className="flex items-center justify-between p-2 pr-2 border border-black">
             {editingId === type.id ? (
               <>
                 <input
@@ -788,10 +788,10 @@ const TiposProfTab = () => {
               <>
                 <span className="text-sm">{type.name}</span>
                 <div className="flex gap-1">
-                  <button onClick={() => handleEdit(type.id)} className="p-2 opacity-60 hover:opacity-100">
+                  <button onClick={() => handleEdit(type.id)} className="p-1.5 opacity-60 hover:opacity-100">
                     <Pencil className="w-4 h-4" />
                   </button>
-                  <button onClick={() => deleteProfessionalType(type.id)} className="p-2 opacity-60 hover:opacity-100 text-destructive">
+                  <button onClick={() => deleteProfessionalType(type.id)} className="p-1.5 opacity-60 hover:opacity-100 text-destructive">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
@@ -859,7 +859,7 @@ const CategoriasTab = () => {
       )}
       <div className="space-y-2">
         {professionalCategories.sort((a, b) => a.order - b.order).map((cat) => (
-          <div key={cat.id} className="flex items-center justify-between p-3 border border-black">
+          <div key={cat.id} className="flex items-center justify-between p-2 pr-2 border border-black">
             <div className="flex items-center gap-4">
               <span className="text-xs text-muted-foreground">#{cat.order}</span>
               <span className="text-sm">{cat.name}</span>
@@ -867,10 +867,10 @@ const CategoriasTab = () => {
               <span className="text-xs text-muted-foreground">{cat.daysToChange} dias</span>
             </div>
             <div className="flex gap-1">
-              <button onClick={() => handleEdit(cat.id)} className="p-2 opacity-60 hover:opacity-100">
+              <button onClick={() => handleEdit(cat.id)} className="p-1.5 opacity-60 hover:opacity-100">
                 <Pencil className="w-4 h-4" />
               </button>
-              <button onClick={() => deleteProfessionalCategory(cat.id)} className="p-2 opacity-60 hover:opacity-100 text-destructive">
+              <button onClick={() => deleteProfessionalCategory(cat.id)} className="p-1.5 opacity-60 hover:opacity-100 text-destructive">
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>
