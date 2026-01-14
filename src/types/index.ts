@@ -26,6 +26,10 @@ export interface Meta {
   type: 'acoes' | 'vendas' | 'captacao' | 'projeto' | 'categoria' | 'especificador'; // especificador for backwards compatibility
   value: number;
   categoryId?: string; // For 'categoria' type metas
+  validityType: 'mensal' | 'trimestral' | 'semestral' | 'anual' | 'personalizada';
+  startDate?: string;
+  endDate?: string;
+  isActive: boolean;
 }
 
 export interface ProfessionalType {

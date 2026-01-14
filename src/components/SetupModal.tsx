@@ -230,19 +230,93 @@ const MetasTab = () => {
   const [newType, setNewType] = useState<'acoes' | 'vendas' | 'captacao' | 'projeto' | 'categoria'>('acoes');
   const [newCategoryId, setNewCategoryId] = useState('');
   const [newValue, setNewValue] = useState('');
+  const [newValidityType, setNewValidityType] = useState<'mensal' | 'trimestral' | 'semestral' | 'anual' | 'personalizada'>('mensal');
+  const [newStartDate, setNewStartDate] = useState('');
+  const [newEndDate, setNewEndDate] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({
+    value: '',
+    validityType: 'mensal' as 'mensal' | 'trimestral' | 'semestral' | 'anual' | 'personalizada',
+    startDate: '',
+    endDate: '',
+  });
+
+  const calculateDates = (validityType: string, startDate?: string) => {
+    const today = new Date();
+    let start = startDate ? new Date(startDate) : today;
+    let end = new Date(start);
+
+    switch (validityType) {
+      case 'mensal':
+        start = new Date(today.getFullYear(), today.getMonth(), 1);
+        end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        break;
+      case 'trimestral':
+        const quarter = Math.floor(today.getMonth() / 3);
+        start = new Date(today.getFullYear(), quarter * 3, 1);
+        end = new Date(today.getFullYear(), (quarter + 1) * 3, 0);
+        break;
+      case 'semestral':
+        const semester = Math.floor(today.getMonth() / 6);
+        start = new Date(today.getFullYear(), semester * 6, 1);
+        end = new Date(today.getFullYear(), (semester + 1) * 6, 0);
+        break;
+      case 'anual':
+        start = new Date(today.getFullYear(), 0, 1);
+        end = new Date(today.getFullYear(), 11, 31);
+        break;
+      case 'personalizada':
+        return { start: startDate || '', end: '' };
+    }
+    return { 
+      start: start.toISOString().split('T')[0], 
+      end: end.toISOString().split('T')[0] 
+    };
+  };
 
   const handleAdd = () => {
     if (newAreaId && newValue) {
       if (newType === 'categoria' && !newCategoryId) return;
+      
+      const dates = calculateDates(newValidityType, newStartDate);
+      
       addMeta({ 
         areaId: newAreaId, 
         type: newType, 
         value: Number(newValue),
-        ...(newType === 'categoria' ? { categoryId: newCategoryId } : {})
+        categoryId: newType === 'categoria' ? newCategoryId : undefined,
+        validityType: newValidityType,
+        startDate: newValidityType === 'personalizada' ? newStartDate : dates.start,
+        endDate: newValidityType === 'personalizada' ? newEndDate : dates.end,
+        isActive: true,
       });
       setNewValue('');
       setNewCategoryId('');
+      setNewValidityType('mensal');
+      setNewStartDate('');
+      setNewEndDate('');
     }
+  };
+
+  const handleEdit = (meta: typeof metas[0]) => {
+    setEditForm({
+      value: String(meta.value),
+      validityType: meta.validityType,
+      startDate: meta.startDate || '',
+      endDate: meta.endDate || '',
+    });
+    setEditingId(meta.id);
+  };
+
+  const handleSaveEdit = (meta: typeof metas[0]) => {
+    const dates = calculateDates(editForm.validityType, editForm.startDate);
+    updateMeta(meta.id, { 
+      value: Number(editForm.value),
+      validityType: editForm.validityType,
+      startDate: editForm.validityType === 'personalizada' ? editForm.startDate : dates.start,
+      endDate: editForm.validityType === 'personalizada' ? editForm.endDate : dates.end,
+    });
+    setEditingId(null);
   };
 
   const typeLabels: Record<string, string> = { 
@@ -253,6 +327,14 @@ const MetasTab = () => {
     categoria: '% Categoria'
   };
 
+  const validityLabels: Record<string, string> = {
+    mensal: 'Mensal',
+    trimestral: 'Trimestral',
+    semestral: 'Semestral',
+    anual: 'Anual',
+    personalizada: 'Personalizada',
+  };
+
   const getMetaLabel = (meta: typeof metas[0]) => {
     if (meta.type === 'categoria' && meta.categoryId) {
       const cat = professionalCategories.find(c => c.id === meta.categoryId);
@@ -261,68 +343,215 @@ const MetasTab = () => {
     return typeLabels[meta.type];
   };
 
+  const isMetaExpired = (meta: typeof metas[0]) => {
+    if (!meta.endDate) return false;
+    return new Date(meta.endDate) < new Date();
+  };
+
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return '-';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('pt-BR');
+  };
+
+  // Separate active and expired metas
+  const activeMetas = metas.filter(m => m.isActive && !isMetaExpired(m));
+  const expiredMetas = metas.filter(m => !m.isActive || isMetaExpired(m));
+
   return (
-    <div className="space-y-4">
-      <div className="flex gap-2 flex-wrap">
-        <select value={newAreaId} onChange={(e) => setNewAreaId(e.target.value)} className="input-flat text-card-foreground">
-          <option value="">Área</option>
-          {areas.map((area) => <option key={area.id} value={area.id}>{area.name}</option>)}
-        </select>
-        <select value={newType} onChange={(e) => setNewType(e.target.value as typeof newType)} className="input-flat text-card-foreground">
-          {Object.entries(typeLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-        </select>
-        {newType === 'categoria' && (
-          <select value={newCategoryId} onChange={(e) => setNewCategoryId(e.target.value)} className="input-flat text-card-foreground">
-            <option value="">Selecione a Categoria</option>
-            {professionalCategories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+    <div className="space-y-6">
+      {/* Add new meta */}
+      <div className="space-y-3 border border-black p-4">
+        <p className="text-xs uppercase tracking-widest text-muted-foreground">Nova Meta</p>
+        <div className="flex gap-2 flex-wrap">
+          <select value={newAreaId} onChange={(e) => setNewAreaId(e.target.value)} className="input-flat text-card-foreground">
+            <option value="">Área</option>
+            {areas.map((area) => <option key={area.id} value={area.id}>{area.name}</option>)}
           </select>
-        )}
-        <div className="relative">
-          {newType === 'vendas' && (
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+          <select value={newType} onChange={(e) => setNewType(e.target.value as typeof newType)} className="input-flat text-card-foreground">
+            {Object.entries(typeLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+          {newType === 'categoria' && (
+            <select value={newCategoryId} onChange={(e) => setNewCategoryId(e.target.value)} className="input-flat text-card-foreground">
+              <option value="">Selecione a Categoria</option>
+              {professionalCategories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+            </select>
           )}
-          <input
-            type="number"
-            value={newValue}
-            onChange={(e) => setNewValue(e.target.value)}
-            placeholder={newType === 'vendas' ? 'Valor R$' : newType === 'categoria' ? 'Valor %' : 'Quantidade'}
-            className={`input-flat w-32 text-card-foreground ${newType === 'vendas' ? 'pl-10' : ''}`}
-          />
+          <div className="relative">
+            {newType === 'vendas' && (
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+            )}
+            <input
+              type="number"
+              value={newValue}
+              onChange={(e) => setNewValue(e.target.value)}
+              placeholder={newType === 'vendas' ? 'Valor R$' : newType === 'categoria' ? 'Valor %' : 'Quantidade'}
+              className={`input-flat w-32 text-card-foreground ${newType === 'vendas' ? 'pl-10' : ''}`}
+            />
+          </div>
         </div>
-        <button onClick={handleAdd} className="btn-primary bg-card-foreground text-card">
-          <Plus className="w-4 h-4" />
-        </button>
+        
+        <div className="flex gap-2 flex-wrap items-center">
+          <span className="text-xs text-muted-foreground">Validade:</span>
+          <select 
+            value={newValidityType} 
+            onChange={(e) => setNewValidityType(e.target.value as typeof newValidityType)} 
+            className="input-flat text-card-foreground"
+          >
+            {Object.entries(validityLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+          
+          {newValidityType === 'personalizada' && (
+            <>
+              <input
+                type="date"
+                value={newStartDate}
+                onChange={(e) => setNewStartDate(e.target.value)}
+                className="input-flat text-card-foreground"
+                placeholder="Data inicial"
+              />
+              <span className="text-xs text-muted-foreground">até</span>
+              <input
+                type="date"
+                value={newEndDate}
+                onChange={(e) => setNewEndDate(e.target.value)}
+                className="input-flat text-card-foreground"
+                placeholder="Data final"
+              />
+            </>
+          )}
+          
+          <button onClick={handleAdd} className="btn-primary bg-card-foreground text-card">
+            <Plus className="w-4 h-4" />
+          </button>
+        </div>
       </div>
+
+      {/* Active metas */}
       <div className="space-y-2">
-        {metas.map((meta) => (
-          <div key={meta.id} className="flex items-center justify-between p-3 border border-black">
-            <div className="flex items-center gap-4">
-              <span className="text-sm">{areas.find(a => a.id === meta.areaId)?.name}</span>
-              <span className="text-xs text-muted-foreground uppercase">{getMetaLabel(meta)}</span>
-              <div className="relative">
-                {meta.type === 'vendas' && (
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+        <p className="text-xs uppercase tracking-widest text-muted-foreground">Metas Ativas ({activeMetas.length})</p>
+        {activeMetas.map((meta) => (
+          <div key={meta.id} className="flex items-center justify-between p-3 border border-black bg-card">
+            {editingId === meta.id ? (
+              <div className="flex flex-wrap items-center gap-2 flex-1">
+                <span className="text-sm">{areas.find(a => a.id === meta.areaId)?.name}</span>
+                <span className="text-xs text-muted-foreground uppercase">{getMetaLabel(meta)}</span>
+                <div className="relative">
+                  {meta.type === 'vendas' && (
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>
+                  )}
+                  <input
+                    type="number"
+                    value={editForm.value}
+                    onChange={(e) => setEditForm({ ...editForm, value: e.target.value })}
+                    className={`input-flat w-32 text-card-foreground ${meta.type === 'vendas' ? 'pl-10' : ''}`}
+                  />
+                </div>
+                <select 
+                  value={editForm.validityType} 
+                  onChange={(e) => setEditForm({ ...editForm, validityType: e.target.value as typeof editForm.validityType })} 
+                  className="input-flat text-card-foreground text-xs"
+                >
+                  {Object.entries(validityLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+                {editForm.validityType === 'personalizada' && (
+                  <>
+                    <input
+                      type="date"
+                      value={editForm.startDate}
+                      onChange={(e) => setEditForm({ ...editForm, startDate: e.target.value })}
+                      className="input-flat text-card-foreground text-xs"
+                    />
+                    <input
+                      type="date"
+                      value={editForm.endDate}
+                      onChange={(e) => setEditForm({ ...editForm, endDate: e.target.value })}
+                      className="input-flat text-card-foreground text-xs"
+                    />
+                  </>
                 )}
-                <input
-                  type="number"
-                  value={meta.value}
-                  onChange={(e) => updateMeta(meta.id, { value: Number(e.target.value) })}
-                  className={`input-flat w-32 text-card-foreground ${meta.type === 'vendas' ? 'pl-10' : ''}`}
-                />
-                {meta.type !== 'vendas' && meta.type !== 'categoria' && (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">un.</span>
-                )}
-                {meta.type === 'categoria' && (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">%</span>
-                )}
+                <button onClick={() => handleSaveEdit(meta)} className="p-2">
+                  <Check className="w-4 h-4" />
+                </button>
+                <button onClick={() => setEditingId(null)} className="p-2">
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-            </div>
-            <button onClick={() => deleteMeta(meta.id)} className="p-2 opacity-60 hover:opacity-100 text-destructive">
-              <Trash2 className="w-4 h-4" />
-            </button>
+            ) : (
+              <>
+                <div className="flex items-center gap-4 flex-wrap">
+                  <span className="text-sm font-medium">{areas.find(a => a.id === meta.areaId)?.name}</span>
+                  <span className="text-xs text-muted-foreground uppercase">{getMetaLabel(meta)}</span>
+                  <span className="text-sm">
+                    {meta.type === 'vendas' ? `R$ ${meta.value.toLocaleString('pt-BR')}` : 
+                     meta.type === 'categoria' ? `${meta.value}%` : 
+                     `${meta.value} un.`}
+                  </span>
+                  <span className="text-xs px-2 py-1 bg-muted rounded">{validityLabels[meta.validityType]}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {formatDate(meta.startDate)} - {formatDate(meta.endDate)}
+                  </span>
+                </div>
+                <div className="flex gap-1">
+                  <button onClick={() => handleEdit(meta)} className="p-2 opacity-60 hover:opacity-100">
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => deleteMeta(meta.id)} className="p-2 opacity-60 hover:opacity-100 text-destructive">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         ))}
       </div>
+
+      {/* Expired metas */}
+      {expiredMetas.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs uppercase tracking-widest text-muted-foreground">Metas Expiradas ({expiredMetas.length})</p>
+          {expiredMetas.map((meta) => (
+            <div key={meta.id} className="flex items-center justify-between p-3 border border-black/30 bg-muted/30 opacity-60">
+              <div className="flex items-center gap-4 flex-wrap">
+                <span className="text-sm">{areas.find(a => a.id === meta.areaId)?.name}</span>
+                <span className="text-xs text-muted-foreground uppercase">{getMetaLabel(meta)}</span>
+                <span className="text-sm">
+                  {meta.type === 'vendas' ? `R$ ${meta.value.toLocaleString('pt-BR')}` : 
+                   meta.type === 'categoria' ? `${meta.value}%` : 
+                   `${meta.value} un.`}
+                </span>
+                <span className="text-xs px-2 py-1 bg-destructive/20 text-destructive rounded">Expirada</span>
+                <span className="text-xs text-muted-foreground">
+                  {formatDate(meta.startDate)} - {formatDate(meta.endDate)}
+                </span>
+              </div>
+              <div className="flex gap-1">
+                <button 
+                  onClick={() => {
+                    const dates = calculateDates(meta.validityType);
+                    addMeta({
+                      areaId: meta.areaId,
+                      type: meta.type,
+                      value: meta.value,
+                      categoryId: meta.categoryId,
+                      validityType: meta.validityType,
+                      startDate: dates.start,
+                      endDate: dates.end,
+                      isActive: true,
+                    });
+                  }} 
+                  className="text-xs px-2 py-1 border border-black hover:bg-black hover:text-white"
+                >
+                  Renovar
+                </button>
+                <button onClick={() => deleteMeta(meta.id)} className="p-2 opacity-60 hover:opacity-100 text-destructive">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

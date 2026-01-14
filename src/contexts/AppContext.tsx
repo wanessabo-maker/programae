@@ -135,13 +135,27 @@ function transformActionType(dbType: {
   };
 }
 
-function transformGoal(dbGoal: { id: string; area_id: string | null; metric: string; value: number; category_id?: string | null }): Meta {
+function transformGoal(dbGoal: { 
+  id: string; 
+  area_id: string | null; 
+  metric: string; 
+  value: number; 
+  category_id?: string | null;
+  validity_type?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  is_active?: boolean | null;
+}): Meta {
   return {
     id: dbGoal.id,
     areaId: dbGoal.area_id || '',
     type: dbGoal.metric as Meta['type'],
     value: Number(dbGoal.value),
     categoryId: dbGoal.category_id || undefined,
+    validityType: (dbGoal.validity_type as Meta['validityType']) || 'mensal',
+    startDate: dbGoal.start_date || undefined,
+    endDate: dbGoal.end_date || undefined,
+    isActive: dbGoal.is_active ?? true,
   };
 }
 
@@ -396,6 +410,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       metric: meta.type,
       value: meta.value,
       category_id: meta.categoryId,
+      validity_type: meta.validityType,
+      start_date: meta.startDate,
+      end_date: meta.endDate,
+      is_active: meta.isActive,
     });
   }, [createGoal]);
 
@@ -406,6 +424,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       metric: meta.type,
       value: meta.value,
       category_id: meta.categoryId,
+      validity_type: meta.validityType,
+      start_date: meta.startDate,
+      end_date: meta.endDate,
+      is_active: meta.isActive,
     });
   }, [updateGoalMutation]);
 
