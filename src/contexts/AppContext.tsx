@@ -135,27 +135,13 @@ function transformActionType(dbType: {
   };
 }
 
-function transformGoal(dbGoal: { 
-  id: string; 
-  area_id: string | null; 
-  metric: string; 
-  value: number; 
-  category_id?: string | null;
-  validity_type?: string | null;
-  start_date?: string | null;
-  end_date?: string | null;
-  is_active?: boolean | null;
-}): Meta {
+function transformGoal(dbGoal: { id: string; area_id: string | null; metric: string; value: number; category_id?: string | null }): Meta {
   return {
     id: dbGoal.id,
     areaId: dbGoal.area_id || '',
     type: dbGoal.metric as Meta['type'],
     value: Number(dbGoal.value),
     categoryId: dbGoal.category_id || undefined,
-    validityType: (dbGoal.validity_type as Meta['validityType']) || 'mensal',
-    startDate: dbGoal.start_date || undefined,
-    endDate: dbGoal.end_date || undefined,
-    isActive: dbGoal.is_active ?? true,
   };
 }
 
@@ -255,8 +241,6 @@ function transformCreditTransaction(dbTx: {
   description: string | null;
   transaction_date: string | null;
   action_id: string | null;
-  expires_at?: string | null;
-  status?: string | null;
 }): CreditTransaction {
   const isGain = dbTx.points >= 0;
   return {
@@ -267,8 +251,6 @@ function transformCreditTransaction(dbTx: {
     description: dbTx.description || '',
     date: dbTx.transaction_date || new Date().toISOString().split('T')[0],
     actionId: dbTx.action_id ?? undefined,
-    expiresAt: dbTx.expires_at || undefined,
-    status: (dbTx.status as CreditTransaction['status']) || 'active',
   };
 }
 
@@ -414,10 +396,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       metric: meta.type,
       value: meta.value,
       category_id: meta.categoryId,
-      validity_type: meta.validityType || 'mensal',
-      start_date: meta.startDate,
-      end_date: meta.endDate,
-      is_active: meta.isActive ?? true,
     });
   }, [createGoal]);
 
@@ -428,10 +406,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       metric: meta.type,
       value: meta.value,
       category_id: meta.categoryId,
-      validity_type: meta.validityType,
-      start_date: meta.startDate,
-      end_date: meta.endDate,
-      is_active: meta.isActive,
     });
   }, [updateGoalMutation]);
 

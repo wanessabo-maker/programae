@@ -155,10 +155,6 @@ export default function Dashboard() {
       const hasGoals = metricsForArea.length > 0;
       const hasActions = thisMonthActions.length > 0;
 
-      // Priority: Actions determine visibility - collaborators with actions are ALWAYS shown
-      // Goals are optional for display, but actions are determinant
-      const shouldDisplay = hasActions || hasGoals;
-
       return {
         ...member,
         areaId: member.areaId,
@@ -166,11 +162,9 @@ export default function Dashboard() {
         metricsForArea,
         categoryBreakdown,
         totalProfessionals: memberProfessionals.length,
-        totalActionsThisMonth: totalAcoes,
-        totalSalesThisMonth: totalSales,
         hasGoals,
         hasActions,
-        shouldDisplay,
+        shouldDisplay: hasGoals || hasActions,
       };
     });
   }, [activeMembers, actions, areas, metas, actionTypes, professionals, professionalCategories]);
@@ -354,22 +348,9 @@ export default function Dashboard() {
                       </div>
                       
                       <div className="space-y-3">
-                        {/* Show actions count when no goals are defined */}
                         {consultant.metricsForArea.length === 0 && consultant.hasActions && (
-                          <div>
-                            <div className="text-xs text-muted-foreground italic mb-2">
-                              Sem meta definida
-                            </div>
-                            <div className="flex justify-between text-xs mb-1">
-                              <span className="text-muted-foreground">AÇÕES ESTE MÊS</span>
-                              <span>{consultant.totalActionsThisMonth}</span>
-                            </div>
-                            {consultant.totalSalesThisMonth > 0 && (
-                              <div className="flex justify-between text-xs">
-                                <span className="text-muted-foreground">VENDAS ESTE MÊS</span>
-                                <span>{formatCurrency(consultant.totalSalesThisMonth)}</span>
-                              </div>
-                            )}
+                          <div className="text-xs text-muted-foreground italic">
+                            Ações registradas (sem metas definidas para a área)
                           </div>
                         )}
                         {consultant.metricsForArea.map((metric) => (

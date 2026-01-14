@@ -284,16 +284,7 @@ export function useGoals() {
 export function useCreateGoal() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (goal: { 
-      area_id: string; 
-      metric: string; 
-      value: number; 
-      category_id?: string;
-      validity_type?: string;
-      start_date?: string;
-      end_date?: string;
-      is_active?: boolean;
-    }) => {
+    mutationFn: async (goal: { area_id: string; metric: string; value: number; category_id?: string }) => {
       const { data, error } = await supabase.from('goals').insert(goal).select().single();
       if (error) throw error;
       return data;
@@ -308,17 +299,7 @@ export function useCreateGoal() {
 export function useUpdateGoal() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { 
-      id: string; 
-      area_id?: string; 
-      metric?: string; 
-      value?: number; 
-      category_id?: string;
-      validity_type?: string;
-      start_date?: string;
-      end_date?: string;
-      is_active?: boolean;
-    }) => {
+    mutationFn: async ({ id, ...updates }: { id: string; area_id?: string; metric?: string; value?: number; category_id?: string }) => {
       const { data, error } = await supabase.from('goals').update(updates).eq('id', id).select().single();
       if (error) throw error;
       return data;
@@ -630,8 +611,6 @@ export function useCreateCreditTransaction() {
       points: number;
       description?: string;
       transaction_date?: string;
-      expires_at?: string;
-      status?: string;
     }) => {
       const { data, error } = await supabase.from('credit_transactions').insert(transaction).select().single();
       if (error) throw error;
@@ -640,75 +619,6 @@ export function useCreateCreditTransaction() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['credit_transactions'] });
       queryClient.refetchQueries({ queryKey: ['credit_transactions'] });
-    },
-  });
-}
-
-export function useUpdateCreditTransaction() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ id, ...updates }: {
-      id: string;
-      expires_at?: string;
-      status?: string;
-    }) => {
-      const { data, error } = await supabase.from('credit_transactions').update(updates).eq('id', id).select().single();
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['credit_transactions'] }),
-  });
-}
-
-// System Settings
-export function useSystemSettings() {
-  return useQuery({
-    queryKey: ['system_settings'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('system_settings').select('*');
-      if (error) throw error;
-      return data;
-    },
-  });
-}
-
-export function useUpdateSystemSetting() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ key, value }: { key: string; value: Record<string, unknown> }) => {
-      // First check if setting exists
-      const { data: existing } = await supabase
-        .from('system_settings')
-        .select('id')
-        .eq('key', key)
-        .maybeSingle();
-      
-      let result;
-      if (existing) {
-        // Update existing - cast to any to bypass strict type checking for JSONB
-        const { data, error } = await supabase
-          .from('system_settings')
-          .update({ value: value as any }) // eslint-disable-line @typescript-eslint/no-explicit-any
-          .eq('key', key)
-          .select()
-          .single();
-        if (error) throw error;
-        result = data;
-      } else {
-        // Insert new - cast to any to bypass strict type checking for JSONB
-        const { data, error } = await supabase
-          .from('system_settings')
-          .insert([{ key, value: value as any }]) // eslint-disable-line @typescript-eslint/no-explicit-any
-          .select()
-          .single();
-        if (error) throw error;
-        result = data;
-      }
-      return result;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['system_settings'] });
-      queryClient.refetchQueries({ queryKey: ['system_settings'] });
     },
   });
 }
