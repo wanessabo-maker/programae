@@ -22,49 +22,60 @@ export function useAuth() {
   });
 
   useEffect(() => {
-    // Set up auth state listener BEFORE checking session
+    let isMounted = true;
+
+    const fetchRolesAndUpdateState = async (session: Session | null) => {
+      if (!isMounted) return;
+      
+      const user = session?.user ?? null;
+      
+      if (user) {
+        // Fetch user roles
+        const { data: rolesData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id);
+        
+        if (!isMounted) return;
+        
+        const roles = (rolesData?.map(r => r.role) as AppRole[]) || [];
+        const isAdmin = roles.includes('admin');
+        
+        setAuthState({
+          user,
+          session,
+          isLoading: false,
+          isAdmin,
+          roles,
+        });
+      } else {
+        setAuthState({
+          user: null,
+          session: null,
+          isLoading: false,
+          isAdmin: false,
+          roles: [],
+        });
+      }
+    };
+
+    // Check initial session first
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      fetchRolesAndUpdateState(session);
+    });
+
+    // Set up auth state listener for future changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        const user = session?.user ?? null;
-        
-        if (user) {
-          // Fetch user roles
-          const { data: rolesData } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', user.id);
-          
-          const roles = (rolesData?.map(r => r.role) as AppRole[]) || [];
-          const isAdmin = roles.includes('admin');
-          
-          setAuthState({
-            user,
-            session,
-            isLoading: false,
-            isAdmin,
-            roles,
-          });
-        } else {
-          setAuthState({
-            user: null,
-            session: null,
-            isLoading: false,
-            isAdmin: false,
-            roles: [],
-          });
+        // Only handle actual auth changes, not initial events
+        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+          fetchRolesAndUpdateState(session);
         }
       }
     );
 
-    // Check initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        setAuthState(prev => ({ ...prev, isLoading: false }));
-      }
-      // If session exists, onAuthStateChange will handle it
-    });
-
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
     };
   }, []);
