@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useApp } from '@/contexts/AppContext';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-
+import { getCategoryForAction } from '@/hooks/useProfessionalCategory';
 interface ActionModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -93,18 +93,18 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     try {
       let professionalId = form.professionalId;
 
+      // Determine the category based on action type
+      const targetCategory = selectedActionType 
+        ? getCategoryForAction(selectedActionType, professionalCategories)
+        : null;
+
       // Create new professional if needed
       if (isNewProfessional && newProfessional.name && newProfessional.typeId) {
-        // Get the first category as default (lowest hierarchy)
-        const defaultCategory = professionalCategories.length > 0 
-          ? professionalCategories.reduce((min, cat) => cat.order < min.order ? cat : min, professionalCategories[0])
-          : null;
-        
         const newId = await addProfessional({
           name: newProfessional.name,
           typeId: newProfessional.typeId,
           consultantId: form.consultantId,
-          categoryId: defaultCategory?.id || '',
+          categoryId: targetCategory?.id || professionalCategories[0]?.id || '',
           lastActionDate: form.date,
           lastActionType: selectedActionType?.name,
         });
@@ -119,7 +119,6 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
 
         // Create reminder for special date if provided
         if (specialDate.date && specialDate.reason) {
-          const consultant = teamMembers.find(m => m.id === form.consultantId);
           addReminder({
             title: `${specialDate.reason} - ${newProfessional.name}`,
             date: specialDate.date,
@@ -130,10 +129,11 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           toast.success(`Lembrete criado para ${specialDate.reason}`);
         }
       } else if (professionalId) {
-        // Update existing professional
+        // Update existing professional with new category based on action
         updateProfessional(professionalId, {
           lastActionDate: form.date,
           lastActionType: selectedActionType?.name,
+          categoryId: targetCategory?.id,
         });
       }
 

@@ -1,10 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Plus, Pencil, Trash2, Calendar, Clock } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { format, parseISO, differenceInDays, addDays, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
+import { calculateProfessionalCategory } from '@/hooks/useProfessionalCategory';
 export default function Profissionais() {
   const {
     professionals,
@@ -62,25 +62,44 @@ export default function Profissionais() {
       });
   }, [reminders, teamMembers]);
 
-  // Professionals by category
+  // Professionals with calculated categories based on last action and days
+  const professionalsWithCalculatedCategories = useMemo(() => {
+    return professionals.map(p => {
+      const calculation = calculateProfessionalCategory(p, professionalCategories, []);
+      return {
+        ...p,
+        calculatedCategoryId: calculation.categoryId,
+        daysRemaining: calculation.daysRemaining,
+        needsUpdate: p.categoryId !== calculation.categoryId,
+      };
+    });
+  }, [professionals, professionalCategories]);
+
+  // Auto-update categories when they expire
+  useEffect(() => {
+    professionalsWithCalculatedCategories.forEach(p => {
+      if (p.needsUpdate) {
+        updateProfessional(p.id, { categoryId: p.calculatedCategoryId });
+      }
+    });
+  }, [professionalsWithCalculatedCategories, updateProfessional]);
+
+  // Professionals by category using calculated category
   const professionalsByCategory = useMemo(() => {
     const sortedCategories = [...professionalCategories].sort((a, b) => a.order - b.order);
     
     return sortedCategories.map(category => {
-      const categoryProfessionals = professionals
-        .filter(p => p.categoryId === category.id)
+      const categoryProfessionals = professionalsWithCalculatedCategories
+        .filter(p => p.calculatedCategoryId === category.id)
         .map(p => {
           const type = professionalTypes.find(t => t.id === p.typeId);
           const consultant = teamMembers.find(m => m.id === p.consultantId);
-          const daysUntilChange = p.lastActionDate 
-            ? category.daysToChange - differenceInDays(new Date(), parseISO(p.lastActionDate))
-            : 0;
           
           return {
             ...p,
             typeName: type?.name || '-',
             consultantName: consultant?.name || '-',
-            daysUntilChange: Math.max(0, daysUntilChange),
+            daysUntilChange: p.daysRemaining,
           };
         });
       
@@ -89,7 +108,7 @@ export default function Profissionais() {
         professionals: categoryProfessionals,
       };
     });
-  }, [professionals, professionalCategories, professionalTypes, teamMembers]);
+  }, [professionalsWithCalculatedCategories, professionalCategories, professionalTypes, teamMembers]);
 
   const handleSaveProfessional = () => {
     if (!professionalForm.name || !professionalForm.typeId || !professionalForm.consultantId) return;
