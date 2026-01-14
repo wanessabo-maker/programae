@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Shield, ShieldOff, Users, Loader2, RefreshCw, Trash2 } from 'lucide-react';
+import { Shield, ShieldOff, Users, Loader2, RefreshCw, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -15,6 +15,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface UserWithRole {
   id: string;
@@ -23,12 +30,16 @@ interface UserWithRole {
   roles: string[];
 }
 
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+
 export default function Usuarios() {
   const { user: currentUser, isAdmin } = useAuthContext();
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [processingUserId, setProcessingUserId] = useState<string | null>(null);
   const [deletingUser, setDeletingUser] = useState<UserWithRole | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const fetchUsers = async () => {
     setIsLoading(true);
@@ -63,6 +74,26 @@ export default function Usuarios() {
       fetchUsers();
     }
   }, [isAdmin]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(users.length / pageSize);
+  
+  const paginatedUsers = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    return users.slice(startIndex, startIndex + pageSize);
+  }, [users, currentPage, pageSize]);
+
+  // Reset to page 1 when pageSize changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [pageSize]);
+
+  // Ensure currentPage is valid when users change
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [totalPages, currentPage]);
 
   const handleToggleAdmin = async (userId: string, currentlyAdmin: boolean) => {
     if (userId === currentUser?.id) {
@@ -193,7 +224,7 @@ export default function Usuarios() {
             </tr>
           </thead>
           <tbody>
-            {users.map((user) => {
+            {paginatedUsers.map((user) => {
               const isUserAdmin = user.roles.includes('admin');
               const isCurrentUser = user.id === currentUser?.id;
               const isProcessing = processingUserId === user.id;
@@ -278,6 +309,86 @@ export default function Usuarios() {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {users.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground text-xs">Exibir</span>
+            <Select
+              value={pageSize.toString()}
+              onValueChange={(value) => setPageSize(Number(value))}
+            >
+              <SelectTrigger className="w-[70px] h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PAGE_SIZE_OPTIONS.map((size) => (
+                  <SelectItem key={size} value={size.toString()} className="text-xs">
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span className="text-muted-foreground text-xs">por página</span>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <span className="text-muted-foreground text-xs">
+              {((currentPage - 1) * pageSize) + 1}–{Math.min(currentPage * pageSize, users.length)} de {users.length}
+            </span>
+            
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="inline-flex items-center justify-center w-8 h-8 border border-border hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label="Página anterior"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum: number;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`inline-flex items-center justify-center w-8 h-8 text-xs transition-colors ${
+                        currentPage === pageNum
+                          ? 'bg-primary text-primary-foreground'
+                          : 'border border-border hover:bg-muted'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="inline-flex items-center justify-center w-8 h-8 border border-border hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label="Próxima página"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Info */}
       <div className="text-xs text-muted-foreground space-y-1">
