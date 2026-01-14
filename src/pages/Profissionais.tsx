@@ -189,24 +189,25 @@ export default function Profissionais() {
   };
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-6 sm:space-y-8 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl">Profissionais</h1>
-        <div className="flex flex-col items-end gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <h1 className="text-xl sm:text-2xl">Profissionais</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
           <button
             onClick={() => setShowProfessionalModal(true)}
-            className="btn-primary flex items-center gap-2"
+            className="btn-primary flex items-center gap-2 justify-center w-full sm:w-auto"
           >
             <Plus className="w-4 h-4" />
             Novo Profissional
           </button>
           <button
             onClick={() => setShowImportModal(true)}
-            className="btn-secondary border-card-foreground text-card-foreground flex items-center gap-2"
+            className="btn-secondary border-card-foreground text-card-foreground flex items-center gap-2 justify-center w-full sm:w-auto"
           >
             <Upload className="w-4 h-4" />
-            Adicionar profissionais em massa
+            <span className="hidden sm:inline">Adicionar profissionais em massa</span>
+            <span className="sm:hidden">Importar em massa</span>
           </button>
         </div>
       </div>
@@ -226,7 +227,7 @@ export default function Profissionais() {
         {upcomingReminders.length === 0 ? (
           <p className="text-sm text-muted-foreground">Nenhum lembrete programado.</p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {upcomingReminders.map((reminder) => (
               <div key={reminder.id} className="card-flat relative">
                 <div className={`absolute top-0 left-0 w-1 h-full ${getConsultantColor(reminder.consultantId)}`} />
@@ -266,55 +267,94 @@ export default function Profissionais() {
           {category.professionals.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nenhum profissional nesta categoria.</p>
           ) : (
-            <div className="card-flat overflow-hidden">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-black">
-                    <th className="table-header text-left p-3">Nome</th>
-                    <th className="table-header text-left p-3">Tipo</th>
-                    <th className="table-header text-left p-3">Consultor</th>
-                    <th className="table-header text-left p-3">Última Ação</th>
-                    <th className="table-header text-left p-3">Data</th>
-                    <th className="table-header text-left p-3">Dias Restantes</th>
-                    <th className="table-header text-right p-3"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {category.professionals.map((prof) => (
-                    <tr key={prof.id} className="border-b border-black/10 last:border-0">
-                      <td className="p-3 text-sm font-medium">{prof.name}</td>
-                      <td className="p-3 text-sm">{prof.typeName}</td>
-                      <td className="p-3 text-sm">{prof.consultantName}</td>
-                      <td className="p-3 text-sm">{prof.lastActionTypeName}</td>
-                      <td className="p-3 text-sm">
-                        {prof.lastActionDate ? format(parseISO(prof.lastActionDate), 'dd/MM') : '-'}
-                      </td>
-                      <td className="p-3">
-                        <span className={`text-sm ${prof.daysUntilChange <= 7 ? 'text-warning' : ''}`}>
-                          {prof.daysUntilChange}d
-                        </span>
-                      </td>
-                      <td className="p-3 text-right">
-                        <div className="flex justify-end gap-1">
-                          <button
-                            onClick={() => handleEditProfessional(prof.id)}
-                            className="p-2 opacity-40 hover:opacity-100"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteProfessional(prof.id)}
-                            className="p-2 opacity-40 hover:opacity-100 text-destructive"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
+            <>
+              {/* Desktop Table */}
+              <div className="card-flat overflow-hidden hidden md:block">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-black">
+                      <th className="table-header text-left p-3">Nome</th>
+                      <th className="table-header text-left p-3">Tipo</th>
+                      <th className="table-header text-left p-3">Consultor</th>
+                      <th className="table-header text-left p-3">Última Ação</th>
+                      <th className="table-header text-left p-3">Data</th>
+                      <th className="table-header text-left p-3">Dias Restantes</th>
+                      <th className="table-header text-right p-3"></th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {category.professionals.map((prof) => (
+                      <tr key={prof.id} className="border-b border-black/10 last:border-0">
+                        <td className="p-3 text-sm font-medium">{prof.name}</td>
+                        <td className="p-3 text-sm">{prof.typeName}</td>
+                        <td className="p-3 text-sm">{prof.consultantName}</td>
+                        <td className="p-3 text-sm">{prof.lastActionTypeName}</td>
+                        <td className="p-3 text-sm">
+                          {prof.lastActionDate ? format(parseISO(prof.lastActionDate), 'dd/MM') : '-'}
+                        </td>
+                        <td className="p-3">
+                          <span className={`text-sm ${prof.daysUntilChange <= 7 ? 'text-warning' : ''}`}>
+                            {prof.daysUntilChange}d
+                          </span>
+                        </td>
+                        <td className="p-3 text-right">
+                          <div className="flex justify-end gap-1">
+                            <button
+                              onClick={() => handleEditProfessional(prof.id)}
+                              className="p-2 opacity-40 hover:opacity-100"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteProfessional(prof.id)}
+                              className="p-2 opacity-40 hover:opacity-100 text-destructive"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Cards */}
+              <div className="space-y-3 md:hidden">
+                {category.professionals.map((prof) => (
+                  <div key={prof.id} className="card-flat">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <p className="text-sm font-medium">{prof.name}</p>
+                        <p className="text-xs text-muted-foreground">{prof.typeName} • {prof.consultantName}</p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleEditProfessional(prof.id)}
+                          className="p-1.5 opacity-40 hover:opacity-100"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteProfessional(prof.id)}
+                          className="p-1.5 opacity-40 hover:opacity-100 text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-muted-foreground">
+                        {prof.lastActionTypeName} • {prof.lastActionDate ? format(parseISO(prof.lastActionDate), 'dd/MM') : '-'}
+                      </span>
+                      <span className={`${prof.daysUntilChange <= 7 ? 'text-warning' : 'text-muted-foreground'}`}>
+                        {prof.daysUntilChange}d restantes
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </section>
       ))}
