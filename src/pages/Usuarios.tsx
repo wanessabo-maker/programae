@@ -2,9 +2,19 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Shield, ShieldOff, Users, Loader2, RefreshCw } from 'lucide-react';
+import { Shield, ShieldOff, Users, Loader2, RefreshCw, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface UserWithRole {
   id: string;
@@ -18,6 +28,7 @@ export default function Usuarios() {
   const [users, setUsers] = useState<UserWithRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [processingUserId, setProcessingUserId] = useState<string | null>(null);
+  const [deletingUser, setDeletingUser] = useState<UserWithRole | null>(null);
 
   const fetchUsers = async () => {
     setIsLoading(true);
@@ -86,6 +97,44 @@ export default function Usuarios() {
     } catch (error) {
       console.error('Error toggling admin:', error);
       toast.error('Erro ao alterar papel do usuário');
+    } finally {
+      setProcessingUserId(null);
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!deletingUser) return;
+
+    setProcessingUserId(deletingUser.id);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Sessão expirada');
+        return;
+      }
+
+      const response = await supabase.functions.invoke('delete-user', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: { userId: deletingUser.id },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      if (response.data?.error) {
+        throw new Error(response.data.error);
+      }
+
+      toast.success('Usuário excluído com sucesso');
+      setDeletingUser(null);
+      await fetchUsers();
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast.error('Erro ao excluir usuário');
     } finally {
       setProcessingUserId(null);
     }
@@ -182,29 +231,39 @@ export default function Usuarios() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     {!isCurrentUser && (
-                      <button
-                        onClick={() => handleToggleAdmin(user.id, isUserAdmin)}
-                        disabled={isProcessing}
-                        className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs tracking-widest uppercase border transition-colors disabled:opacity-50 ${
-                          isUserAdmin
-                            ? 'border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground'
-                            : 'border-primary text-primary hover:bg-primary hover:text-primary-foreground'
-                        }`}
-                      >
-                        {isProcessing ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : isUserAdmin ? (
-                          <>
-                            <ShieldOff className="w-3 h-3" />
-                            Remover Admin
-                          </>
-                        ) : (
-                          <>
-                            <Shield className="w-3 h-3" />
-                            Promover Admin
-                          </>
-                        )}
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleToggleAdmin(user.id, isUserAdmin)}
+                          disabled={isProcessing}
+                          className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs tracking-widest uppercase border transition-colors disabled:opacity-50 ${
+                            isUserAdmin
+                              ? 'border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground'
+                              : 'border-primary text-primary hover:bg-primary hover:text-primary-foreground'
+                          }`}
+                        >
+                          {isProcessing ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : isUserAdmin ? (
+                            <>
+                              <ShieldOff className="w-3 h-3" />
+                              Remover Admin
+                            </>
+                          ) : (
+                            <>
+                              <Shield className="w-3 h-3" />
+                              Promover Admin
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setDeletingUser(user)}
+                          disabled={isProcessing}
+                          className="inline-flex items-center gap-2 px-3 py-1.5 text-xs tracking-widest uppercase border border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors disabled:opacity-50"
+                          title="Excluir usuário"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>
@@ -224,8 +283,33 @@ export default function Usuarios() {
       <div className="text-xs text-muted-foreground space-y-1">
         <p>• O primeiro usuário a se cadastrar automaticamente recebe papel de admin</p>
         <p>• Admins podem acessar o SETUP e gerenciar usuários</p>
-        <p>• Você não pode remover seu próprio papel de admin</p>
+        <p>• Você não pode remover seu próprio papel de admin ou excluir sua conta</p>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deletingUser} onOpenChange={() => setDeletingUser(null)}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Usuário</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o usuário <strong>{deletingUser?.email}</strong>?
+              <br />
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="text-xs tracking-widest uppercase">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteUser}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-xs tracking-widest uppercase"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
