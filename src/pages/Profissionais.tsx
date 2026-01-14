@@ -78,14 +78,29 @@ export default function Profissionais() {
     });
   }, [professionals, professionalCategories]);
 
-  // Auto-update categories when they expire
+  // Auto-update categories when they expire (only once on mount or when professionals change)
   useEffect(() => {
-    professionalsWithCalculatedCategories.forEach(p => {
-      if (p.needsUpdate) {
-        updateProfessional(p.id, { categoryId: p.calculatedCategoryId });
+    const professionalsToUpdate = professionalsWithCalculatedCategories.filter(p => p.needsUpdate);
+    
+    if (professionalsToUpdate.length === 0) return;
+    
+    // Use a flag to prevent re-running during the same render cycle
+    let isMounted = true;
+    
+    const updateCategories = async () => {
+      for (const p of professionalsToUpdate) {
+        if (!isMounted) break;
+        await updateProfessional(p.id, { categoryId: p.calculatedCategoryId });
       }
-    });
-  }, [professionalsWithCalculatedCategories, updateProfessional]);
+    };
+    
+    updateCategories();
+    
+    return () => {
+      isMounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [professionals.length]); // Only run when professionals count changes, not on every recalculation
 
   // Professionals by category using calculated category
   const professionalsByCategory = useMemo(() => {
