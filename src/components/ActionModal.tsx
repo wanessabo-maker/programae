@@ -14,6 +14,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     teamMembers, 
     professionals, 
     professionalTypes,
+    professionalCategories,
     actionTypes, 
     addAction, 
     addProfessional,
@@ -85,11 +86,16 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
 
       // Create new professional if needed
       if (isNewProfessional && newProfessional.name && newProfessional.typeId) {
+        // Get the first category as default (lowest hierarchy)
+        const defaultCategory = professionalCategories.length > 0 
+          ? professionalCategories.reduce((min, cat) => cat.order < min.order ? cat : min, professionalCategories[0])
+          : null;
+        
         const newId = await addProfessional({
           name: newProfessional.name,
           typeId: newProfessional.typeId,
           consultantId: form.consultantId,
-          categoryId: '1', // Default to first category
+          categoryId: defaultCategory?.id || '',
           lastActionDate: form.date,
           lastActionType: selectedActionType?.name,
         });
