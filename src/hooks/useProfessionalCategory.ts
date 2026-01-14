@@ -9,10 +9,12 @@ interface CategoryCalculationResult {
 }
 
 /**
- * Calculates the correct category for a professional based on their last action date
+ * Calculates the correct category for a professional based on their last action type
  * and the days defined in each category hierarchy.
  * 
- * Category #1 (highest hierarchy) remains until its days expire, then falls to #2, #3, etc.
+ * The category is determined by matching the action type's classification to the category's condition.
+ * If the professional has an action of type "relacionamento", they go to the category with condition "relacionamento".
+ * The countdown starts from that category's days, and when expired, falls to lower categories.
  */
 export function calculateProfessionalCategory(
   professional: Professional,
@@ -26,9 +28,10 @@ export function calculateProfessionalCategory(
     return { categoryId: professional.categoryId, daysRemaining: 0, isExpired: true };
   }
 
+  const lowestCategory = sortedCategories[sortedCategories.length - 1];
+
   // If no last action date, assign to lowest category
   if (!professional.lastActionDate) {
-    const lowestCategory = sortedCategories[sortedCategories.length - 1];
     return { 
       categoryId: lowestCategory.id, 
       daysRemaining: 0, 
@@ -39,11 +42,50 @@ export function calculateProfessionalCategory(
   const lastActionDate = parseISO(professional.lastActionDate);
   const daysSinceAction = differenceInDays(new Date(), lastActionDate);
 
-  // Find the appropriate category based on days elapsed
-  // Start from highest category and check if days have expired
-  let accumulatedDays = 0;
+  // Find the action type to get its classification
+  const lastActionType = actionTypes.find(at => at.id === professional.lastActionTypeId);
   
-  for (let i = 0; i < sortedCategories.length; i++) {
+  // If no action type found, fall back to lowest category
+  if (!lastActionType) {
+    return { 
+      categoryId: lowestCategory.id, 
+      daysRemaining: 0, 
+      isExpired: true 
+    };
+  }
+
+  // Find the category that matches the action type's classification
+  const matchingCategoryIndex = sortedCategories.findIndex(
+    cat => cat.condition === lastActionType.classification
+  );
+
+  // If no matching category, assign to lowest
+  if (matchingCategoryIndex === -1) {
+    return { 
+      categoryId: lowestCategory.id, 
+      daysRemaining: 0, 
+      isExpired: true 
+    };
+  }
+
+  // Start counting from the matching category
+  // Check if the days for that category have expired
+  const matchingCategory = sortedCategories[matchingCategoryIndex];
+  
+  if (daysSinceAction < matchingCategory.daysToChange) {
+    // Still within the matching category's days
+    return {
+      categoryId: matchingCategory.id,
+      daysRemaining: matchingCategory.daysToChange - daysSinceAction,
+      isExpired: false,
+    };
+  }
+
+  // Days have expired for the matching category
+  // Fall through to lower categories based on accumulated days
+  let accumulatedDays = matchingCategory.daysToChange;
+  
+  for (let i = matchingCategoryIndex + 1; i < sortedCategories.length; i++) {
     const category = sortedCategories[i];
     accumulatedDays += category.daysToChange;
     
@@ -59,7 +101,6 @@ export function calculateProfessionalCategory(
   }
 
   // If all category days have expired, assign to lowest category
-  const lowestCategory = sortedCategories[sortedCategories.length - 1];
   return {
     categoryId: lowestCategory.id,
     daysRemaining: 0,

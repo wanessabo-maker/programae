@@ -376,7 +376,7 @@ export function useProfessionals() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('professionals')
-        .select('*, professional_types(name), team_members(name), professional_categories(name, days)')
+        .select('*, professional_types(name), team_members(name), professional_categories(name, days), action_types(name)')
         .order('name');
       if (error) throw error;
       return data;
@@ -393,6 +393,7 @@ export function useCreateProfessional() {
       consultant_id: string | null;
       category_id: string | null;
       last_action_date?: string | null;
+      last_action_type_id?: string | null;
     }) => {
       const { data, error } = await supabase.from('professionals').insert(professional).select().single();
       if (error) throw error;
@@ -415,6 +416,7 @@ export function useUpdateProfessional() {
       consultant_id?: string | null;
       category_id?: string | null;
       last_action_date?: string | null;
+      last_action_type_id?: string | null;
     }) => {
       const { data, error } = await supabase.from('professionals').update(updates).eq('id', id).select().single();
       if (error) throw error;

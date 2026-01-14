@@ -106,7 +106,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           consultantId: form.consultantId,
           categoryId: targetCategory?.id || professionalCategories[0]?.id || '',
           lastActionDate: form.date,
-          lastActionType: selectedActionType?.name,
+          lastActionTypeId: selectedActionType?.id,
         });
         
         if (!newId) {
@@ -132,7 +132,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
         // Update existing professional with new category based on action
         updateProfessional(professionalId, {
           lastActionDate: form.date,
-          lastActionType: selectedActionType?.name,
+          lastActionTypeId: selectedActionType?.id,
           categoryId: targetCategory?.id,
         });
       }

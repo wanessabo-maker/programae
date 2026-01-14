@@ -12,6 +12,7 @@ export default function Profissionais() {
     professionals,
     professionalTypes,
     professionalCategories,
+    actionTypes,
     teamMembers,
     reminders,
     addProfessional,
@@ -68,7 +69,7 @@ export default function Profissionais() {
   // Professionals with calculated categories based on last action and days
   const professionalsWithCalculatedCategories = useMemo(() => {
     return professionals.map(p => {
-      const calculation = calculateProfessionalCategory(p, professionalCategories, []);
+      const calculation = calculateProfessionalCategory(p, professionalCategories, actionTypes);
       return {
         ...p,
         calculatedCategoryId: calculation.categoryId,
@@ -76,7 +77,7 @@ export default function Profissionais() {
         needsUpdate: p.categoryId !== calculation.categoryId,
       };
     });
-  }, [professionals, professionalCategories]);
+  }, [professionals, professionalCategories, actionTypes]);
 
   // Auto-update categories when they expire (only once on mount or when professionals change)
   useEffect(() => {
@@ -112,11 +113,13 @@ export default function Profissionais() {
         .map(p => {
           const type = professionalTypes.find(t => t.id === p.typeId);
           const consultant = teamMembers.find(m => m.id === p.consultantId);
+          const lastActionType = actionTypes.find(at => at.id === p.lastActionTypeId);
           
           return {
             ...p,
             typeName: type?.name || '-',
             consultantName: consultant?.name || '-',
+            lastActionTypeName: lastActionType?.name || '-',
             daysUntilChange: p.daysRemaining,
           };
         });
@@ -126,7 +129,7 @@ export default function Profissionais() {
         professionals: categoryProfessionals,
       };
     });
-  }, [professionalsWithCalculatedCategories, professionalCategories, professionalTypes, teamMembers]);
+  }, [professionalsWithCalculatedCategories, professionalCategories, professionalTypes, teamMembers, actionTypes]);
 
   const handleSaveProfessional = () => {
     if (!professionalForm.name || !professionalForm.typeId || !professionalForm.consultantId) return;
@@ -282,7 +285,7 @@ export default function Profissionais() {
                       <td className="p-3 text-sm font-medium">{prof.name}</td>
                       <td className="p-3 text-sm">{prof.typeName}</td>
                       <td className="p-3 text-sm">{prof.consultantName}</td>
-                      <td className="p-3 text-sm">{prof.lastActionType || '-'}</td>
+                      <td className="p-3 text-sm">{prof.lastActionTypeName}</td>
                       <td className="p-3 text-sm">
                         {prof.lastActionDate ? format(parseISO(prof.lastActionDate), 'dd/MM') : '-'}
                       </td>

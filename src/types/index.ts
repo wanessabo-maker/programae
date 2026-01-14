@@ -55,7 +55,7 @@ export interface Professional {
   consultantId: string;
   categoryId: string;
   lastActionDate?: string;
-  lastActionType?: string;
+  lastActionTypeId?: string;
   specialDates?: SpecialDate[];
 }
 
