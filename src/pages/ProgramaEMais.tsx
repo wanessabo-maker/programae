@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { format, parseISO, isThisMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import ConsultantBalanceCard from '@/components/ConsultantBalanceCard';
 
 export default function ProgramaEMais() {
   const { isAdmin } = useAuth();
@@ -14,6 +15,7 @@ export default function ProgramaEMais() {
     creditTransactions,
     rewards,
     actionTypes,
+    actions,
     getConsultantBalance,
     addCreditTransaction,
     updateCreditTransaction,
@@ -212,12 +214,17 @@ export default function ProgramaEMais() {
       {/* Balances */}
       <section>
         <h2 className="title-section mb-4">Saldo por Colaborador</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
           {consultantBalances.map((consultant) => (
-            <div key={consultant.id} className="card-flat text-center">
-              <div className="metric-value">{consultant.balance}</div>
-              <div className="metric-label">{consultant.name}</div>
-            </div>
+            <ConsultantBalanceCard
+              key={consultant.id}
+              consultant={consultant}
+              transactions={creditTransactions}
+              actionTypes={actionTypes}
+              actions={actions}
+              isAdmin={isAdmin}
+              onDeleteTransaction={deleteCreditTransaction}
+            />
           ))}
         </div>
       </section>
