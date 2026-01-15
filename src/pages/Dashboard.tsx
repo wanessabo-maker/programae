@@ -51,7 +51,20 @@ export default function Dashboard() {
       return type?.impactsMetas.includes('captacao');
     }).length;
 
-    const totalAcoes = thisMonthActions.length;
+    // Get areas that have active 'acoes' goals
+    const areasWithAcoesMeta = activeMetas
+      .filter(m => m.type === 'acoes')
+      .map(m => m.areaId);
+
+    // Get active members whose areas have 'acoes' goals
+    const membersWithAcoesMeta = activeMembers
+      .filter(m => areasWithAcoesMeta.includes(m.areaId))
+      .map(m => m.id);
+
+    // Count only actions from consultants with 'acoes' goals
+    const totalAcoes = thisMonthActions.filter(a => 
+      membersWithAcoesMeta.includes(a.consultantId)
+    ).length;
 
     // Get active metas only
     const salesMeta = activeMetas.filter(m => m.type === 'vendas').reduce((sum, m) => sum + m.value, 0);
@@ -63,7 +76,7 @@ export default function Dashboard() {
       captacoes: { value: totalCaptacoes, meta: captacaoMeta, percentage: captacaoMeta > 0 ? (totalCaptacoes / captacaoMeta) * 100 : 0 },
       acoes: { value: totalAcoes, meta: acoesMeta, percentage: acoesMeta > 0 ? (totalAcoes / acoesMeta) * 100 : 0 },
     };
-  }, [actions, activeMetas, actionTypes]);
+  }, [actions, activeMetas, actionTypes, activeMembers]);
 
   // Metrics by consultant
   const consultantMetrics = useMemo(() => {
