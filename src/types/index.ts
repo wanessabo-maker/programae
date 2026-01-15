@@ -8,6 +8,7 @@ export interface TeamMember {
   name: string;
   areaId: string;
   active: boolean;
+  userId?: string;
 }
 
 export interface ActionType {

@@ -113,12 +113,13 @@ function transformArea(dbArea: { id: string; name: string }): Area {
   return { id: dbArea.id, name: dbArea.name };
 }
 
-function transformTeamMember(dbMember: { id: string; name: string; area_id: string | null; active: boolean | null }): TeamMember {
+function transformTeamMember(dbMember: { id: string; name: string; area_id: string | null; active: boolean | null; user_id?: string | null }): TeamMember {
   return {
     id: dbMember.id,
     name: dbMember.name,
     areaId: dbMember.area_id || '',
     active: dbMember.active ?? true,
+    userId: dbMember.user_id ?? undefined,
   };
 }
 

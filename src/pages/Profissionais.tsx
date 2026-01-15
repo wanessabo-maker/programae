@@ -1,13 +1,19 @@
-import { useState, useMemo, useEffect } from 'react';
-import { Plus, Pencil, Trash2, Calendar, Clock, Users } from 'lucide-react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { Plus, Pencil, Trash2, Clock, Users } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { BulkAddProfessionalsModal } from '@/components/BulkAddProfessionalsModal';
+import { ProfessionalsFilter, FilterState, defaultFilters } from '@/components/ProfessionalsFilter';
+import { useCurrentTeamMember } from '@/hooks/useCurrentTeamMember';
 import { format, parseISO, differenceInDays, addDays, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { calculateProfessionalCategory } from '@/hooks/useProfessionalCategory';
 
 export default function Profissionais() {
+  const { isAdmin } = useAuthContext();
+  const { data: currentTeamMember } = useCurrentTeamMember();
+  
   const {
     professionals,
     professionalTypes,
@@ -15,6 +21,7 @@ export default function Profissionais() {
     actionTypes,
     teamMembers,
     reminders,
+    actions,
     addProfessional,
     updateProfessional,
     deleteProfessional,
@@ -28,6 +35,7 @@ export default function Profissionais() {
   const [showReminderModal, setShowReminderModal] = useState(false);
   const [editingProfessional, setEditingProfessional] = useState<string | null>(null);
   const [editingReminder, setEditingReminder] = useState<string | null>(null);
+  const [filters, setFilters] = useState<FilterState>(defaultFilters);
 
   const [professionalForm, setProfessionalForm] = useState({
     name: '',
@@ -41,6 +49,10 @@ export default function Profissionais() {
     consultantId: '',
     type: 'avulso' as 'avulso' | 'recorrente',
   });
+
+  const handleFilterChange = useCallback((newFilters: FilterState) => {
+    setFilters(newFilters);
+  }, []);
 
   const activeMembers = teamMembers.filter(m => m.active);
 
@@ -103,12 +115,78 @@ export default function Profissionais() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [professionals.length]); // Only run when professionals count changes, not on every recalculation
 
-  // Professionals by category using calculated category
+  // Filter professionals based on filter state
+  const filteredProfessionals = useMemo(() => {
+    return professionalsWithCalculatedCategories.filter(p => {
+      // Consultant filter
+      if (filters.consultantId && p.consultantId !== filters.consultantId) {
+        return false;
+      }
+
+      // Type filter
+      if (filters.typeId && p.typeId !== filters.typeId) {
+        return false;
+      }
+
+      // Name search
+      if (filters.searchName) {
+        const searchLower = filters.searchName.toLowerCase();
+        if (!p.name.toLowerCase().includes(searchLower)) {
+          return false;
+        }
+      }
+
+      // Last action days filter
+      if (filters.lastActionDays) {
+        const days = parseInt(filters.lastActionDays);
+        if (p.lastActionDate) {
+          const daysSinceAction = differenceInDays(new Date(), parseISO(p.lastActionDate));
+          if (daysSinceAction > days) {
+            return false;
+          }
+        } else {
+          // No action date means it doesn't pass the filter
+          return false;
+        }
+      }
+
+      // Has actions filter
+      if (filters.hasActions) {
+        const professionalActions = actions.filter(a => a.professionalId === p.id);
+        if (filters.hasActions === 'with' && professionalActions.length === 0) {
+          return false;
+        }
+        if (filters.hasActions === 'without' && professionalActions.length > 0) {
+          return false;
+        }
+      }
+
+      // Has projects filter (based on action type classification = 'projeto')
+      if (filters.hasProjects) {
+        const projectActionTypeIds = actionTypes
+          .filter(at => at.classification === 'projeto')
+          .map(at => at.id);
+        const professionalProjectActions = actions.filter(
+          a => a.professionalId === p.id && projectActionTypeIds.includes(a.actionTypeId)
+        );
+        if (filters.hasProjects === 'with' && professionalProjectActions.length === 0) {
+          return false;
+        }
+        if (filters.hasProjects === 'without' && professionalProjectActions.length > 0) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [professionalsWithCalculatedCategories, filters, actions, actionTypes]);
+
+  // Professionals by category using calculated category and filtered
   const professionalsByCategory = useMemo(() => {
     const sortedCategories = [...professionalCategories].sort((a, b) => a.order - b.order);
     
     return sortedCategories.map(category => {
-      const categoryProfessionals = professionalsWithCalculatedCategories
+      const categoryProfessionals = filteredProfessionals
         .filter(p => p.calculatedCategoryId === category.id)
         .map(p => {
           const type = professionalTypes.find(t => t.id === p.typeId);
@@ -129,7 +207,7 @@ export default function Profissionais() {
         professionals: categoryProfessionals,
       };
     });
-  }, [professionalsWithCalculatedCategories, professionalCategories, professionalTypes, teamMembers, actionTypes]);
+  }, [filteredProfessionals, professionalCategories, professionalTypes, teamMembers, actionTypes]);
 
   const handleSaveProfessional = () => {
     if (!professionalForm.name || !professionalForm.typeId || !professionalForm.consultantId) return;
@@ -188,11 +266,21 @@ export default function Profissionais() {
     return colors[index % colors.length];
   };
 
+  const totalFilteredCount = filteredProfessionals.length;
+  const totalCount = professionals.length;
+
   return (
     <div className="space-y-6 sm:space-y-8 animate-fade-in">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-xl sm:text-2xl">Profissionais</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-xl sm:text-2xl">Profissionais</h1>
+          <span className="text-sm text-muted-foreground">
+            {totalFilteredCount === totalCount 
+              ? `${totalCount}` 
+              : `${totalFilteredCount} de ${totalCount}`}
+          </span>
+        </div>
         <div className="flex flex-col sm:flex-row sm:items-center gap-2">
           <button
             onClick={() => setShowProfessionalModal(true)}
@@ -211,6 +299,16 @@ export default function Profissionais() {
           </button>
         </div>
       </div>
+
+      {/* Filters */}
+      <ProfessionalsFilter
+        teamMembers={teamMembers}
+        professionalTypes={professionalTypes}
+        isAdmin={isAdmin}
+        currentConsultantId={currentTeamMember?.id || null}
+        filters={filters}
+        onFilterChange={handleFilterChange}
+      />
 
       {/* Reminders */}
       <section>

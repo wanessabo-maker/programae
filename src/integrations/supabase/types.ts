@@ -485,6 +485,7 @@ export type Database = {
           created_at: string | null
           id: string
           name: string
+          user_id: string | null
         }
         Insert: {
           active?: boolean | null
@@ -492,6 +493,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           name: string
+          user_id?: string | null
         }
         Update: {
           active?: boolean | null
@@ -499,6 +501,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           name?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -536,6 +539,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_current_team_member_id: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
