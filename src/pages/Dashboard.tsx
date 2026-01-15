@@ -114,6 +114,9 @@ export default function Dashboard() {
         meta: number;
         percentage: number;
         isCurrency?: boolean;
+        isCategory?: boolean;
+        isPrimary?: boolean;
+        order?: number;
       }> = [];
 
       // Build metrics only for goals that exist in this area AND have value > 1
@@ -128,14 +131,8 @@ export default function Dashboard() {
             meta: individualMeta,
             percentage: individualMeta > 0 ? (totalSales / individualMeta) * 100 : 0,
             isCurrency: true,
-          });
-        } else if (meta.type === 'acoes') {
-          metricsForArea.push({
-            type: 'acoes',
-            label: 'AÇÕES',
-            value: totalAcoes,
-            meta: individualMeta,
-            percentage: individualMeta > 0 ? (totalAcoes / individualMeta) * 100 : 0,
+            isPrimary: true,
+            order: 1,
           });
         } else if (meta.type === 'captacao') {
           const totalCaptacoes = thisMonthActions.filter(a => {
@@ -144,10 +141,22 @@ export default function Dashboard() {
           }).length;
           metricsForArea.push({
             type: 'captacao',
-            label: 'CAPTAÇÕES',
+            label: 'CAPTAÇÃO',
             value: totalCaptacoes,
             meta: individualMeta,
             percentage: individualMeta > 0 ? (totalCaptacoes / individualMeta) * 100 : 0,
+            isPrimary: true,
+            order: 2,
+          });
+        } else if (meta.type === 'acoes') {
+          metricsForArea.push({
+            type: 'acoes',
+            label: 'AÇÕES',
+            value: totalAcoes,
+            meta: individualMeta,
+            percentage: individualMeta > 0 ? (totalAcoes / individualMeta) * 100 : 0,
+            isPrimary: true,
+            order: 3,
           });
         } else if (meta.type === 'projeto') {
           const totalProjetos = thisMonthActions.filter(a => {
@@ -160,6 +169,8 @@ export default function Dashboard() {
             value: totalProjetos,
             meta: individualMeta,
             percentage: individualMeta > 0 ? (totalProjetos / individualMeta) * 100 : 0,
+            isPrimary: false,
+            order: 4,
           });
         } else if (meta.type === 'categoria' && meta.categoryId) {
           // Calculate percentage of professionals in the specified category
@@ -174,9 +185,15 @@ export default function Dashboard() {
             value: `${percentage.toFixed(0)}%`,
             meta: individualMeta,
             percentage: individualMeta > 0 ? (percentage / individualMeta) * 100 : 0,
+            isCategory: true,
+            isPrimary: false,
+            order: 10,
           });
         }
       });
+      
+      // Sort metrics by order
+      metricsForArea.sort((a, b) => (a.order || 99) - (b.order || 99));
 
       // Check if consultant has any goals > 1 or performed actions this month
       const hasGoals = metricsForArea.length > 0;
@@ -398,30 +415,70 @@ export default function Dashboard() {
                             </div>
                           </div>
                         )}
-                        {consultant.metricsForArea.map((metric) => (
-                          <div key={metric.type}>
-                            <div className="flex justify-between text-xs mb-1">
-                              <span className="text-muted-foreground">{metric.label}</span>
-                              <span>
+                        {/* Primary metrics (Vendas, Captação, Ações) */}
+                        {consultant.metricsForArea.filter(m => m.isPrimary).map((metric) => (
+                          <div key={metric.type} className="space-y-1">
+                            <div className="flex justify-between items-baseline">
+                              <span className="text-xs font-medium tracking-wider">{metric.label}</span>
+                              <span className="text-base font-semibold">
                                 {metric.isCurrency 
                                   ? formatCurrency(metric.value as number) 
                                   : metric.value}
                               </span>
                             </div>
-                            <div className="h-1 bg-muted">
+                            <div className="h-1.5 bg-muted rounded-sm">
                               <div 
-                                className="h-full bg-card-foreground" 
+                                className="h-full bg-foreground rounded-sm transition-all" 
                                 style={{ width: `${Math.min(metric.percentage, 100)}%` }}
                               />
+                            </div>
+                            <div className="flex justify-between text-xs text-muted-foreground">
+                              <span>
+                                Meta: {metric.isCurrency 
+                                  ? formatCurrency(metric.meta) 
+                                  : Math.round(metric.meta)}
+                              </span>
+                              <span className="font-medium text-foreground">
+                                {metric.percentage.toFixed(0)}%
+                              </span>
                             </div>
                           </div>
                         ))}
 
-                        {consultant.categoryBreakdown.length > 0 && (
+                        {/* Secondary metrics (Projetos, Categorias) */}
+                        {consultant.metricsForArea.filter(m => !m.isPrimary).length > 0 && (
+                          <div className="pt-2 mt-1 border-t border-black/10">
+                            <div className="space-y-2">
+                              {consultant.metricsForArea.filter(m => !m.isPrimary).map((metric) => (
+                                <div key={metric.type}>
+                                  <div className="flex justify-between items-baseline text-xs">
+                                    <span className="text-muted-foreground">{metric.label}</span>
+                                    <span className="text-muted-foreground">
+                                      {metric.isCurrency 
+                                        ? formatCurrency(metric.value as number) 
+                                        : metric.value}
+                                      <span className="ml-2 opacity-70">
+                                        ({metric.percentage.toFixed(0)}%)
+                                      </span>
+                                    </span>
+                                  </div>
+                                  <div className="h-0.5 bg-muted mt-1">
+                                    <div 
+                                      className="h-full bg-muted-foreground/50" 
+                                      style={{ width: `${Math.min(metric.percentage, 100)}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {consultant.categoryBreakdown.length > 0 && consultant.categoryBreakdown.some(c => c.count > 0) && (
                           <div className="pt-2 border-t border-black/10">
                             <div className="flex flex-wrap gap-2">
                               {consultant.categoryBreakdown.filter(c => c.count > 0).map((cat) => (
-                                <span key={cat.name} className="text-xs text-muted-foreground">
+                                <span key={cat.name} className="text-[10px] text-muted-foreground">
                                   {cat.name}: {cat.count}
                                 </span>
                               ))}
