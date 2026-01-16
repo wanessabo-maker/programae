@@ -19,7 +19,9 @@ export function Layout({ children }: LayoutProps) {
   
   const navItems = [
     { path: '/', label: 'Dashboard' },
-    { path: '/profissionais', label: 'Profissionais' },
+    { path: '/comercial', label: 'Comercial' },
+    { path: '/projetos', label: 'Projetos' },
+    { path: '/customer-success', label: 'CS & AT' },
     { path: '/programa-e-mais', label: 'Programa E+' },
     ...(isAdmin ? [{ path: '/usuarios', label: 'Usuários' }] : []),
   ];

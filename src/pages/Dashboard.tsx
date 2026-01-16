@@ -1,15 +1,17 @@
 import { useState, useMemo } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { MetricCard } from '@/components/MetricCard';
 import { ActionModal } from '@/components/ActionModal';
 import { YearlyResultsBoard } from '@/components/YearlyResultsBoard';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { format, parseISO, isThisMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export default function Dashboard() {
   const [showActionModal, setShowActionModal] = useState(false);
+  const [actionsOpen, setActionsOpen] = useState(false);
   const { isAdmin } = useAuthContext();
   const { 
     actions, 
@@ -295,88 +297,103 @@ export default function Dashboard() {
       {/* Yearly Results Board - Admin Only */}
       {isAdmin && <YearlyResultsBoard />}
 
-      {/* Register Action */}
-      <section>
-        <button
-          onClick={() => setShowActionModal(true)}
-          className="btn-primary flex items-center gap-2 w-full sm:w-auto justify-center"
-        >
-          <Plus className="w-4 h-4" />
-          Registrar Ação
-        </button>
-      </section>
+      {/* Register Action - Collapsible Section */}
+      <Collapsible open={actionsOpen} onOpenChange={setActionsOpen}>
+        <div className="border border-border">
+          <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors">
+            <div className="flex items-center gap-3">
+              {actionsOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+              <span className="text-sm tracking-widest uppercase font-medium">Registro de Ações</span>
+            </div>
+            <span className="text-xs text-muted-foreground">{recentActions.length} recentes</span>
+          </CollapsibleTrigger>
+          
+          <CollapsibleContent>
+            <div className="p-4 pt-0 space-y-4">
+              {/* Register Button */}
+              <button
+                onClick={() => setShowActionModal(true)}
+                className="btn-primary flex items-center gap-2 w-full sm:w-auto justify-center"
+              >
+                <Plus className="w-4 h-4" />
+                Registrar Ação
+              </button>
 
-      {/* Recent Actions */}
-      <section>
-        <h2 className="title-section mb-4">Ações Recentes</h2>
-        
-        {/* Desktop Table */}
-        <div className="card-flat overflow-hidden hidden md:block">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-black">
-                <th className="table-header text-left p-3">Data</th>
-                <th className="table-header text-left p-3">Consultor</th>
-                <th className="table-header text-left p-3">Profissional</th>
-                <th className="table-header text-left p-3">Tipo</th>
-                <th className="table-header text-left p-3">Valor</th>
-                <th className="table-header text-left p-3">Pts</th>
-                <th className="table-header text-right p-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentActions.map((action) => (
-                <tr key={action.id} className="border-b border-black/10 last:border-0">
-                  <td className="p-3 text-sm">{format(parseISO(action.date), 'dd/MM')}</td>
-                  <td className="p-3 text-sm">{action.consultantName}</td>
-                  <td className="p-3 text-sm">{action.professionalName}</td>
-                  <td className="p-3 text-sm">{action.actionTypeName}</td>
-                  <td className="p-3 text-sm">{action.value ? formatCurrency(action.value) : '-'}</td>
-                  <td className="p-3 text-sm">{action.pointsGenerated}</td>
-                  <td className="p-3 text-right">
-                    <button
-                      onClick={() => deleteAction(action.id)}
-                      className="p-2 opacity-40 hover:opacity-100 text-destructive"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              {/* Recent Actions */}
+              <div>
+                <h3 className="text-xs tracking-widest uppercase text-muted-foreground mb-3">Ações Recentes</h3>
+                
+                {/* Desktop Table */}
+                <div className="card-flat overflow-hidden hidden md:block">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-black">
+                        <th className="table-header text-left p-3">Data</th>
+                        <th className="table-header text-left p-3">Consultor</th>
+                        <th className="table-header text-left p-3">Profissional</th>
+                        <th className="table-header text-left p-3">Tipo</th>
+                        <th className="table-header text-left p-3">Valor</th>
+                        <th className="table-header text-left p-3">Pts</th>
+                        <th className="table-header text-right p-3"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {recentActions.map((action) => (
+                        <tr key={action.id} className="border-b border-black/10 last:border-0">
+                          <td className="p-3 text-sm">{format(parseISO(action.date), 'dd/MM')}</td>
+                          <td className="p-3 text-sm">{action.consultantName}</td>
+                          <td className="p-3 text-sm">{action.professionalName}</td>
+                          <td className="p-3 text-sm">{action.actionTypeName}</td>
+                          <td className="p-3 text-sm">{action.value ? formatCurrency(action.value) : '-'}</td>
+                          <td className="p-3 text-sm">{action.pointsGenerated}</td>
+                          <td className="p-3 text-right">
+                            <button
+                              onClick={() => deleteAction(action.id)}
+                              className="p-2 opacity-40 hover:opacity-100 text-destructive"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
 
-        {/* Mobile Cards */}
-        <div className="space-y-3 md:hidden">
-          {recentActions.map((action) => (
-            <div key={action.id} className="card-flat">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <p className="text-sm font-medium">{action.professionalName}</p>
-                  <p className="text-xs text-muted-foreground">{action.consultantName}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">{format(parseISO(action.date), 'dd/MM')}</span>
-                  <button
-                    onClick={() => deleteAction(action.id)}
-                    className="p-1 opacity-40 hover:opacity-100 text-destructive"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-muted-foreground">{action.actionTypeName}</span>
-                <div className="flex gap-3">
-                  {action.value && <span>{formatCurrency(action.value)}</span>}
-                  <span className="text-muted-foreground">{action.pointsGenerated} pts</span>
+                {/* Mobile Cards */}
+                <div className="space-y-3 md:hidden">
+                  {recentActions.map((action) => (
+                    <div key={action.id} className="card-flat">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <p className="text-sm font-medium">{action.professionalName}</p>
+                          <p className="text-xs text-muted-foreground">{action.consultantName}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">{format(parseISO(action.date), 'dd/MM')}</span>
+                          <button
+                            onClick={() => deleteAction(action.id)}
+                            className="p-1 opacity-40 hover:opacity-100 text-destructive"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-muted-foreground">{action.actionTypeName}</span>
+                        <div className="flex gap-3">
+                          {action.value && <span>{formatCurrency(action.value)}</span>}
+                          <span className="text-muted-foreground">{action.pointsGenerated} pts</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
-          ))}
+          </CollapsibleContent>
         </div>
-      </section>
+      </Collapsible>
 
       {/* Metrics by Consultant - Grouped by Area */}
       <section>

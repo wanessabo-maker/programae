@@ -138,6 +138,145 @@ export type Database = {
         }
         Relationships: []
       }
+      client_interactions: {
+        Row: {
+          client_id: string
+          created_at: string | null
+          description: string | null
+          id: string
+          interaction_date: string | null
+          interaction_type: string
+          team_member_id: string | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          interaction_date?: string | null
+          interaction_type: string
+          team_member_id?: string | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          interaction_date?: string | null
+          interaction_type?: string
+          team_member_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_interactions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_interactions_team_member_id_fkey"
+            columns: ["team_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          address: string | null
+          age: number | null
+          city: string | null
+          cpf_cnpj: string | null
+          created_at: string | null
+          created_by: string | null
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          origin_type: string | null
+          phone: string | null
+          potential_value: number | null
+          preferences: string | null
+          profession: string | null
+          professional_id: string | null
+          responsible_id: string | null
+          state: string | null
+          status: string | null
+          updated_at: string | null
+          zip_code: string | null
+        }
+        Insert: {
+          address?: string | null
+          age?: number | null
+          city?: string | null
+          cpf_cnpj?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          origin_type?: string | null
+          phone?: string | null
+          potential_value?: number | null
+          preferences?: string | null
+          profession?: string | null
+          professional_id?: string | null
+          responsible_id?: string | null
+          state?: string | null
+          status?: string | null
+          updated_at?: string | null
+          zip_code?: string | null
+        }
+        Update: {
+          address?: string | null
+          age?: number | null
+          city?: string | null
+          cpf_cnpj?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          origin_type?: string | null
+          phone?: string | null
+          potential_value?: number | null
+          preferences?: string | null
+          profession?: string | null
+          professional_id?: string | null
+          responsible_id?: string | null
+          state?: string | null
+          status?: string | null
+          updated_at?: string | null
+          zip_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clients_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "professionals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clients_responsible_id_fkey"
+            columns: ["responsible_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credit_transactions: {
         Row: {
           action_id: string | null
@@ -195,6 +334,70 @@ export type Database = {
             columns: ["professional_id"]
             isOneToOne: false
             referencedRelation: "professionals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_success: {
+        Row: {
+          client_id: string | null
+          created_at: string | null
+          health_score: number | null
+          id: string
+          last_contact_date: string | null
+          next_contact_date: string | null
+          notes: string | null
+          project_id: string | null
+          responsible_id: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string | null
+          health_score?: number | null
+          id?: string
+          last_contact_date?: string | null
+          next_contact_date?: string | null
+          notes?: string | null
+          project_id?: string | null
+          responsible_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string | null
+          health_score?: number | null
+          id?: string
+          last_contact_date?: string | null
+          next_contact_date?: string | null
+          notes?: string | null
+          project_id?: string | null
+          responsible_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_success_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_success_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_success_responsible_id_fkey"
+            columns: ["responsible_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
             referencedColumns: ["id"]
           },
         ]
@@ -363,6 +566,98 @@ export type Database = {
           },
         ]
       }
+      projects: {
+        Row: {
+          actual_delivery: string | null
+          client_id: string | null
+          closed_date: string | null
+          closed_value: number | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          estimated_value: number | null
+          expected_delivery: string | null
+          id: string
+          name: string
+          notes: string | null
+          professional_id: string | null
+          responsible_id: string | null
+          stage: string | null
+          start_date: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          actual_delivery?: string | null
+          client_id?: string | null
+          closed_date?: string | null
+          closed_value?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          estimated_value?: number | null
+          expected_delivery?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          professional_id?: string | null
+          responsible_id?: string | null
+          stage?: string | null
+          start_date?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          actual_delivery?: string | null
+          client_id?: string | null
+          closed_date?: string | null
+          closed_value?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          estimated_value?: number | null
+          expected_delivery?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          professional_id?: string | null
+          responsible_id?: string | null
+          stage?: string | null
+          start_date?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "professionals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_responsible_id_fkey"
+            columns: ["responsible_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reminders: {
         Row: {
           consultant_id: string | null
@@ -513,6 +808,100 @@ export type Database = {
           },
         ]
       }
+      technical_assistance: {
+        Row: {
+          client_id: string | null
+          completed_date: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          opened_date: string | null
+          priority: string | null
+          project_id: string | null
+          resolution_notes: string | null
+          responsible_id: string | null
+          scheduled_date: string | null
+          status: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          completed_date?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          opened_date?: string | null
+          priority?: string | null
+          project_id?: string | null
+          resolution_notes?: string | null
+          responsible_id?: string | null
+          scheduled_date?: string | null
+          status?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          completed_date?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          opened_date?: string | null
+          priority?: string | null
+          project_id?: string | null
+          resolution_notes?: string | null
+          responsible_id?: string | null
+          scheduled_date?: string | null
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "technical_assistance_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technical_assistance_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technical_assistance_responsible_id_fkey"
+            columns: ["responsible_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_areas: {
+        Row: {
+          area: Database["public"]["Enums"]["functional_area"]
+          created_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          area: Database["public"]["Enums"]["functional_area"]
+          created_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          area?: Database["public"]["Enums"]["functional_area"]
+          created_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -548,9 +937,21 @@ export type Database = {
         Returns: boolean
       }
       is_authenticated: { Args: never; Returns: boolean }
+      user_has_area: {
+        Args: {
+          _area: Database["public"]["Enums"]["functional_area"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "user"
+      functional_area:
+        | "comercial"
+        | "projetos"
+        | "customer_success"
+        | "assistencia_tecnica"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -679,6 +1080,12 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      functional_area: [
+        "comercial",
+        "projetos",
+        "customer_success",
+        "assistencia_tecnica",
+      ],
     },
   },
 } as const

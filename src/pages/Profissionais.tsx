@@ -10,7 +10,11 @@ import { format, parseISO, differenceInDays, addDays, isWithinInterval } from 'd
 import { ptBR } from 'date-fns/locale';
 import { calculateProfessionalCategory } from '@/hooks/useProfessionalCategory';
 
-export default function Profissionais() {
+interface ProfissionaisProps {
+  embedded?: boolean;
+}
+
+export default function Profissionais({ embedded = false }: ProfissionaisProps) {
   const { isAdmin } = useAuthContext();
   const { data: currentTeamMember } = useCurrentTeamMember();
   
@@ -274,7 +278,7 @@ export default function Profissionais() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <h1 className="text-xl sm:text-2xl">Profissionais</h1>
+          {!embedded && <h1 className="text-xl sm:text-2xl">Profissionais</h1>}
           <span className="text-sm text-muted-foreground">
             {totalFilteredCount === totalCount 
               ? `${totalCount}` 
