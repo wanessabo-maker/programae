@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Shield, ShieldOff, Users, Loader2, RefreshCw, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Shield, ShieldOff, Users, Loader2, RefreshCw, Trash2, ChevronLeft, ChevronRight, Link, Unlink, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -22,12 +22,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+
+interface TeamMemberInfo {
+  id: string;
+  name: string;
+  areaId: string | null;
+  areaName: string | null;
+  active: boolean;
+  userId?: string | null;
+}
 
 interface UserWithRole {
   id: string;
   email: string;
   created_at: string;
   roles: string[];
+  teamMember: TeamMemberInfo | null;
 }
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
@@ -35,11 +52,16 @@ const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 export default function Usuarios() {
   const { user: currentUser, isAdmin } = useAuthContext();
   const [users, setUsers] = useState<UserWithRole[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMemberInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [processingUserId, setProcessingUserId] = useState<string | null>(null);
   const [deletingUser, setDeletingUser] = useState<UserWithRole | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  
+  // Link modal state
+  const [linkingUser, setLinkingUser] = useState<UserWithRole | null>(null);
+  const [selectedTeamMemberId, setSelectedTeamMemberId] = useState<string>('');
 
   const fetchUsers = async () => {
     setIsLoading(true);
@@ -62,6 +84,7 @@ export default function Usuarios() {
       }
 
       setUsers(response.data.users || []);
+      setTeamMembers(response.data.teamMembers || []);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast.error('Erro ao carregar usuários');
@@ -95,6 +118,19 @@ export default function Usuarios() {
       setCurrentPage(totalPages);
     }
   }, [totalPages, currentPage]);
+
+  // Get available team members for linking (not linked to another user or linked to current user)
+  const availableTeamMembers = useMemo(() => {
+    if (!linkingUser) return [];
+    return teamMembers.filter(tm => 
+      !tm.userId || tm.userId === linkingUser.id
+    );
+  }, [teamMembers, linkingUser]);
+
+  // Count users without link
+  const usersWithoutLink = useMemo(() => {
+    return users.filter(u => !u.teamMember).length;
+  }, [users]);
 
   const handleToggleAdmin = async (userId: string, currentlyAdmin: boolean) => {
     if (userId === currentUser?.id) {
@@ -173,6 +209,73 @@ export default function Usuarios() {
     }
   };
 
+  const handleOpenLinkModal = (user: UserWithRole) => {
+    setLinkingUser(user);
+    setSelectedTeamMemberId(user.teamMember?.id || '');
+  };
+
+  const handleLinkTeamMember = async () => {
+    if (!linkingUser) return;
+
+    setProcessingUserId(linkingUser.id);
+
+    try {
+      // If user currently has a team member linked, remove the link first
+      if (linkingUser.teamMember) {
+        const { error: unlinkError } = await supabase
+          .from('team_members')
+          .update({ user_id: null })
+          .eq('id', linkingUser.teamMember.id);
+
+        if (unlinkError) throw unlinkError;
+      }
+
+      // If a new team member is selected, link it
+      if (selectedTeamMemberId) {
+        const { error: linkError } = await supabase
+          .from('team_members')
+          .update({ user_id: linkingUser.id })
+          .eq('id', selectedTeamMemberId);
+
+        if (linkError) throw linkError;
+        toast.success('Usuário vinculado ao membro da equipe');
+      } else {
+        toast.success('Vínculo removido com sucesso');
+      }
+
+      setLinkingUser(null);
+      setSelectedTeamMemberId('');
+      await fetchUsers();
+    } catch (error) {
+      console.error('Error linking team member:', error);
+      toast.error('Erro ao vincular membro da equipe');
+    } finally {
+      setProcessingUserId(null);
+    }
+  };
+
+  const handleUnlinkTeamMember = async (user: UserWithRole) => {
+    if (!user.teamMember) return;
+
+    setProcessingUserId(user.id);
+
+    try {
+      const { error } = await supabase
+        .from('team_members')
+        .update({ user_id: null })
+        .eq('id', user.teamMember.id);
+
+      if (error) throw error;
+      toast.success('Vínculo removido com sucesso');
+      await fetchUsers();
+    } catch (error) {
+      console.error('Error unlinking team member:', error);
+      toast.error('Erro ao remover vínculo');
+    } finally {
+      setProcessingUserId(null);
+    }
+  };
+
   if (!isAdmin) {
     return (
       <div className="text-center py-12">
@@ -206,6 +309,21 @@ export default function Usuarios() {
         </button>
       </div>
 
+      {/* Alert for users without link */}
+      {usersWithoutLink > 0 && (
+        <div className="flex items-center gap-3 p-4 border border-destructive/50 bg-destructive/10">
+          <AlertCircle className="w-5 h-5 text-destructive" />
+          <div>
+            <p className="text-sm font-medium text-destructive">
+              {usersWithoutLink} usuário{usersWithoutLink > 1 ? 's' : ''} sem vínculo com a equipe
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Usuários sem vínculo não terão indicadores individuais nem filtros automáticos.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Users List */}
       <div className="bg-card border border-border">
         <table className="w-full">
@@ -213,6 +331,9 @@ export default function Usuarios() {
             <tr className="border-b border-border">
               <th className="text-left text-xs tracking-widest uppercase text-muted-foreground px-4 py-3">
                 Email
+              </th>
+              <th className="text-left text-xs tracking-widest uppercase text-muted-foreground px-4 py-3">
+                Membro da Equipe
               </th>
               <th className="text-left text-xs tracking-widest uppercase text-muted-foreground px-4 py-3">
                 Cadastro
@@ -243,6 +364,24 @@ export default function Usuarios() {
                       </span>
                     </div>
                   </td>
+                  <td className="px-4 py-3">
+                    {user.teamMember ? (
+                      <div className="flex items-center gap-2">
+                        <Link className="w-3 h-3 text-primary" />
+                        <div className="flex flex-col">
+                          <span className="text-sm">{user.teamMember.name}</span>
+                          {user.teamMember.areaName && (
+                            <span className="text-xs text-muted-foreground">{user.teamMember.areaName}</span>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-destructive">
+                        <Unlink className="w-3 h-3" />
+                        <span className="text-xs">Sem vínculo</span>
+                      </div>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">
                     {format(new Date(user.created_at), "dd/MM/yyyy", { locale: ptBR })}
                   </td>
@@ -263,41 +402,74 @@ export default function Usuarios() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    {!isCurrentUser && (
-                      <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center justify-end gap-2">
+                      {/* Link/Edit Link Button */}
+                      <button
+                        onClick={() => handleOpenLinkModal(user)}
+                        disabled={isProcessing}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 text-xs tracking-widest uppercase border border-border hover:bg-muted transition-colors disabled:opacity-50"
+                        title={user.teamMember ? "Alterar vínculo" : "Vincular à equipe"}
+                      >
+                        {isProcessing ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Link className="w-3 h-3" />
+                        )}
+                        {user.teamMember ? 'Alterar' : 'Vincular'}
+                      </button>
+
+                      {/* Unlink Button (only if linked) */}
+                      {user.teamMember && (
                         <button
-                          onClick={() => handleToggleAdmin(user.id, isUserAdmin)}
+                          onClick={() => handleUnlinkTeamMember(user)}
                           disabled={isProcessing}
-                          className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs tracking-widest uppercase border transition-colors disabled:opacity-50 ${
-                            isUserAdmin
-                              ? 'border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground'
-                              : 'border-primary text-primary hover:bg-primary hover:text-primary-foreground'
-                          }`}
+                          className="inline-flex items-center justify-center w-8 h-8 border border-border hover:bg-muted transition-colors disabled:opacity-50"
+                          title="Remover vínculo"
                         >
                           {isProcessing ? (
                             <Loader2 className="w-3 h-3 animate-spin" />
-                          ) : isUserAdmin ? (
-                            <>
-                              <ShieldOff className="w-3 h-3" />
-                              Remover Admin
-                            </>
                           ) : (
-                            <>
-                              <Shield className="w-3 h-3" />
-                              Promover Admin
-                            </>
+                            <Unlink className="w-3 h-3" />
                           )}
                         </button>
-                        <button
-                          onClick={() => setDeletingUser(user)}
-                          disabled={isProcessing}
-                          className="inline-flex items-center gap-2 px-3 py-1.5 text-xs tracking-widest uppercase border border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors disabled:opacity-50"
-                          title="Excluir usuário"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    )}
+                      )}
+
+                      {!isCurrentUser && (
+                        <>
+                          <button
+                            onClick={() => handleToggleAdmin(user.id, isUserAdmin)}
+                            disabled={isProcessing}
+                            className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs tracking-widest uppercase border transition-colors disabled:opacity-50 ${
+                              isUserAdmin
+                                ? 'border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground'
+                                : 'border-primary text-primary hover:bg-primary hover:text-primary-foreground'
+                            }`}
+                          >
+                            {isProcessing ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : isUserAdmin ? (
+                              <>
+                                <ShieldOff className="w-3 h-3" />
+                                Remover Admin
+                              </>
+                            ) : (
+                              <>
+                                <Shield className="w-3 h-3" />
+                                Promover Admin
+                              </>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => setDeletingUser(user)}
+                            disabled={isProcessing}
+                            className="inline-flex items-center gap-2 px-3 py-1.5 text-xs tracking-widest uppercase border border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors disabled:opacity-50"
+                            title="Excluir usuário"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               );
@@ -397,7 +569,86 @@ export default function Usuarios() {
         <p>• O primeiro usuário a se cadastrar automaticamente recebe papel de admin</p>
         <p>• Admins podem acessar o SETUP e gerenciar usuários</p>
         <p>• Você não pode remover seu próprio papel de admin ou excluir sua conta</p>
+        <p>• <strong>Vínculo com equipe:</strong> Cada usuário deve estar vinculado a um membro da equipe para ter indicadores individuais</p>
+        <p>• Um membro da equipe pode estar vinculado a apenas um usuário ativo</p>
       </div>
+
+      {/* Link Team Member Dialog */}
+      <Dialog open={!!linkingUser} onOpenChange={() => setLinkingUser(null)}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="text-base tracking-widest uppercase">
+              Vincular à Equipe
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div>
+              <p className="text-sm text-muted-foreground mb-2">
+                Usuário: <strong className="text-foreground">{linkingUser?.email}</strong>
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs tracking-widest uppercase text-muted-foreground">
+                Membro da Equipe
+              </label>
+              <Select
+                value={selectedTeamMemberId}
+                onValueChange={setSelectedTeamMemberId}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecione um membro da equipe" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">
+                    <span className="text-muted-foreground">Nenhum (remover vínculo)</span>
+                  </SelectItem>
+                  {availableTeamMembers.map((tm) => (
+                    <SelectItem key={tm.id} value={tm.id}>
+                      <div className="flex items-center gap-2">
+                        <span>{tm.name}</span>
+                        {tm.areaName && (
+                          <span className="text-xs text-muted-foreground">({tm.areaName})</span>
+                        )}
+                        {tm.userId === linkingUser?.id && (
+                          <span className="text-xs text-primary">(atual)</span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              {availableTeamMembers.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Todos os membros da equipe já estão vinculados a outros usuários.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <button
+              onClick={() => setLinkingUser(null)}
+              className="px-4 py-2 text-xs tracking-widest uppercase border border-border hover:bg-muted transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleLinkTeamMember}
+              disabled={processingUserId === linkingUser?.id}
+              className="px-4 py-2 text-xs tracking-widest uppercase bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+            >
+              {processingUserId === linkingUser?.id ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                'Salvar'
+              )}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deletingUser} onOpenChange={() => setDeletingUser(null)}>
@@ -408,6 +659,14 @@ export default function Usuarios() {
               Tem certeza que deseja excluir o usuário <strong>{deletingUser?.email}</strong>?
               <br />
               Esta ação não pode ser desfeita.
+              {deletingUser?.teamMember && (
+                <>
+                  <br /><br />
+                  <span className="text-destructive">
+                    Atenção: Este usuário está vinculado a {deletingUser.teamMember.name}. O vínculo será removido.
+                  </span>
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
