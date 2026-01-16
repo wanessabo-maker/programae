@@ -211,7 +211,7 @@ export default function Usuarios() {
 
   const handleOpenLinkModal = (user: UserWithRole) => {
     setLinkingUser(user);
-    setSelectedTeamMemberId(user.teamMember?.id || '');
+    setSelectedTeamMemberId(user.teamMember?.id || '__none__');
   };
 
   const handleLinkTeamMember = async () => {
@@ -220,6 +220,8 @@ export default function Usuarios() {
     setProcessingUserId(linkingUser.id);
 
     try {
+      const newTeamMemberId = selectedTeamMemberId === '__none__' ? null : selectedTeamMemberId;
+
       // If user currently has a team member linked, remove the link first
       if (linkingUser.teamMember) {
         const { error: unlinkError } = await supabase
@@ -231,11 +233,11 @@ export default function Usuarios() {
       }
 
       // If a new team member is selected, link it
-      if (selectedTeamMemberId) {
+      if (newTeamMemberId) {
         const { error: linkError } = await supabase
           .from('team_members')
           .update({ user_id: linkingUser.id })
-          .eq('id', selectedTeamMemberId);
+          .eq('id', newTeamMemberId);
 
         if (linkError) throw linkError;
         toast.success('Usuário vinculado ao membro da equipe');
@@ -244,7 +246,7 @@ export default function Usuarios() {
       }
 
       setLinkingUser(null);
-      setSelectedTeamMemberId('');
+      setSelectedTeamMemberId('__none__');
       await fetchUsers();
     } catch (error) {
       console.error('Error linking team member:', error);
@@ -601,7 +603,7 @@ export default function Usuarios() {
                   <SelectValue placeholder="Selecione um membro da equipe" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">
+                  <SelectItem value="__none__">
                     <span className="text-muted-foreground">Nenhum (remover vínculo)</span>
                   </SelectItem>
                   {availableTeamMembers.map((tm) => (
