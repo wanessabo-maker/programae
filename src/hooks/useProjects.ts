@@ -20,6 +20,7 @@ export interface Project {
   created_by?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
+  focco_project_number?: string | null;
   // Joined data
   clients?: { name: string } | null;
   professionals?: { name: string } | null;
@@ -66,10 +67,27 @@ export function useProject(id: string | null) {
   });
 }
 
+export function useProjectByFocco(foccoNumber: string | null) {
+  return useQuery({
+    queryKey: ['projects', 'focco', foccoNumber],
+    queryFn: async () => {
+      if (!foccoNumber) return null;
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('focco_project_number', foccoNumber)
+        .maybeSingle();
+      if (error) throw error;
+      return data as Project | null;
+    },
+    enabled: !!foccoNumber,
+  });
+}
+
 export function useCreateProject() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (project: Omit<Project, 'id' | 'created_at' | 'updated_at' | 'clients' | 'professionals' | 'team_members'>) => {
+    mutationFn: async (project: Omit<Project, 'id' | 'created_at' | 'updated_at' | 'clients' | 'professionals' | 'responsible'>) => {
       const { data, error } = await supabase.from('projects').insert(project).select().single();
       if (error) throw error;
       return data;
@@ -105,4 +123,15 @@ export function useDeleteProject() {
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['projects'] }),
   });
+}
+
+// Helper function for checking existing FOCCO project (non-hook for use in handlers)
+export async function findProjectByFocco(foccoNumber: string): Promise<Project | null> {
+  const { data, error } = await supabase
+    .from('projects')
+    .select('*')
+    .eq('focco_project_number', foccoNumber)
+    .maybeSingle();
+  if (error) throw error;
+  return data as Project | null;
 }

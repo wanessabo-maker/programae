@@ -489,6 +489,7 @@ export function useCreateAction() {
       client_profession?: string | null;
       presentation_number?: string | null;
       focco_project_number?: string | null;
+      project_id?: string | null;
       notes?: string | null;
     }) => {
       const { data, error } = await supabase.from('actions').insert(action).select().single();
@@ -499,6 +500,8 @@ export function useCreateAction() {
       queryClient.invalidateQueries({ queryKey: ['actions'] });
       queryClient.invalidateQueries({ queryKey: ['professionals'] });
       queryClient.invalidateQueries({ queryKey: ['credit_transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
       queryClient.refetchQueries({ queryKey: ['actions'] });
     },
   });
