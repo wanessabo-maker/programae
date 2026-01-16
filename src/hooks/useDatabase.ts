@@ -81,7 +81,7 @@ export function useCreateTeamMember() {
 export function useUpdateTeamMember() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string; name?: string; area_id?: string | null; active?: boolean }) => {
+    mutationFn: async ({ id, ...updates }: { id: string; name?: string; area_id?: string | null; active?: boolean; user_id?: string | null }) => {
       const { data, error } = await supabase.from('team_members').update(updates).eq('id', id).select().single();
       if (error) throw error;
       return data;

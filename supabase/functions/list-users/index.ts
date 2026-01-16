@@ -70,16 +70,48 @@ serve(async (req: Request) => {
       .from("user_roles")
       .select("user_id, role");
 
-    // Map users with their roles
-    const usersWithRoles = users.map((u) => ({
-      id: u.id,
-      email: u.email,
-      created_at: u.created_at,
-      roles: allRoles?.filter((r) => r.user_id === u.id).map((r) => r.role) || [],
-    }));
+    // Get all team members with their user_id links
+    const { data: teamMembers } = await adminClient
+      .from("team_members")
+      .select("id, name, user_id, area_id, active, areas(name)");
+
+    // Helper to get area name from areas relation
+    const getAreaName = (areas: { name: string } | { name: string }[] | null): string | null => {
+      if (!areas) return null;
+      if (Array.isArray(areas)) return areas[0]?.name || null;
+      return areas.name || null;
+    };
+
+    // Map users with their roles and team member links
+    const usersWithRoles = users.map((u) => {
+      const linkedTeamMember = teamMembers?.find((tm) => tm.user_id === u.id);
+      return {
+        id: u.id,
+        email: u.email,
+        created_at: u.created_at,
+        roles: allRoles?.filter((r) => r.user_id === u.id).map((r) => r.role) || [],
+        teamMember: linkedTeamMember ? {
+          id: linkedTeamMember.id,
+          name: linkedTeamMember.name,
+          areaId: linkedTeamMember.area_id,
+          areaName: getAreaName(linkedTeamMember.areas),
+          active: linkedTeamMember.active,
+        } : null,
+      };
+    });
+
+    // Also return available team members (those without user_id or active ones)
+    const availableTeamMembers = teamMembers?.map((tm) => ({
+      id: tm.id,
+      name: tm.name,
+      areaId: tm.area_id,
+      areaName: getAreaName(tm.areas),
+      active: tm.active,
+      userId: tm.user_id,
+    })) || [];
 
     return new Response(
-      JSON.stringify({ users: usersWithRoles }),
+      JSON.stringify({ users: usersWithRoles, teamMembers: availableTeamMembers }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: unknown) {
