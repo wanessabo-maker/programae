@@ -3,20 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Profissionais from './Profissionais';
 import ClientesTab from '@/components/comercial/ClientesTab';
 import ProjetosTab from '@/components/comercial/ProjetosTab';
-
-// Placeholder for contracts module
-const ContratosTab = () => (
-  <div className="py-8">
-    <div className="border border-border p-8 text-center">
-      <p className="text-xs tracking-widest uppercase text-muted-foreground">
-        Contratos Fechados - Em desenvolvimento
-      </p>
-      <p className="text-xs text-muted-foreground mt-2">
-        Visão de contratos fechados e em andamento
-      </p>
-    </div>
-  </div>
-);
+import ContratosTab from '@/components/comercial/ContratosTab';
 
 export default function Comercial() {
   const [activeTab, setActiveTab] = useState('profissionais');
