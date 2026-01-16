@@ -35,6 +35,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     clientAge: '',
     clientProfession: '',
     presentationNumber: '',
+    foccoProjectNumber: '',
   });
 
   const [isNewProfessional, setIsNewProfessional] = useState(false);
@@ -151,6 +152,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
         clientAge: form.clientAge ? Number(form.clientAge) : undefined,
         clientProfession: form.clientProfession || undefined,
         presentationNumber: form.presentationNumber || undefined,
+        foccoProjectNumber: form.foccoProjectNumber || undefined,
         pointsGenerated: points,
       });
 
@@ -189,6 +191,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
         clientAge: '',
         clientProfession: '',
         presentationNumber: '',
+        foccoProjectNumber: '',
       });
       setIsNewProfessional(false);
       setNewProfessional({ name: '', typeId: '' });
@@ -428,13 +431,24 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   />
                 </div>
               </div>
-              <div>
-                <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Profissão</label>
-                <input
-                  value={form.clientProfession}
-                  onChange={(e) => setForm({ ...form, clientProfession: e.target.value })}
-                  className="input-flat w-full text-card-foreground"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Profissão</label>
+                  <input
+                    value={form.clientProfession}
+                    onChange={(e) => setForm({ ...form, clientProfession: e.target.value })}
+                    className="input-flat w-full text-card-foreground"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Nº Projeto FOCCO</label>
+                  <input
+                    value={form.foccoProjectNumber}
+                    onChange={(e) => setForm({ ...form, foccoProjectNumber: e.target.value })}
+                    placeholder="Opcional"
+                    className="input-flat w-full text-card-foreground"
+                  />
+                </div>
               </div>
             </>
           )}

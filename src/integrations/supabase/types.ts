@@ -62,6 +62,7 @@ export type Database = {
           client_profession: string | null
           consultant_id: string | null
           created_at: string | null
+          focco_project_number: string | null
           id: string
           notes: string | null
           presentation_number: string | null
@@ -76,6 +77,7 @@ export type Database = {
           client_profession?: string | null
           consultant_id?: string | null
           created_at?: string | null
+          focco_project_number?: string | null
           id?: string
           notes?: string | null
           presentation_number?: string | null
@@ -90,6 +92,7 @@ export type Database = {
           client_profession?: string | null
           consultant_id?: string | null
           created_at?: string | null
+          focco_project_number?: string | null
           id?: string
           notes?: string | null
           presentation_number?: string | null
@@ -188,6 +191,7 @@ export type Database = {
           address: string | null
           age: number | null
           city: string | null
+          contract_number: string | null
           cpf_cnpj: string | null
           created_at: string | null
           created_by: string | null
@@ -211,6 +215,7 @@ export type Database = {
           address?: string | null
           age?: number | null
           city?: string | null
+          contract_number?: string | null
           cpf_cnpj?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -234,6 +239,7 @@ export type Database = {
           address?: string | null
           age?: number | null
           city?: string | null
+          contract_number?: string | null
           cpf_cnpj?: string | null
           created_at?: string | null
           created_by?: string | null

@@ -261,12 +261,21 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <h1 className="text-xl sm:text-2xl">Dashboard</h1>
-        <span className="text-xs tracking-widest uppercase text-muted-foreground">
-          {format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })}
-        </span>
+      {/* Header with Register Action Button */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+          <h1 className="text-xl sm:text-2xl">Dashboard</h1>
+          <span className="text-xs tracking-widest uppercase text-muted-foreground">
+            {format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })}
+          </span>
+        </div>
+        <button
+          onClick={() => setShowActionModal(true)}
+          className="btn-primary flex items-center gap-2 w-full sm:w-auto justify-center"
+        >
+          <Plus className="w-4 h-4" />
+          Registrar Ação
+        </button>
       </div>
 
       {/* General Metrics */}
@@ -297,27 +306,19 @@ export default function Dashboard() {
       {/* Yearly Results Board - Admin Only */}
       {isAdmin && <YearlyResultsBoard />}
 
-      {/* Register Action - Collapsible Section */}
+      {/* Recent Actions - Collapsible Section */}
       <Collapsible open={actionsOpen} onOpenChange={setActionsOpen}>
         <div className="border border-border">
           <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors">
             <div className="flex items-center gap-3">
               {actionsOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-              <span className="text-sm tracking-widest uppercase font-medium">Registro de Ações</span>
+              <span className="text-sm tracking-widest uppercase font-medium">Ações Recentes</span>
             </div>
             <span className="text-xs text-muted-foreground">{recentActions.length} recentes</span>
           </CollapsibleTrigger>
           
           <CollapsibleContent>
             <div className="p-4 pt-0 space-y-4">
-              {/* Register Button */}
-              <button
-                onClick={() => setShowActionModal(true)}
-                className="btn-primary flex items-center gap-2 w-full sm:w-auto justify-center"
-              >
-                <Plus className="w-4 h-4" />
-                Registrar Ação
-              </button>
 
               {/* Recent Actions */}
               <div>
