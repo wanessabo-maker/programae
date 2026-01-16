@@ -10,6 +10,9 @@ import Index from "./pages/Index";
 import Profissionais from "./pages/Profissionais";
 import ProgramaEMais from "./pages/ProgramaEMais";
 import Usuarios from "./pages/Usuarios";
+import Comercial from "./pages/Comercial";
+import CustomerSuccess from "./pages/CustomerSuccess";
+import Projetos from "./pages/Projetos";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -106,6 +109,36 @@ function AppRoutes() {
           <ProtectedRoute>
             <Layout>
               <Profissionais />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/comercial"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Comercial />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/projetos"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Projetos />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/customer-success"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <CustomerSuccess />
             </Layout>
           </ProtectedRoute>
         }
