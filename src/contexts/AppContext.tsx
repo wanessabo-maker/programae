@@ -227,6 +227,7 @@ function transformAction(dbAction: {
   client_age: number | null;
   client_profession: string | null;
   presentation_number: string | null;
+  focco_project_number: string | null;
   action_types?: { points: number | null } | null;
 }): Action {
   return {
@@ -240,6 +241,7 @@ function transformAction(dbAction: {
     clientAge: dbAction.client_age ?? undefined,
     clientProfession: dbAction.client_profession ?? undefined,
     presentationNumber: dbAction.presentation_number ?? undefined,
+    foccoProjectNumber: dbAction.focco_project_number ?? undefined,
     pointsGenerated: dbAction.action_types?.points ?? 0,
   };
 }
@@ -554,6 +556,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         client_age: action.clientAge ?? null,
         client_profession: action.clientProfession ?? null,
         presentation_number: action.presentationNumber ?? null,
+        focco_project_number: action.foccoProjectNumber ?? null,
       });
       return result?.id;
     } catch (error) {

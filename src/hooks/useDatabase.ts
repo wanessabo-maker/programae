@@ -488,6 +488,7 @@ export function useCreateAction() {
       client_age?: number | null;
       client_profession?: string | null;
       presentation_number?: string | null;
+      focco_project_number?: string | null;
       notes?: string | null;
     }) => {
       const { data, error } = await supabase.from('actions').insert(action).select().single();
