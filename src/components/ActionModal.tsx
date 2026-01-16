@@ -61,6 +61,9 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
   // Check if this is an "Apresentação de Projeto" action type
   const isApresentacaoProjeto = selectedActionType?.name?.toLowerCase().includes('apresentação') && 
     selectedActionType?.name?.toLowerCase().includes('projeto');
+  
+  // Check if this is a "Venda" action type
+  const isVenda = selectedActionType?.classification === 'venda';
 
   const validateForm = () => {
     const newErrors: Record<string, boolean> = {};
@@ -69,8 +72,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     if (!form.actionTypeId) newErrors.actionTypeId = true;
     if (!form.date) newErrors.date = true;
     
-    // FOCCO number is required for Apresentação de Projeto
-    if (isApresentacaoProjeto && !form.foccoProjectNumber.trim()) {
+    // FOCCO number is required for Apresentação de Projeto and Venda
+    if ((isApresentacaoProjeto || isVenda) && !form.foccoProjectNumber.trim()) {
       newErrors.foccoProjectNumber = true;
     }
     
@@ -207,6 +210,50 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           }
         } catch (err) {
           console.error('Error in project creation flow:', err);
+        }
+      }
+
+      // Handle Venda - update project to closed_won and set closed_value
+      if (isVenda && form.foccoProjectNumber.trim()) {
+        const foccoNumber = form.foccoProjectNumber.trim();
+        
+        try {
+          const existingProject = await findProjectByFocco(foccoNumber);
+          
+          if (existingProject) {
+            // Update project to closed_won
+            const { error: updateError } = await supabase
+              .from('projects')
+              .update({
+                stage: 'closed_won',
+                closed_date: form.date,
+                closed_value: form.value ? Number(form.value) : existingProject.estimated_value,
+              })
+              .eq('id', existingProject.id);
+            
+            if (updateError) {
+              console.error('Error updating project to closed_won:', updateError);
+              toast.error('Erro ao atualizar status do projeto');
+            } else {
+              projectId = existingProject.id;
+              
+              // Also update the client status to 'closed' if exists
+              if (existingProject.client_id) {
+                await supabase
+                  .from('clients')
+                  .update({ status: 'closed' })
+                  .eq('id', existingProject.client_id);
+              }
+              
+              toast.success(`Projeto FOCCO ${foccoNumber} fechado com sucesso!`);
+            }
+          } else {
+            toast.error(`Projeto FOCCO ${foccoNumber} não encontrado. Registre uma Apresentação de Projeto primeiro.`);
+            setIsSubmitting(false);
+            return;
+          }
+        } catch (err) {
+          console.error('Error in sale project update flow:', err);
         }
       }
 
@@ -512,7 +559,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 </div>
                 <div>
                   <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.foccoProjectNumber ? 'text-destructive' : 'text-muted-foreground'}`}>
-                    Nº Projeto FOCCO {isApresentacaoProjeto ? '*' : ''}
+                    Nº Projeto FOCCO {(isApresentacaoProjeto || isVenda) ? '*' : ''}
                   </label>
                   <input
                     value={form.foccoProjectNumber}
@@ -520,10 +567,14 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                       setForm({ ...form, foccoProjectNumber: e.target.value });
                       setErrors({ ...errors, foccoProjectNumber: false });
                     }}
-                    placeholder={isApresentacaoProjeto ? 'Obrigatório' : 'Opcional'}
+                    placeholder={(isApresentacaoProjeto || isVenda) ? 'Obrigatório' : 'Opcional'}
                     className={`input-flat w-full text-card-foreground ${errors.foccoProjectNumber ? 'border-destructive ring-1 ring-destructive' : ''}`}
                   />
-                  {errors.foccoProjectNumber && <span className="text-xs text-destructive mt-1">Campo obrigatório para Apresentação de Projeto</span>}
+                  {errors.foccoProjectNumber && (
+                    <span className="text-xs text-destructive mt-1">
+                      {isVenda ? 'Informe o projeto FOCCO para vincular a venda' : 'Campo obrigatório para Apresentação de Projeto'}
+                    </span>
+                  )}
                 </div>
               </div>
             </>
