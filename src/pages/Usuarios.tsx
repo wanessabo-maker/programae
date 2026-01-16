@@ -358,7 +358,7 @@ export default function Usuarios() {
                 <tr key={user.id} className="border-b border-border last:border-b-0">
                   <td className="px-4 py-3">
                     <div className="flex flex-col">
-                      <span className="text-sm">
+                      <span className="text-sm font-medium text-foreground">
                         {user.email}
                         {isCurrentUser && (
                           <span className="ml-2 text-xs text-muted-foreground">(você)</span>
