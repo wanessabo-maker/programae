@@ -371,7 +371,7 @@ export default function Usuarios() {
                       <div className="flex items-center gap-2">
                         <Link className="w-3 h-3 text-primary" />
                         <div className="flex flex-col">
-                          <span className="text-sm">{user.teamMember.name}</span>
+                          <span className="text-sm font-medium text-foreground">{user.teamMember.name}</span>
                           {user.teamMember.areaName && (
                             <span className="text-xs text-muted-foreground">{user.teamMember.areaName}</span>
                           )}
@@ -384,7 +384,7 @@ export default function Usuarios() {
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">
+                  <td className="px-4 py-3 text-sm font-medium text-foreground">
                     {format(new Date(user.created_at), "dd/MM/yyyy", { locale: ptBR })}
                   </td>
                   <td className="px-4 py-3">
@@ -395,7 +395,7 @@ export default function Usuarios() {
                           className={`text-xs tracking-widest uppercase px-2 py-1 border ${
                             role === 'admin'
                               ? 'border-primary text-primary'
-                              : 'border-border text-muted-foreground'
+                              : 'border-border text-foreground'
                           }`}
                         >
                           {role}
