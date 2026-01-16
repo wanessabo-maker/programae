@@ -4,6 +4,10 @@ import { useApp } from '@/contexts/AppContext';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { getCategoryForAction } from '@/hooks/useProfessionalCategory';
+import { findProjectByFocco } from '@/hooks/useProjects';
+import { createClientDirect } from '@/hooks/useClients';
+import { supabase } from '@/integrations/supabase/client';
+
 interface ActionModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -53,6 +57,10 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
 
   const selectedActionType = actionTypes.find(t => t.id === form.actionTypeId);
   const consultantProfessionals = professionals.filter(p => p.consultantId === form.consultantId);
+  
+  // Check if this is an "Apresentação de Projeto" action type
+  const isApresentacaoProjeto = selectedActionType?.name?.toLowerCase().includes('apresentação') && 
+    selectedActionType?.name?.toLowerCase().includes('projeto');
 
   const validateForm = () => {
     const newErrors: Record<string, boolean> = {};
@@ -60,6 +68,11 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     if (!form.consultantId) newErrors.consultantId = true;
     if (!form.actionTypeId) newErrors.actionTypeId = true;
     if (!form.date) newErrors.date = true;
+    
+    // FOCCO number is required for Apresentação de Projeto
+    if (isApresentacaoProjeto && !form.foccoProjectNumber.trim()) {
+      newErrors.foccoProjectNumber = true;
+    }
     
     if (isNewProfessional) {
       if (!newProfessional.name) newErrors.professionalName = true;
@@ -141,6 +154,62 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
 
       const points = selectedActionType?.programPoints || 0;
 
+      // Handle automatic project/client creation for Apresentação de Projeto
+      let projectId: string | undefined = undefined;
+      
+      if (isApresentacaoProjeto && form.foccoProjectNumber.trim()) {
+        const foccoNumber = form.foccoProjectNumber.trim();
+        
+        try {
+          // Check if project with this FOCCO number already exists
+          const existingProject = await findProjectByFocco(foccoNumber);
+          
+          if (existingProject) {
+            // Project exists - just link to it
+            projectId = existingProject.id;
+            toast.info(`Ação vinculada ao projeto FOCCO ${foccoNumber} existente`);
+          } else {
+            // Create new client if data provided
+            let clientId: string | null = null;
+            if (form.clientName.trim()) {
+              clientId = await createClientDirect({
+                name: form.clientName.trim(),
+                age: form.clientAge ? Number(form.clientAge) : null,
+                profession: form.clientProfession || null,
+                professional_id: professionalId || null,
+                responsible_id: form.consultantId,
+                status: 'apresentado',
+              });
+            }
+            
+            // Create new project
+            const { data: newProject, error: projectError } = await supabase
+              .from('projects')
+              .insert({
+                name: `Projeto FOCCO ${foccoNumber}`,
+                focco_project_number: foccoNumber,
+                professional_id: professionalId || null,
+                responsible_id: form.consultantId,
+                client_id: clientId,
+                stage: 'lead',
+                start_date: form.date,
+              })
+              .select('id')
+              .single();
+            
+            if (projectError) {
+              console.error('Error creating project:', projectError);
+              toast.error('Erro ao criar projeto automaticamente');
+            } else if (newProject) {
+              projectId = newProject.id;
+              toast.success(`Projeto FOCCO ${foccoNumber} criado automaticamente`);
+            }
+          }
+        } catch (err) {
+          console.error('Error in project creation flow:', err);
+        }
+      }
+
       // Add action
       const actionId = await addAction({
         consultantId: form.consultantId,
@@ -154,6 +223,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
         presentationNumber: form.presentationNumber || undefined,
         foccoProjectNumber: form.foccoProjectNumber || undefined,
         pointsGenerated: points,
+        projectId,
       });
 
       if (!actionId) {
@@ -441,13 +511,19 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   />
                 </div>
                 <div>
-                  <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Nº Projeto FOCCO</label>
+                  <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.foccoProjectNumber ? 'text-destructive' : 'text-muted-foreground'}`}>
+                    Nº Projeto FOCCO {isApresentacaoProjeto ? '*' : ''}
+                  </label>
                   <input
                     value={form.foccoProjectNumber}
-                    onChange={(e) => setForm({ ...form, foccoProjectNumber: e.target.value })}
-                    placeholder="Opcional"
-                    className="input-flat w-full text-card-foreground"
+                    onChange={(e) => {
+                      setForm({ ...form, foccoProjectNumber: e.target.value });
+                      setErrors({ ...errors, foccoProjectNumber: false });
+                    }}
+                    placeholder={isApresentacaoProjeto ? 'Obrigatório' : 'Opcional'}
+                    className={`input-flat w-full text-card-foreground ${errors.foccoProjectNumber ? 'border-destructive ring-1 ring-destructive' : ''}`}
                   />
+                  {errors.foccoProjectNumber && <span className="text-xs text-destructive mt-1">Campo obrigatório para Apresentação de Projeto</span>}
                 </div>
               </div>
             </>

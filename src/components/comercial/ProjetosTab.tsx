@@ -203,10 +203,10 @@ export default function ProjetosTab() {
             </button>
           </div>
         </div>
-        <button onClick={handleOpenNew} className="btn-primary flex items-center gap-2">
-          <Plus className="w-4 h-4" />
-          Novo Projeto
-        </button>
+        {/* Info: Projects are created automatically from action registration */}
+        <div className="text-xs text-muted-foreground bg-muted/50 px-3 py-2 border border-border max-w-xs">
+          <span className="font-medium">Projetos são criados automaticamente</span> ao registrar ações do tipo "Apresentação de Projeto" com nº FOCCO.
+        </div>
       </div>
 
       {/* Stats */}
@@ -249,6 +249,12 @@ export default function ProjetosTab() {
                         </button>
                       </div>
                     </div>
+                    
+                    {project.focco_project_number && (
+                      <p className="text-xs text-primary font-mono bg-primary/10 px-1.5 py-0.5 rounded mb-1 inline-block">
+                        FOCCO: {project.focco_project_number}
+                      </p>
+                    )}
                     
                     {project.clients?.name && (
                       <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
@@ -309,7 +315,7 @@ export default function ProjetosTab() {
             <tbody>
               {filteredProjects.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
                     Nenhum projeto encontrado
                   </td>
                 </tr>
@@ -323,6 +329,9 @@ export default function ProjetosTab() {
                           <Folder className="w-4 h-4 text-muted-foreground" />
                           <div>
                             <p className="font-medium">{project.name}</p>
+                            {project.focco_project_number && (
+                              <p className="text-xs text-primary font-mono">FOCCO: {project.focco_project_number}</p>
+                            )}
                             {project.description && (
                               <p className="text-xs text-muted-foreground truncate max-w-[200px]">
                                 {project.description}
@@ -370,15 +379,15 @@ export default function ProjetosTab() {
         </div>
       )}
 
-      {/* Create/Edit Modal */}
+      {/* Edit Modal (only for editing, not creating) */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
         <DialogContent className="bg-card text-card-foreground border-border max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingProject ? 'EDITAR' : 'NOVO'} PROJETO</DialogTitle>
+            <DialogTitle>EDITAR PROJETO</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
             <div className="md:col-span-2">
-              <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Nome *</label>
+              <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Nome</label>
               <input
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}

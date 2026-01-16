@@ -67,6 +67,7 @@ export type Database = {
           notes: string | null
           presentation_number: string | null
           professional_id: string | null
+          project_id: string | null
           value: number | null
         }
         Insert: {
@@ -82,6 +83,7 @@ export type Database = {
           notes?: string | null
           presentation_number?: string | null
           professional_id?: string | null
+          project_id?: string | null
           value?: number | null
         }
         Update: {
@@ -97,6 +99,7 @@ export type Database = {
           notes?: string | null
           presentation_number?: string | null
           professional_id?: string | null
+          project_id?: string | null
           value?: number | null
         }
         Relationships: [
@@ -119,6 +122,13 @@ export type Database = {
             columns: ["professional_id"]
             isOneToOne: false
             referencedRelation: "professionals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "actions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -583,6 +593,7 @@ export type Database = {
           description: string | null
           estimated_value: number | null
           expected_delivery: string | null
+          focco_project_number: string | null
           id: string
           name: string
           notes: string | null
@@ -603,6 +614,7 @@ export type Database = {
           description?: string | null
           estimated_value?: number | null
           expected_delivery?: string | null
+          focco_project_number?: string | null
           id?: string
           name: string
           notes?: string | null
@@ -623,6 +635,7 @@ export type Database = {
           description?: string | null
           estimated_value?: number | null
           expected_delivery?: string | null
+          focco_project_number?: string | null
           id?: string
           name?: string
           notes?: string | null

@@ -101,6 +101,24 @@ export function useDeleteClient() {
   });
 }
 
+// Helper function for creating client directly (non-hook for use in handlers)
+export async function createClientDirect(client: {
+  name: string;
+  age?: number | null;
+  profession?: string | null;
+  professional_id?: string | null;
+  responsible_id?: string | null;
+  status?: string;
+}): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('clients')
+    .insert(client)
+    .select('id')
+    .single();
+  if (error) throw error;
+  return data?.id || null;
+}
+
 // Client Interactions
 export interface ClientInteraction {
   id: string;

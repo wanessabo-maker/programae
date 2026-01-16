@@ -85,6 +85,7 @@ export interface Action {
   clientProfession?: string;
   presentationNumber?: string;
   foccoProjectNumber?: string;
+  projectId?: string;
   pointsGenerated: number;
 }
 
