@@ -1,0 +1,514 @@
+import { useState } from 'react';
+import { Plus, Search, Folder, Edit2, Trash2, Calendar, DollarSign, User, ArrowRight } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { useProjects, useCreateProject, useUpdateProject, useDeleteProject, PROJECT_STAGES, Project } from '@/hooks/useProjects';
+import { useClients } from '@/hooks/useClients';
+import { useProfessionals, useTeamMembers } from '@/hooks/useDatabase';
+import { toast } from 'sonner';
+
+interface ProjectFormData {
+  name: string;
+  description: string;
+  stage: string;
+  estimated_value: string;
+  closed_value: string;
+  start_date: string;
+  expected_delivery: string;
+  notes: string;
+  client_id: string;
+  professional_id: string;
+  responsible_id: string;
+}
+
+const emptyForm: ProjectFormData = {
+  name: '',
+  description: '',
+  stage: 'lead',
+  estimated_value: '',
+  closed_value: '',
+  start_date: '',
+  expected_delivery: '',
+  notes: '',
+  client_id: '',
+  professional_id: '',
+  responsible_id: '',
+};
+
+export default function ProjetosTab() {
+  const [showModal, setShowModal] = useState(false);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [form, setForm] = useState<ProjectFormData>(emptyForm);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [stageFilter, setStageFilter] = useState('all');
+  const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
+
+  const { data: projects = [], isLoading } = useProjects();
+  const { data: clients = [] } = useClients();
+  const { data: professionals = [] } = useProfessionals();
+  const { data: teamMembers = [] } = useTeamMembers();
+  const createProject = useCreateProject();
+  const updateProject = useUpdateProject();
+  const deleteProject = useDeleteProject();
+
+  const activeTeamMembers = teamMembers.filter(m => m.active);
+
+  const filteredProjects = projects.filter(project => {
+    const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      project.clients?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStage = stageFilter === 'all' || project.stage === stageFilter;
+    return matchesSearch && matchesStage;
+  });
+
+  const projectsByStage = PROJECT_STAGES.reduce((acc, stage) => {
+    acc[stage.id] = filteredProjects.filter(p => p.stage === stage.id);
+    return acc;
+  }, {} as Record<string, Project[]>);
+
+  const handleOpenNew = () => {
+    setForm(emptyForm);
+    setEditingProject(null);
+    setShowModal(true);
+  };
+
+  const handleEdit = (project: Project) => {
+    setForm({
+      name: project.name,
+      description: project.description || '',
+      stage: project.stage || 'lead',
+      estimated_value: project.estimated_value?.toString() || '',
+      closed_value: project.closed_value?.toString() || '',
+      start_date: project.start_date || '',
+      expected_delivery: project.expected_delivery || '',
+      notes: project.notes || '',
+      client_id: project.client_id || '',
+      professional_id: project.professional_id || '',
+      responsible_id: project.responsible_id || '',
+    });
+    setEditingProject(project);
+    setShowModal(true);
+  };
+
+  const handleSave = async () => {
+    if (!form.name.trim()) {
+      toast.error('Nome é obrigatório');
+      return;
+    }
+
+    const projectData = {
+      name: form.name,
+      description: form.description || null,
+      stage: form.stage,
+      estimated_value: form.estimated_value ? parseFloat(form.estimated_value) : null,
+      closed_value: form.closed_value ? parseFloat(form.closed_value) : null,
+      start_date: form.start_date || null,
+      expected_delivery: form.expected_delivery || null,
+      notes: form.notes || null,
+      client_id: form.client_id || null,
+      professional_id: form.professional_id || null,
+      responsible_id: form.responsible_id || null,
+    };
+
+    try {
+      if (editingProject) {
+        await updateProject.mutateAsync({ id: editingProject.id, ...projectData });
+        toast.success('Projeto atualizado com sucesso');
+      } else {
+        await createProject.mutateAsync(projectData);
+        toast.success('Projeto criado com sucesso');
+      }
+      setShowModal(false);
+      setForm(emptyForm);
+      setEditingProject(null);
+    } catch (error) {
+      toast.error('Erro ao salvar projeto');
+      console.error(error);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm('Tem certeza que deseja excluir este projeto?')) {
+      try {
+        await deleteProject.mutateAsync(id);
+        toast.success('Projeto excluído');
+      } catch (error) {
+        toast.error('Erro ao excluir projeto');
+      }
+    }
+  };
+
+  const handleMoveStage = async (project: Project, newStage: string) => {
+    try {
+      const updateData: Partial<Project> & { id: string } = { 
+        id: project.id, 
+        stage: newStage 
+      };
+      
+      // If moving to closed_won, set closed_date
+      if (newStage === 'closed_won') {
+        updateData.closed_date = new Date().toISOString().split('T')[0];
+      }
+      
+      await updateProject.mutateAsync(updateData);
+      toast.success('Projeto movido');
+    } catch (error) {
+      toast.error('Erro ao mover projeto');
+    }
+  };
+
+  const formatCurrency = (value: number | null | undefined) => {
+    if (!value) return '-';
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+  };
+
+  const getStageTotals = () => {
+    return PROJECT_STAGES.map(stage => {
+      const stageProjects = projects.filter(p => p.stage === stage.id);
+      const total = stageProjects.reduce((sum, p) => sum + (p.estimated_value || 0), 0);
+      return { ...stage, count: stageProjects.length, total };
+    });
+  };
+
+  if (isLoading) {
+    return <div className="py-8 text-center text-muted-foreground">Carregando...</div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row gap-4 justify-between">
+        <div className="flex gap-2 flex-1">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Buscar projetos..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="input-flat w-full pl-10"
+            />
+          </div>
+          <div className="flex border border-border">
+            <button
+              onClick={() => setViewMode('kanban')}
+              className={`px-3 py-1.5 text-xs ${viewMode === 'kanban' ? 'bg-foreground text-background' : ''}`}
+            >
+              Kanban
+            </button>
+            <button
+              onClick={() => setViewMode('table')}
+              className={`px-3 py-1.5 text-xs ${viewMode === 'table' ? 'bg-foreground text-background' : ''}`}
+            >
+              Tabela
+            </button>
+          </div>
+        </div>
+        <button onClick={handleOpenNew} className="btn-primary flex items-center gap-2">
+          <Plus className="w-4 h-4" />
+          Novo Projeto
+        </button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+        {getStageTotals().map(stage => (
+          <div key={stage.id} className={`border border-border p-3 ${stage.color}`}>
+            <p className="text-lg font-bold">{stage.count}</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider truncate">{stage.name}</p>
+            <p className="text-xs font-medium mt-1">{formatCurrency(stage.total)}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Kanban View */}
+      {viewMode === 'kanban' && (
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 overflow-x-auto">
+          {PROJECT_STAGES.map(stage => (
+            <div key={stage.id} className="min-w-[250px]">
+              <div className={`p-2 mb-2 ${stage.color} border border-border`}>
+                <h3 className="text-xs font-semibold uppercase tracking-wider">{stage.name}</h3>
+                <span className="text-xs text-muted-foreground">{projectsByStage[stage.id]?.length || 0}</span>
+              </div>
+              <div className="space-y-2">
+                {projectsByStage[stage.id]?.map(project => (
+                  <div key={project.id} className="border border-border p-3 bg-card hover:shadow-sm transition-shadow">
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-medium text-sm truncate flex-1">{project.name}</h4>
+                      <div className="flex gap-1 ml-2">
+                        <button
+                          onClick={() => handleEdit(project)}
+                          className="p-1 hover:bg-muted rounded"
+                        >
+                          <Edit2 className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(project.id)}
+                          className="p-1 hover:bg-destructive/20 rounded text-destructive"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                    
+                    {project.clients?.name && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
+                        <User className="w-3 h-3" />
+                        {project.clients.name}
+                      </p>
+                    )}
+                    
+                    {project.estimated_value && (
+                      <p className="text-xs font-medium flex items-center gap-1 mb-2">
+                        <DollarSign className="w-3 h-3" />
+                        {formatCurrency(project.estimated_value)}
+                      </p>
+                    )}
+                    
+                    {/* Move buttons */}
+                    <div className="flex gap-1 mt-2 pt-2 border-t border-border">
+                      {PROJECT_STAGES.map((targetStage, idx) => {
+                        const currentIdx = PROJECT_STAGES.findIndex(s => s.id === project.stage);
+                        if (idx === currentIdx) return null;
+                        if (Math.abs(idx - currentIdx) > 1) return null;
+                        
+                        return (
+                          <button
+                            key={targetStage.id}
+                            onClick={() => handleMoveStage(project, targetStage.id)}
+                            className="text-xs px-2 py-1 border border-border hover:bg-muted flex items-center gap-1"
+                          >
+                            <ArrowRight className={`w-3 h-3 ${idx < currentIdx ? 'rotate-180' : ''}`} />
+                            {targetStage.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Table View */}
+      {viewMode === 'table' && (
+        <div className="border border-border overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-muted/50">
+              <tr>
+                <th className="text-left p-3 text-xs uppercase tracking-wider">Projeto</th>
+                <th className="text-left p-3 text-xs uppercase tracking-wider">Cliente</th>
+                <th className="text-left p-3 text-xs uppercase tracking-wider">Responsável</th>
+                <th className="text-left p-3 text-xs uppercase tracking-wider">Estágio</th>
+                <th className="text-right p-3 text-xs uppercase tracking-wider">Valor Est.</th>
+                <th className="text-left p-3 text-xs uppercase tracking-wider">Previsão</th>
+                <th className="text-center p-3 text-xs uppercase tracking-wider">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredProjects.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                    Nenhum projeto encontrado
+                  </td>
+                </tr>
+              ) : (
+                filteredProjects.map(project => {
+                  const stageInfo = PROJECT_STAGES.find(s => s.id === project.stage) || PROJECT_STAGES[0];
+                  return (
+                    <tr key={project.id} className="border-t border-border hover:bg-muted/30">
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          <Folder className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <p className="font-medium">{project.name}</p>
+                            {project.description && (
+                              <p className="text-xs text-muted-foreground truncate max-w-[200px]">
+                                {project.description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-3 text-sm">{project.clients?.name || '-'}</td>
+                      <td className="p-3 text-sm">{project.responsible?.name || '-'}</td>
+                      <td className="p-3">
+                        <Badge className={`${stageInfo.color} border-0`}>{stageInfo.name}</Badge>
+                      </td>
+                      <td className="p-3 text-right text-sm">{formatCurrency(project.estimated_value)}</td>
+                      <td className="p-3 text-sm">
+                        {project.expected_delivery && (
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {new Date(project.expected_delivery).toLocaleDateString('pt-BR')}
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-3">
+                        <div className="flex justify-center gap-1">
+                          <button
+                            onClick={() => handleEdit(project)}
+                            className="p-1.5 hover:bg-muted rounded"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(project.id)}
+                            className="p-1.5 hover:bg-destructive/20 rounded text-destructive"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Create/Edit Modal */}
+      <Dialog open={showModal} onOpenChange={setShowModal}>
+        <DialogContent className="bg-card text-card-foreground border-border max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingProject ? 'EDITAR' : 'NOVO'} PROJETO</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+            <div className="md:col-span-2">
+              <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Nome *</label>
+              <input
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                className="input-flat w-full"
+              />
+            </div>
+            
+            <div className="md:col-span-2">
+              <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Descrição</label>
+              <textarea
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                className="input-flat w-full h-20 resize-none"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Cliente</label>
+              <select
+                value={form.client_id}
+                onChange={(e) => setForm({ ...form, client_id: e.target.value })}
+                className="input-flat w-full"
+              >
+                <option value="">Selecione</option>
+                {clients.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Profissional</label>
+              <select
+                value={form.professional_id}
+                onChange={(e) => setForm({ ...form, professional_id: e.target.value })}
+                className="input-flat w-full"
+              >
+                <option value="">Nenhum</option>
+                {professionals.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Responsável</label>
+              <select
+                value={form.responsible_id}
+                onChange={(e) => setForm({ ...form, responsible_id: e.target.value })}
+                className="input-flat w-full"
+              >
+                <option value="">Selecione</option>
+                {activeTeamMembers.map(m => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Estágio</label>
+              <select
+                value={form.stage}
+                onChange={(e) => setForm({ ...form, stage: e.target.value })}
+                className="input-flat w-full"
+              >
+                {PROJECT_STAGES.map(s => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Valor Estimado (R$)</label>
+              <input
+                type="number"
+                value={form.estimated_value}
+                onChange={(e) => setForm({ ...form, estimated_value: e.target.value })}
+                className="input-flat w-full"
+              />
+            </div>
+            
+            {form.stage === 'closed_won' && (
+              <div>
+                <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Valor Fechado (R$)</label>
+                <input
+                  type="number"
+                  value={form.closed_value}
+                  onChange={(e) => setForm({ ...form, closed_value: e.target.value })}
+                  className="input-flat w-full"
+                />
+              </div>
+            )}
+            
+            <div>
+              <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Data Início</label>
+              <input
+                type="date"
+                value={form.start_date}
+                onChange={(e) => setForm({ ...form, start_date: e.target.value })}
+                className="input-flat w-full"
+              />
+            </div>
+            
+            <div>
+              <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Previsão Entrega</label>
+              <input
+                type="date"
+                value={form.expected_delivery}
+                onChange={(e) => setForm({ ...form, expected_delivery: e.target.value })}
+                className="input-flat w-full"
+              />
+            </div>
+            
+            <div className="md:col-span-2">
+              <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Observações</label>
+              <textarea
+                value={form.notes}
+                onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                className="input-flat w-full h-20 resize-none"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <button onClick={handleSave} className="btn-primary w-full">
+                Salvar
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

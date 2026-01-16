@@ -1,34 +1,10 @@
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Profissionais from './Profissionais';
+import ClientesTab from '@/components/comercial/ClientesTab';
+import ProjetosTab from '@/components/comercial/ProjetosTab';
 
-// Placeholder components for new modules
-const ClientesTab = () => (
-  <div className="py-8">
-    <div className="border border-border p-8 text-center">
-      <p className="text-xs tracking-widest uppercase text-muted-foreground">
-        Módulo Clientes - Em desenvolvimento
-      </p>
-      <p className="text-xs text-muted-foreground mt-2">
-        Cadastro completo de clientes com histórico de interações
-      </p>
-    </div>
-  </div>
-);
-
-const ProjetosTab = () => (
-  <div className="py-8">
-    <div className="border border-border p-8 text-center">
-      <p className="text-xs tracking-widest uppercase text-muted-foreground">
-        Módulo Projetos - Em desenvolvimento
-      </p>
-      <p className="text-xs text-muted-foreground mt-2">
-        Funil comercial: Prospecção → Negociação → Fechamento
-      </p>
-    </div>
-  </div>
-);
-
+// Placeholder for contracts module
 const ContratosTab = () => (
   <div className="py-8">
     <div className="border border-border p-8 text-center">
