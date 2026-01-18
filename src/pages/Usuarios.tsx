@@ -346,23 +346,23 @@ export default function Usuarios() {
       <div className="bg-card border border-border">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-border">
-              <th className="text-left text-xs tracking-widest uppercase text-muted-foreground px-4 py-3">
+            <tr className="border-b border-border bg-muted/50">
+              <th className="text-left text-xs tracking-widest uppercase font-semibold text-foreground px-4 py-3">
                 Email
               </th>
-              <th className="text-left text-xs tracking-widest uppercase text-muted-foreground px-4 py-3">
+              <th className="text-left text-xs tracking-widest uppercase font-semibold text-foreground px-4 py-3">
                 Membro da Equipe
               </th>
-              <th className="text-left text-xs tracking-widest uppercase text-muted-foreground px-4 py-3">
+              <th className="text-left text-xs tracking-widest uppercase font-semibold text-foreground px-4 py-3">
                 Áreas
               </th>
-              <th className="text-left text-xs tracking-widest uppercase text-muted-foreground px-4 py-3">
+              <th className="text-left text-xs tracking-widest uppercase font-semibold text-foreground px-4 py-3">
                 Cadastro
               </th>
-              <th className="text-left text-xs tracking-widest uppercase text-muted-foreground px-4 py-3">
+              <th className="text-left text-xs tracking-widest uppercase font-semibold text-foreground px-4 py-3">
                 Papéis
               </th>
-              <th className="text-right text-xs tracking-widest uppercase text-muted-foreground px-4 py-3">
+              <th className="text-right text-xs tracking-widest uppercase font-semibold text-foreground px-4 py-3">
                 Ações
               </th>
             </tr>
@@ -374,13 +374,13 @@ export default function Usuarios() {
               const isProcessing = processingUserId === user.id;
 
               return (
-                <tr key={user.id} className="border-b border-border last:border-b-0">
+                <tr key={user.id} className="border-b border-border last:border-b-0 hover:bg-muted/30">
                   <td className="px-4 py-3">
                     <div className="flex flex-col">
-                      <span className="text-sm font-medium text-foreground">
+                      <span className="text-sm font-semibold text-foreground">
                         {user.email}
                         {isCurrentUser && (
-                          <span className="ml-2 text-xs text-muted-foreground">(você)</span>
+                          <span className="ml-2 text-xs font-normal text-foreground/70">(você)</span>
                         )}
                       </span>
                     </div>
@@ -390,38 +390,38 @@ export default function Usuarios() {
                       <div className="flex items-center gap-2">
                         <Link className="w-3 h-3 text-primary" />
                         <div className="flex flex-col">
-                          <span className="text-sm font-medium text-foreground">{user.teamMember.name}</span>
+                          <span className="text-sm font-semibold text-foreground">{user.teamMember.name}</span>
                           {user.teamMember.areaName && (
-                            <span className="text-xs text-muted-foreground">{user.teamMember.areaName}</span>
+                            <span className="text-xs font-medium text-foreground/70">{user.teamMember.areaName}</span>
                           )}
                         </div>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2 text-destructive">
                         <Unlink className="w-3 h-3" />
-                        <span className="text-xs">Sem vínculo</span>
+                        <span className="text-xs font-semibold">Sem vínculo</span>
                       </div>
                     )}
                   </td>
                   <td className="px-4 py-3">
                     {isUserAdmin ? (
-                      <span className="text-xs text-primary font-medium">Todas (Admin)</span>
+                      <span className="text-xs text-primary font-semibold">Todas (Admin)</span>
                     ) : user.areas && user.areas.length > 0 ? (
                       <div className="flex flex-wrap gap-1">
                         {user.areas.map((area) => (
                           <span
                             key={area}
-                            className="text-xs px-1.5 py-0.5 border border-border bg-muted text-foreground"
+                            className="text-xs px-1.5 py-0.5 border border-foreground/30 bg-muted font-medium text-foreground"
                           >
                             {AREA_LABELS[area]}
                           </span>
                         ))}
                       </div>
                     ) : (
-                      <span className="text-xs text-muted-foreground">Nenhuma</span>
+                      <span className="text-xs font-medium text-foreground/60">Nenhuma</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-sm font-medium text-foreground">
+                  <td className="px-4 py-3 text-sm font-semibold text-foreground">
                     {format(new Date(user.created_at), "dd/MM/yyyy", { locale: ptBR })}
                   </td>
                   <td className="px-4 py-3">
@@ -429,10 +429,10 @@ export default function Usuarios() {
                       {user.roles.map((role) => (
                         <span
                           key={role}
-                          className={`text-xs tracking-widest uppercase px-2 py-1 border ${
+                          className={`text-xs tracking-widest uppercase px-2 py-1 border font-semibold ${
                             role === 'admin'
-                              ? 'border-primary text-primary'
-                              : 'border-border text-foreground'
+                              ? 'border-primary text-primary bg-primary/10'
+                              : 'border-foreground/30 text-foreground'
                           }`}
                         >
                           {role}
