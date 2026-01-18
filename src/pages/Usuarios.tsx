@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Shield, ShieldOff, Users, Loader2, RefreshCw, Trash2, ChevronLeft, ChevronRight, Link, Unlink, AlertCircle } from 'lucide-react';
+import { Shield, ShieldOff, Users, Loader2, RefreshCw, Trash2, ChevronLeft, ChevronRight, Link, Unlink, AlertCircle, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -29,6 +29,10 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { UserAreasModal } from '@/components/UserAreasModal';
+import { Database } from '@/integrations/supabase/types';
+
+type FunctionalArea = Database['public']['Enums']['functional_area'];
 
 interface TeamMemberInfo {
   id: string;
@@ -44,10 +48,19 @@ interface UserWithRole {
   email: string;
   created_at: string;
   roles: string[];
+  areas: FunctionalArea[];
   teamMember: TeamMemberInfo | null;
 }
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+
+// Area labels for display
+const AREA_LABELS: Record<FunctionalArea, string> = {
+  comercial: 'Comercial',
+  projetos: 'Projetos',
+  customer_success: 'CS & AT',
+  assistencia_tecnica: 'Assist. Téc.',
+};
 
 export default function Usuarios() {
   const { user: currentUser, isAdmin } = useAuthContext();
@@ -62,6 +75,9 @@ export default function Usuarios() {
   // Link modal state
   const [linkingUser, setLinkingUser] = useState<UserWithRole | null>(null);
   const [selectedTeamMemberId, setSelectedTeamMemberId] = useState<string>('');
+  
+  // Areas modal state
+  const [areasUser, setAreasUser] = useState<UserWithRole | null>(null);
 
   const fetchUsers = async () => {
     setIsLoading(true);
@@ -338,6 +354,9 @@ export default function Usuarios() {
                 Membro da Equipe
               </th>
               <th className="text-left text-xs tracking-widest uppercase text-muted-foreground px-4 py-3">
+                Áreas
+              </th>
+              <th className="text-left text-xs tracking-widest uppercase text-muted-foreground px-4 py-3">
                 Cadastro
               </th>
               <th className="text-left text-xs tracking-widest uppercase text-muted-foreground px-4 py-3">
@@ -384,6 +403,24 @@ export default function Usuarios() {
                       </div>
                     )}
                   </td>
+                  <td className="px-4 py-3">
+                    {isUserAdmin ? (
+                      <span className="text-xs text-primary font-medium">Todas (Admin)</span>
+                    ) : user.areas && user.areas.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {user.areas.map((area) => (
+                          <span
+                            key={area}
+                            className="text-xs px-1.5 py-0.5 border border-border bg-muted text-foreground"
+                          >
+                            {AREA_LABELS[area]}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Nenhuma</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-sm font-medium text-foreground">
                     {format(new Date(user.created_at), "dd/MM/yyyy", { locale: ptBR })}
                   </td>
@@ -405,6 +442,17 @@ export default function Usuarios() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">
+                      {/* Areas Button */}
+                      <button
+                        onClick={() => setAreasUser(user)}
+                        disabled={isProcessing}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 text-xs tracking-widest uppercase border border-border hover:bg-muted transition-colors disabled:opacity-50"
+                        title="Gerenciar áreas"
+                      >
+                        <MapPin className="w-3 h-3" />
+                        Áreas
+                      </button>
+
                       {/* Link/Edit Link Button */}
                       <button
                         onClick={() => handleOpenLinkModal(user)}
@@ -569,11 +617,19 @@ export default function Usuarios() {
       {/* Info */}
       <div className="text-xs text-muted-foreground space-y-1">
         <p>• O primeiro usuário a se cadastrar automaticamente recebe papel de admin</p>
-        <p>• Admins podem acessar o SETUP e gerenciar usuários</p>
+        <p>• Admins podem acessar o SETUP, gerenciar usuários e todas as áreas do sistema</p>
         <p>• Você não pode remover seu próprio papel de admin ou excluir sua conta</p>
         <p>• <strong>Vínculo com equipe:</strong> Cada usuário deve estar vinculado a um membro da equipe para ter indicadores individuais</p>
-        <p>• Um membro da equipe pode estar vinculado a apenas um usuário ativo</p>
+        <p>• <strong>Áreas:</strong> Dashboard e Programa E+ são acessíveis a todos. Demais áreas devem ser habilitadas por usuário</p>
+        <p>• Alterações nas áreas têm efeito imediato (usuário pode precisar recarregar a página)</p>
       </div>
+
+      {/* User Areas Modal */}
+      <UserAreasModal
+        user={areasUser}
+        onClose={() => setAreasUser(null)}
+        onSuccess={fetchUsers}
+      />
 
       {/* Link Team Member Dialog */}
       <Dialog open={!!linkingUser} onOpenChange={() => setLinkingUser(null)}>

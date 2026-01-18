@@ -1,5 +1,5 @@
 import { createContext, useContext, ReactNode } from 'react';
-import { useAuth, AppRole } from '@/hooks/useAuth';
+import { useAuth, AppRole, FunctionalArea } from '@/hooks/useAuth';
 import { User, Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
@@ -8,9 +8,12 @@ interface AuthContextType {
   isLoading: boolean;
   isAdmin: boolean;
   roles: AppRole[];
+  userAreas: FunctionalArea[];
   signIn: (email: string, password: string) => Promise<{ data: any; error: any }>;
   signUp: (email: string, password: string) => Promise<{ data: any; error: any }>;
   signOut: () => Promise<{ error: any }>;
+  hasAreaAccess: (area: FunctionalArea) => boolean;
+  refreshAreas: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,3 +35,5 @@ export function useAuthContext() {
   }
   return context;
 }
+
+export type { FunctionalArea };

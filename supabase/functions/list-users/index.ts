@@ -75,6 +75,11 @@ serve(async (req: Request) => {
       .from("team_members")
       .select("id, name, user_id, area_id, active, areas(name)");
 
+    // Get all user areas
+    const { data: allUserAreas } = await adminClient
+      .from("user_areas")
+      .select("user_id, area");
+
     // Helper to get area name from areas relation
     const getAreaName = (areas: { name: string } | { name: string }[] | null): string | null => {
       if (!areas) return null;
@@ -82,14 +87,16 @@ serve(async (req: Request) => {
       return areas.name || null;
     };
 
-    // Map users with their roles and team member links
+    // Map users with their roles, team member links, and areas
     const usersWithRoles = users.map((u) => {
       const linkedTeamMember = teamMembers?.find((tm) => tm.user_id === u.id);
+      const userAreas = allUserAreas?.filter((ua) => ua.user_id === u.id).map((ua) => ua.area) || [];
       return {
         id: u.id,
         email: u.email,
         created_at: u.created_at,
         roles: allRoles?.filter((r) => r.user_id === u.id).map((r) => r.role) || [],
+        areas: userAreas,
         teamMember: linkedTeamMember ? {
           id: linkedTeamMember.id,
           name: linkedTeamMember.name,

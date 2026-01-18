@@ -1,8 +1,8 @@
-import { ReactNode, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { ReactNode, useState, useMemo } from 'react';
+import { Link, useLocation, Navigate } from 'react-router-dom';
 import { Settings, LogOut, Menu, X } from 'lucide-react';
 import { SetupModal } from './SetupModal';
-import { useAuthContext } from '@/contexts/AuthContext';
+import { useAuthContext, FunctionalArea } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import logo from '@/assets/logo.png';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -11,20 +11,62 @@ interface LayoutProps {
   children: ReactNode;
 }
 
+// Mapping between route paths and functional areas
+const ROUTE_AREA_MAP: Record<string, FunctionalArea | null> = {
+  '/': null, // Dashboard - always accessible
+  '/comercial': 'comercial',
+  '/projetos': 'projetos',
+  '/customer-success': 'customer_success',
+  '/programa-e-mais': null, // Programa E+ - always accessible
+  '/usuarios': null, // Admin only, handled separately
+};
+
 export function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const [showSetup, setShowSetup] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { user, isAdmin, signOut } = useAuthContext();
-  
-  const navItems = [
-    { path: '/', label: 'Dashboard' },
-    { path: '/comercial', label: 'Comercial' },
-    { path: '/projetos', label: 'Projetos' },
-    { path: '/customer-success', label: 'CS & AT' },
-    { path: '/programa-e-mais', label: 'Programa E+' },
-    ...(isAdmin ? [{ path: '/usuarios', label: 'Usuários' }] : []),
-  ];
+  const { user, isAdmin, userAreas, hasAreaAccess, signOut } = useAuthContext();
+
+  // Check if user can access current route
+  const canAccessCurrentRoute = useMemo(() => {
+    const path = location.pathname;
+    
+    // Admin routes
+    if (path === '/usuarios') return isAdmin;
+    
+    const requiredArea = ROUTE_AREA_MAP[path];
+    
+    // Public routes (dashboard, programa E+)
+    if (requiredArea === null) return true;
+    
+    // Check area access
+    return hasAreaAccess(requiredArea);
+  }, [location.pathname, isAdmin, hasAreaAccess]);
+
+  // Filter nav items based on user's area access
+  const navItems = useMemo(() => {
+    const allItems = [
+      { path: '/', label: 'Dashboard', area: null },
+      { path: '/comercial', label: 'Comercial', area: 'comercial' as FunctionalArea },
+      { path: '/projetos', label: 'Projetos', area: 'projetos' as FunctionalArea },
+      { path: '/customer-success', label: 'CS & AT', area: 'customer_success' as FunctionalArea },
+      { path: '/programa-e-mais', label: 'Programa E+', area: null },
+    ];
+
+    const filteredItems = allItems.filter(item => {
+      // Public routes are always visible
+      if (item.area === null) return true;
+      // Check area access
+      return hasAreaAccess(item.area);
+    });
+
+    // Add admin-only routes
+    if (isAdmin) {
+      filteredItems.push({ path: '/usuarios', label: 'Usuários', area: null });
+    }
+
+    return filteredItems;
+  }, [isAdmin, hasAreaAccess]);
 
   const handleLogout = async () => {
     const { error } = await signOut();
@@ -34,6 +76,11 @@ export function Layout({ children }: LayoutProps) {
       toast.success('Logout realizado');
     }
   };
+
+  // Redirect if user doesn't have access to current route
+  if (!canAccessCurrentRoute) {
+    return <Navigate to="/" replace />;
+  }
 
   return (
     <div className="min-h-screen bg-background">
