@@ -347,22 +347,22 @@ export default function Usuarios() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-border bg-muted/50">
-              <th className="text-left text-xs tracking-widest uppercase font-semibold text-foreground px-4 py-3">
+              <th className="text-left text-xs tracking-widest uppercase font-semibold text-black px-4 py-3">
                 Email
               </th>
-              <th className="text-left text-xs tracking-widest uppercase font-semibold text-foreground px-4 py-3">
+              <th className="text-left text-xs tracking-widest uppercase font-semibold text-black px-4 py-3">
                 Membro da Equipe
               </th>
-              <th className="text-left text-xs tracking-widest uppercase font-semibold text-foreground px-4 py-3">
+              <th className="text-left text-xs tracking-widest uppercase font-semibold text-black px-4 py-3">
                 Áreas
               </th>
-              <th className="text-left text-xs tracking-widest uppercase font-semibold text-foreground px-4 py-3">
+              <th className="text-left text-xs tracking-widest uppercase font-semibold text-black px-4 py-3">
                 Cadastro
               </th>
-              <th className="text-left text-xs tracking-widest uppercase font-semibold text-foreground px-4 py-3">
+              <th className="text-left text-xs tracking-widest uppercase font-semibold text-black px-4 py-3">
                 Papéis
               </th>
-              <th className="text-right text-xs tracking-widest uppercase font-semibold text-foreground px-4 py-3">
+              <th className="text-right text-xs tracking-widest uppercase font-semibold text-black px-4 py-3">
                 Ações
               </th>
             </tr>
@@ -377,10 +377,10 @@ export default function Usuarios() {
                 <tr key={user.id} className="border-b border-border last:border-b-0 hover:bg-muted/30">
                   <td className="px-4 py-3">
                     <div className="flex flex-col">
-                      <span className="text-sm font-semibold text-foreground">
+                      <span className="text-sm font-semibold text-black">
                         {user.email}
                         {isCurrentUser && (
-                          <span className="ml-2 text-xs font-normal text-foreground/70">(você)</span>
+                          <span className="ml-2 text-xs font-normal text-black/70">(você)</span>
                         )}
                       </span>
                     </div>
@@ -390,9 +390,9 @@ export default function Usuarios() {
                       <div className="flex items-center gap-2">
                         <Link className="w-3 h-3 text-primary" />
                         <div className="flex flex-col">
-                          <span className="text-sm font-semibold text-foreground">{user.teamMember.name}</span>
+                          <span className="text-sm font-semibold text-black">{user.teamMember.name}</span>
                           {user.teamMember.areaName && (
-                            <span className="text-xs font-medium text-foreground/70">{user.teamMember.areaName}</span>
+                            <span className="text-xs font-medium text-black/70">{user.teamMember.areaName}</span>
                           )}
                         </div>
                       </div>
@@ -411,17 +411,17 @@ export default function Usuarios() {
                         {user.areas.map((area) => (
                           <span
                             key={area}
-                            className="text-xs px-1.5 py-0.5 border border-foreground/30 bg-muted font-medium text-foreground"
+                            className="text-xs px-1.5 py-0.5 border border-black/30 bg-muted font-medium text-black"
                           >
                             {AREA_LABELS[area]}
                           </span>
                         ))}
                       </div>
                     ) : (
-                      <span className="text-xs font-medium text-foreground/60">Nenhuma</span>
+                      <span className="text-xs font-medium text-black/60">Nenhuma</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-sm font-semibold text-foreground">
+                  <td className="px-4 py-3 text-sm font-semibold text-black">
                     {format(new Date(user.created_at), "dd/MM/yyyy", { locale: ptBR })}
                   </td>
                   <td className="px-4 py-3">
@@ -432,7 +432,7 @@ export default function Usuarios() {
                           className={`text-xs tracking-widest uppercase px-2 py-1 border font-semibold ${
                             role === 'admin'
                               ? 'border-primary text-primary bg-primary/10'
-                              : 'border-foreground/30 text-foreground'
+                              : 'border-black/30 text-black'
                           }`}
                         >
                           {role}
@@ -446,7 +446,7 @@ export default function Usuarios() {
                       <button
                         onClick={() => setAreasUser(user)}
                         disabled={isProcessing}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 text-xs tracking-widest uppercase border border-border hover:bg-muted transition-colors disabled:opacity-50"
+                        className="inline-flex items-center gap-2 px-3 py-1.5 text-xs tracking-widest uppercase border border-border hover:bg-muted transition-colors disabled:opacity-50 text-black"
                         title="Gerenciar áreas"
                       >
                         <MapPin className="w-3 h-3" />
@@ -457,7 +457,7 @@ export default function Usuarios() {
                       <button
                         onClick={() => handleOpenLinkModal(user)}
                         disabled={isProcessing}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 text-xs tracking-widest uppercase border border-border hover:bg-muted transition-colors disabled:opacity-50"
+                        className="inline-flex items-center gap-2 px-3 py-1.5 text-xs tracking-widest uppercase border border-border hover:bg-muted transition-colors disabled:opacity-50 text-black"
                         title={user.teamMember ? "Alterar vínculo" : "Vincular à equipe"}
                       >
                         {isProcessing ? (
@@ -473,7 +473,7 @@ export default function Usuarios() {
                         <button
                           onClick={() => handleUnlinkTeamMember(user)}
                           disabled={isProcessing}
-                          className="inline-flex items-center justify-center w-8 h-8 border border-border hover:bg-muted transition-colors disabled:opacity-50"
+                          className="inline-flex items-center justify-center w-8 h-8 border border-border hover:bg-muted transition-colors disabled:opacity-50 text-black"
                           title="Remover vínculo"
                         >
                           {isProcessing ? (
