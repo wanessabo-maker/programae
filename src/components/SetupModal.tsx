@@ -648,6 +648,35 @@ const TiposAcaoTab = () => {
               Campos adicionais
             </label>
           </div>
+          
+          {/* Impacta Metas */}
+          <div className="border-t border-border pt-3 mt-3 space-y-2">
+            <p className="text-xs uppercase tracking-widest text-muted-foreground">Impacta Metas</p>
+            <div className="flex flex-wrap gap-4">
+              {[
+                { key: 'acoes', label: 'Ações' },
+                { key: 'vendas', label: 'Vendas' },
+                { key: 'captacao', label: 'Captação' },
+                { key: 'projeto', label: 'Projetos' },
+              ].map(({ key, label }) => (
+                <label key={key} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={form.impactsMetas.includes(key)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setForm({ ...form, impactsMetas: [...form.impactsMetas, key] });
+                      } else {
+                        setForm({ ...form, impactsMetas: form.impactsMetas.filter(m => m !== key) });
+                      }
+                    }}
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </div>
+          
           <input type="number" value={form.programPoints} onChange={(e) => setForm({ ...form, programPoints: Number(e.target.value) })} placeholder="Pontos E+" className="input-flat w-full text-card-foreground" />
           
           {/* Credit Validity Settings */}
