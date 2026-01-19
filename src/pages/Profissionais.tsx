@@ -15,7 +15,7 @@ interface ProfissionaisProps {
 }
 
 export default function Profissionais({ embedded = false }: ProfissionaisProps) {
-  const { isAdmin } = useAuthContext();
+  const { isAdmin, hasAreaAccess } = useAuthContext();
   const { data: currentTeamMember } = useCurrentTeamMember();
   
   const {
@@ -309,6 +309,7 @@ export default function Profissionais({ embedded = false }: ProfissionaisProps) 
         teamMembers={teamMembers}
         professionalTypes={professionalTypes}
         isAdmin={isAdmin}
+        canViewAllProfessionals={hasAreaAccess('comercial')}
         currentConsultantId={currentTeamMember?.id || null}
         filters={filters}
         onFilterChange={handleFilterChange}
