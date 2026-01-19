@@ -486,6 +486,11 @@ export default function Dashboard() {
                                       style={{ width: `${Math.min(metric.percentage, 100)}%` }}
                                     />
                                   </div>
+                                  <div className="text-[10px] text-muted-foreground mt-0.5">
+                                    Meta: {metric.isCurrency 
+                                      ? formatCurrency(metric.meta) 
+                                      : Math.round(metric.meta)}
+                                  </div>
                                 </div>
                               ))}
                             </div>
