@@ -15,6 +15,7 @@ interface ProfessionalsFilterProps {
   teamMembers: TeamMember[];
   professionalTypes: ProfessionalType[];
   isAdmin: boolean;
+  canViewAllProfessionals: boolean; // New prop for comercial area users
   currentConsultantId: string | null;
   filters: FilterState;
   onFilterChange: (filters: FilterState) => void;
@@ -33,6 +34,7 @@ export function ProfessionalsFilter({
   teamMembers,
   professionalTypes,
   isAdmin,
+  canViewAllProfessionals,
   currentConsultantId,
   filters,
   onFilterChange,
@@ -40,12 +42,15 @@ export function ProfessionalsFilter({
   const [showFilters, setShowFilters] = useState(false);
   const activeMembers = teamMembers.filter(m => m.active);
 
-  // Set default consultant filter for non-admins
+  // Users who can view all professionals (admins or comercial area) don't get auto-filtered
+  const hasFullAccess = isAdmin || canViewAllProfessionals;
+
+  // Set default consultant filter only for users without full access
   useEffect(() => {
-    if (!isAdmin && currentConsultantId && !filters.consultantId) {
+    if (!hasFullAccess && currentConsultantId && !filters.consultantId) {
       onFilterChange({ ...filters, consultantId: currentConsultantId });
     }
-  }, [isAdmin, currentConsultantId, filters, onFilterChange]);
+  }, [hasFullAccess, currentConsultantId, filters, onFilterChange]);
 
   const handleChange = (key: keyof FilterState, value: string) => {
     onFilterChange({ ...filters, [key]: value });
@@ -53,8 +58,8 @@ export function ProfessionalsFilter({
 
   const clearFilters = () => {
     const cleared = { ...defaultFilters };
-    // Keep consultant filter for non-admins
-    if (!isAdmin && currentConsultantId) {
+    // Keep consultant filter for users without full access
+    if (!hasFullAccess && currentConsultantId) {
       cleared.consultantId = currentConsultantId;
     }
     onFilterChange(cleared);
@@ -62,8 +67,8 @@ export function ProfessionalsFilter({
 
   const hasActiveFilters = () => {
     const baseFilters = { ...filters };
-    // Don't count auto-applied consultant filter for non-admins
-    if (!isAdmin && currentConsultantId && filters.consultantId === currentConsultantId) {
+    // Don't count auto-applied consultant filter for users without full access
+    if (!hasFullAccess && currentConsultantId && filters.consultantId === currentConsultantId) {
       baseFilters.consultantId = '';
     }
     return Object.values(baseFilters).some(v => v !== '');
@@ -102,8 +107,8 @@ export function ProfessionalsFilter({
       {showFilters && (
         <div className="card-flat animate-fade-in">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Consultant Filter - only for admins */}
-            {isAdmin && (
+            {/* Consultant Filter - for admins and comercial area users */}
+            {hasFullAccess && (
               <div>
                 <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
                   Consultor
@@ -203,8 +208,8 @@ export function ProfessionalsFilter({
         </div>
       )}
 
-      {/* Active Filter Indicator for non-admins */}
-      {!isAdmin && currentConsultantId && (
+      {/* Active Filter Indicator for users without full access */}
+      {!hasFullAccess && currentConsultantId && (
         <p className="text-xs text-muted-foreground">
           Exibindo apenas profissionais vinculados a você.
         </p>
