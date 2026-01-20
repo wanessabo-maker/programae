@@ -332,6 +332,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
         clientProfession: '',
         presentationNumber: '',
         foccoProjectNumber: '',
+        contractNumber: '',
       });
       setIsNewProfessional(false);
       setNewProfessional({ name: '', typeId: '' });
