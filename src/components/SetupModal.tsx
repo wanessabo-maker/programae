@@ -229,8 +229,9 @@ const EquipeTab = () => {
 }
 
 const MetasTab = () => {
-  const { metas, areas, professionalCategories, addMeta, updateMeta, deleteMeta } = useApp();
+  const { metas, areas, teamMembers, professionalCategories, addMeta, updateMeta, deleteMeta } = useApp();
   const [newAreaId, setNewAreaId] = useState('');
+  const [newTeamMemberId, setNewTeamMemberId] = useState('');
   const [newType, setNewType] = useState<'acoes' | 'vendas' | 'captacao' | 'projeto' | 'categoria'>('acoes');
   const [newCategoryId, setNewCategoryId] = useState('');
   const [newValue, setNewValue] = useState('');
@@ -244,6 +245,12 @@ const MetasTab = () => {
     startDate: '',
     endDate: '',
   });
+
+  // Filter active team members by selected area
+  const filteredTeamMembers = useMemo(() => {
+    if (!newAreaId) return [];
+    return teamMembers.filter(m => m.active && m.areaId === newAreaId);
+  }, [newAreaId, teamMembers]);
 
   const calculateDates = (validityType: string, startDate?: string) => {
     const today = new Date();
@@ -279,13 +286,14 @@ const MetasTab = () => {
   };
 
   const handleAdd = () => {
-    if (newAreaId && newValue) {
+    if (newAreaId && newTeamMemberId && newValue) {
       if (newType === 'categoria' && !newCategoryId) return;
       
       const dates = calculateDates(newValidityType, newStartDate);
       
       addMeta({ 
         areaId: newAreaId, 
+        teamMemberId: newTeamMemberId,
         type: newType, 
         value: Number(newValue),
         categoryId: newType === 'categoria' ? newCategoryId : undefined,
@@ -366,11 +374,20 @@ const MetasTab = () => {
     <div className="space-y-6">
       {/* Add new meta */}
       <div className="space-y-3 border border-black p-4">
-        <p className="text-xs uppercase tracking-widest text-muted-foreground">Nova Meta</p>
+        <p className="text-xs uppercase tracking-widest text-muted-foreground">Nova Meta (por Colaborador)</p>
         <div className="flex gap-2 flex-wrap">
-          <select value={newAreaId} onChange={(e) => setNewAreaId(e.target.value)} className="input-flat text-card-foreground">
+          <select value={newAreaId} onChange={(e) => { setNewAreaId(e.target.value); setNewTeamMemberId(''); }} className="input-flat text-card-foreground">
             <option value="">Área</option>
             {areas.map((area) => <option key={area.id} value={area.id}>{area.name}</option>)}
+          </select>
+          <select 
+            value={newTeamMemberId} 
+            onChange={(e) => setNewTeamMemberId(e.target.value)} 
+            className="input-flat text-card-foreground"
+            disabled={!newAreaId}
+          >
+            <option value="">Colaborador</option>
+            {filteredTeamMembers.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}
           </select>
           <select value={newType} onChange={(e) => setNewType(e.target.value as typeof newType)} className="input-flat text-card-foreground">
             {Object.entries(typeLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
@@ -484,7 +501,10 @@ const MetasTab = () => {
             ) : (
               <>
                 <div className="flex items-center gap-4 flex-wrap">
-                  <span className="text-sm font-medium">{areas.find(a => a.id === meta.areaId)?.name}</span>
+                  <span className="text-sm font-medium">{teamMembers.find(m => m.id === meta.teamMemberId)?.name || areas.find(a => a.id === meta.areaId)?.name}</span>
+                  {meta.teamMemberId && (
+                    <span className="text-xs text-muted-foreground">({areas.find(a => a.id === meta.areaId)?.name})</span>
+                  )}
                   <span className="text-xs text-muted-foreground uppercase">{getMetaLabel(meta)}</span>
                   <span className="text-sm">
                     {meta.type === 'vendas' ? `R$ ${meta.value.toLocaleString('pt-BR')}` : 

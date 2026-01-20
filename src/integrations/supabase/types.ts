@@ -428,6 +428,7 @@ export type Database = {
           is_active: boolean | null
           metric: string
           start_date: string | null
+          team_member_id: string | null
           validity_type: string | null
           value: number
         }
@@ -440,6 +441,7 @@ export type Database = {
           is_active?: boolean | null
           metric: string
           start_date?: string | null
+          team_member_id?: string | null
           validity_type?: string | null
           value?: number
         }
@@ -452,6 +454,7 @@ export type Database = {
           is_active?: boolean | null
           metric?: string
           start_date?: string | null
+          team_member_id?: string | null
           validity_type?: string | null
           value?: number
         }
@@ -468,6 +471,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "professional_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goals_team_member_id_fkey"
+            columns: ["team_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
             referencedColumns: ["id"]
           },
         ]

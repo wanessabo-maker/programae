@@ -26,6 +26,7 @@ export interface ActionType {
 export interface Meta {
   id: string;
   areaId: string;
+  teamMemberId?: string; // For individual goals per team member
   type: 'acoes' | 'vendas' | 'captacao' | 'projeto' | 'categoria' | 'especificador'; // especificador for backwards compatibility
   value: number;
   categoryId?: string; // For 'categoria' type metas
