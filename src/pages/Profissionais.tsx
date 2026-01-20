@@ -204,7 +204,8 @@ export default function Profissionais({ embedded = false }: ProfissionaisProps) 
             lastActionTypeName: lastActionType?.name || '-',
             daysUntilChange: p.daysRemaining,
           };
-        });
+        })
+        .sort((a, b) => a.daysUntilChange - b.daysUntilChange);
       
       return {
         ...category,
