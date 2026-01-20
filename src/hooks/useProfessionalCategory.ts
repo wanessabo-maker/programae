@@ -17,10 +17,10 @@ interface CategoryCalculationResult {
  * The countdown starts from that category's days, and when expired, falls to lower categories.
  */
 export function calculateProfessionalCategory(
-  professional: Professional,
+  professional: Professional & { isManualCategory?: boolean },
   categories: ProfessionalCategory[],
   actionTypes: ActionType[]
-): CategoryCalculationResult {
+): CategoryCalculationResult & { isManualCategory?: boolean } {
   // Sort categories by hierarchy (order) - lower number = higher rank
   const sortedCategories = [...categories].sort((a, b) => a.order - b.order);
   
@@ -41,6 +41,29 @@ export function calculateProfessionalCategory(
 
   const lastActionDate = parseISO(professional.lastActionDate);
   const daysSinceAction = differenceInDays(new Date(), lastActionDate);
+
+  // If category was manually set, respect that setting
+  // Use the current category and calculate days remaining based on it
+  if (professional.isManualCategory) {
+    const manualCategory = sortedCategories.find(c => c.id === professional.categoryId);
+    
+    if (manualCategory) {
+      const daysRemaining = Math.max(0, manualCategory.daysToChange - daysSinceAction);
+      const isExpired = daysSinceAction >= manualCategory.daysToChange;
+      
+      // If manual category has expired, we allow automatic recategorization
+      if (isExpired) {
+        // Continue with normal calculation below (manual flag will be cleared on next action)
+      } else {
+        return {
+          categoryId: manualCategory.id,
+          daysRemaining,
+          isExpired: false,
+          isManualCategory: true,
+        };
+      }
+    }
+  }
 
   // Find the action type to get its classification
   const lastActionType = actionTypes.find(at => at.id === professional.lastActionTypeId);

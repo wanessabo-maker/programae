@@ -65,6 +65,7 @@ export interface Professional {
   lastActionDate?: string;
   lastActionTypeId?: string;
   specialDates?: SpecialDate[];
+  isManualCategory?: boolean; // Indicates if category was manually set by admin
 }
 
 export interface SpecialDate {

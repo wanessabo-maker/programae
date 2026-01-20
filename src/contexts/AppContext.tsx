@@ -206,6 +206,7 @@ function transformProfessional(dbProf: {
   category_id: string | null;
   last_action_date: string | null;
   last_action_type_id: string | null;
+  is_manual_category?: boolean | null;
 }): Professional {
   return {
     id: dbProf.id,
@@ -215,6 +216,7 @@ function transformProfessional(dbProf: {
     categoryId: dbProf.category_id || '',
     lastActionDate: dbProf.last_action_date || '',
     lastActionTypeId: dbProf.last_action_type_id || undefined,
+    isManualCategory: dbProf.is_manual_category || false,
   };
 }
 
@@ -543,6 +545,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       category_id: professional.categoryId,
       last_action_date: professional.lastActionDate,
       last_action_type_id: professional.lastActionTypeId,
+      is_manual_category: professional.isManualCategory,
     });
   }, [updateProfessionalMutation]);
 
