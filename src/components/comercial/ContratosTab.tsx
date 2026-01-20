@@ -1,15 +1,18 @@
 import { useState, useMemo } from 'react';
 import { format, parseISO, startOfMonth, endOfMonth, startOfYear, endOfYear, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Eye, FileText, Calendar, TrendingUp, Filter } from 'lucide-react';
+import { Eye, FileText, Calendar, TrendingUp, Filter, User, DollarSign } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
 import { useProjects, Project } from '@/hooks/useProjects';
+import { useClients } from '@/hooks/useClients';
 import { useApp } from '@/contexts/AppContext';
 
 type PeriodFilter = 'all' | 'month' | 'year' | 'custom';
 
 export default function ContratosTab() {
   const { data: projects = [], isLoading } = useProjects();
+  const { data: clients = [] } = useClients();
   const { teamMembers, professionals, actions, actionTypes } = useApp();
   
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('month');
@@ -61,9 +64,9 @@ export default function ContratosTab() {
     return filteredProjects.reduce((sum, p) => sum + (p.closed_value || p.estimated_value || 0), 0);
   }, [filteredProjects]);
 
-  // Get related actions for a project (sales actions)
-  const getProjectSalesActions = (projectId: string) => {
-    return actions.filter(a => {
+  // Get sale action (to retrieve contract number)
+  const getSaleAction = (projectId: string) => {
+    return actions.find(a => {
       const actionType = actionTypes.find(t => t.id === a.actionTypeId);
       return a.projectId === projectId && actionType?.classification === 'venda';
     });
@@ -72,6 +75,13 @@ export default function ContratosTab() {
   // Get all actions for a project
   const getProjectActions = (projectId: string) => {
     return actions.filter(a => a.projectId === projectId);
+  };
+
+  // Get client for project
+  const getClientForProject = (projectId: string) => {
+    const project = projects.find(p => p.id === projectId);
+    if (!project?.client_id) return null;
+    return clients.find(c => c.id === project.client_id);
   };
 
   const getResponsibleName = (id?: string | null) => {
@@ -104,6 +114,11 @@ export default function ContratosTab() {
 
   return (
     <div className="space-y-6">
+      {/* Info Banner */}
+      <div className="text-xs text-muted-foreground bg-muted/50 px-4 py-3 border border-border">
+        <span className="font-medium">Contratos são gerados automaticamente</span> quando uma ação de "Venda" é registrada com o número do contrato.
+      </div>
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="border border-border p-4">
@@ -122,7 +137,7 @@ export default function ContratosTab() {
         </div>
         <div className="border border-border p-4">
           <div className="flex items-center gap-2 mb-2">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
             <span className="text-xs tracking-widest uppercase text-muted-foreground">Ticket Médio</span>
           </div>
           <p className="text-2xl font-light">
@@ -204,44 +219,54 @@ export default function ContratosTab() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-border bg-muted/30">
+                <th className="text-left p-3 text-xs tracking-widest uppercase text-muted-foreground">Nº Contrato</th>
                 <th className="text-left p-3 text-xs tracking-widest uppercase text-muted-foreground">Projeto FOCCO</th>
-                <th className="text-left p-3 text-xs tracking-widest uppercase text-muted-foreground">Nome</th>
                 <th className="text-left p-3 text-xs tracking-widest uppercase text-muted-foreground">Cliente</th>
                 <th className="text-left p-3 text-xs tracking-widest uppercase text-muted-foreground">Profissional</th>
-                <th className="text-left p-3 text-xs tracking-widest uppercase text-muted-foreground">Responsável</th>
-                <th className="text-left p-3 text-xs tracking-widest uppercase text-muted-foreground">Data Fechamento</th>
+                <th className="text-left p-3 text-xs tracking-widest uppercase text-muted-foreground">Consultor</th>
+                <th className="text-left p-3 text-xs tracking-widest uppercase text-muted-foreground">Data Venda</th>
                 <th className="text-right p-3 text-xs tracking-widest uppercase text-muted-foreground">Valor</th>
                 <th className="text-center p-3 text-xs tracking-widest uppercase text-muted-foreground">Ações</th>
               </tr>
             </thead>
             <tbody>
-              {filteredProjects.map((project) => (
-                <tr key={project.id} className="border-b border-border hover:bg-muted/20">
-                  <td className="p-3 text-sm font-mono">{project.focco_project_number || '-'}</td>
-                  <td className="p-3 text-sm">{project.name}</td>
-                  <td className="p-3 text-sm">{project.clients?.name || '-'}</td>
-                  <td className="p-3 text-sm">{project.professionals?.name || '-'}</td>
-                  <td className="p-3 text-sm">{project.responsible?.name || '-'}</td>
-                  <td className="p-3 text-sm">
-                    {project.closed_date 
-                      ? format(parseISO(project.closed_date), 'dd/MM/yyyy', { locale: ptBR })
-                      : '-'
-                    }
-                  </td>
-                  <td className="p-3 text-sm text-right font-medium">
-                    {formatCurrency(project.closed_value || project.estimated_value)}
-                  </td>
-                  <td className="p-3 text-center">
-                    <button
-                      onClick={() => handleViewProject(project)}
-                      className="p-1 hover:bg-muted rounded"
-                      title="Ver detalhes"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {filteredProjects.map((project) => {
+                const client = getClientForProject(project.id);
+                const saleAction = getSaleAction(project.id);
+                const contractNumber = client?.contract_number || saleAction?.presentationNumber || '-';
+                
+                return (
+                  <tr key={project.id} className="border-b border-border hover:bg-muted/20">
+                    <td className="p-3">
+                      <span className="text-sm font-mono bg-green-500/10 text-green-700 px-2 py-0.5 rounded">
+                        {contractNumber}
+                      </span>
+                    </td>
+                    <td className="p-3 text-sm font-mono">{project.focco_project_number || '-'}</td>
+                    <td className="p-3 text-sm">{project.clients?.name || client?.name || '-'}</td>
+                    <td className="p-3 text-sm">{project.professionals?.name || '-'}</td>
+                    <td className="p-3 text-sm">{project.responsible?.name || '-'}</td>
+                    <td className="p-3 text-sm">
+                      {project.closed_date 
+                        ? format(parseISO(project.closed_date), 'dd/MM/yyyy', { locale: ptBR })
+                        : '-'
+                      }
+                    </td>
+                    <td className="p-3 text-sm text-right font-medium">
+                      {formatCurrency(project.closed_value || project.estimated_value)}
+                    </td>
+                    <td className="p-3 text-center">
+                      <button
+                        onClick={() => handleViewProject(project)}
+                        className="p-1 hover:bg-muted rounded"
+                        title="Ver detalhes"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
             <tfoot>
               <tr className="bg-muted/30">
@@ -266,6 +291,23 @@ export default function ContratosTab() {
           
           {selectedProject && (
             <div className="space-y-6 py-4">
+              {/* Contract Info */}
+              {(() => {
+                const client = getClientForProject(selectedProject.id);
+                const saleAction = getSaleAction(selectedProject.id);
+                const contractNumber = client?.contract_number || saleAction?.presentationNumber;
+                
+                return contractNumber ? (
+                  <div className="bg-green-500/10 border border-green-500/30 p-4 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-green-600" />
+                      <span className="text-xs tracking-widest uppercase text-muted-foreground">Número do Contrato</span>
+                    </div>
+                    <p className="text-2xl font-mono font-medium text-green-700 mt-1">{contractNumber}</p>
+                  </div>
+                ) : null;
+              })()}
+
               {/* Project Info */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -290,7 +332,7 @@ export default function ContratosTab() {
                   <p>{selectedProject.professionals?.name || '-'}</p>
                 </div>
                 <div>
-                  <span className="text-xs tracking-widest uppercase text-muted-foreground block mb-1">Responsável</span>
+                  <span className="text-xs tracking-widest uppercase text-muted-foreground block mb-1">Consultor Responsável</span>
                   <p>{selectedProject.responsible?.name || '-'}</p>
                 </div>
                 <div>

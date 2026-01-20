@@ -40,6 +40,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     clientProfession: '',
     presentationNumber: '',
     foccoProjectNumber: '',
+    contractNumber: '',
   });
 
   const [isNewProfessional, setIsNewProfessional] = useState(false);
@@ -75,6 +76,11 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     // FOCCO number is required for Apresentação de Projeto and Venda
     if ((isApresentacaoProjeto || isVenda) && !form.foccoProjectNumber.trim()) {
       newErrors.foccoProjectNumber = true;
+    }
+    
+    // Contract number is required for Venda
+    if (isVenda && !form.contractNumber.trim()) {
+      newErrors.contractNumber = true;
     }
     
     if (isNewProfessional) {
