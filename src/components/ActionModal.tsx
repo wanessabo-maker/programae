@@ -41,6 +41,13 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     presentationNumber: '',
     foccoProjectNumber: '',
     contractNumber: '',
+    // Additional client fields for Venda
+    clientPhone: '',
+    clientEmail: '',
+    clientCpfCnpj: '',
+    clientAddress: '',
+    clientCity: '',
+    clientState: '',
   });
 
   const [isNewProfessional, setIsNewProfessional] = useState(false);
@@ -236,7 +243,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
         }
       }
 
-      // Handle Venda - update project to closed_won and set closed_value
+      // Handle Venda - update project to closed_won and update client with full data
       if (isVenda && form.foccoProjectNumber.trim()) {
         const foccoNumber = form.foccoProjectNumber.trim();
         
@@ -260,11 +267,27 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             } else {
               projectId = existingProject.id;
               
-              // Also update the client status to 'closed' if exists
+              // Update the client with complete data including contract number
               if (existingProject.client_id) {
+                const clientUpdateData: Record<string, unknown> = {
+                  status: 'closed',
+                  contract_number: form.contractNumber.trim(),
+                };
+                
+                // Add optional fields if provided
+                if (form.clientPhone.trim()) clientUpdateData.phone = form.clientPhone.trim();
+                if (form.clientEmail.trim()) clientUpdateData.email = form.clientEmail.trim();
+                if (form.clientCpfCnpj.trim()) clientUpdateData.cpf_cnpj = form.clientCpfCnpj.trim();
+                if (form.clientAddress.trim()) clientUpdateData.address = form.clientAddress.trim();
+                if (form.clientCity.trim()) clientUpdateData.city = form.clientCity.trim();
+                if (form.clientState.trim()) clientUpdateData.state = form.clientState.trim();
+                if (form.clientName.trim()) clientUpdateData.name = form.clientName.trim();
+                if (form.clientAge) clientUpdateData.age = Number(form.clientAge);
+                if (form.clientProfession.trim()) clientUpdateData.profession = form.clientProfession.trim();
+                
                 await supabase
                   .from('clients')
-                  .update({ status: 'closed' })
+                  .update(clientUpdateData)
                   .eq('id', existingProject.client_id);
               }
               
@@ -333,6 +356,12 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
         presentationNumber: '',
         foccoProjectNumber: '',
         contractNumber: '',
+        clientPhone: '',
+        clientEmail: '',
+        clientCpfCnpj: '',
+        clientAddress: '',
+        clientCity: '',
+        clientState: '',
       });
       setIsNewProfessional(false);
       setNewProfessional({ name: '', typeId: '' });
@@ -599,6 +628,115 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                       {isVenda ? 'Informe o projeto FOCCO para vincular a venda' : 'Campo obrigatório para Apresentação de Projeto'}
                     </span>
                   )}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Campos específicos para VENDA */}
+          {isVenda && (
+            <>
+              <div className="border-t border-border pt-4 mt-2">
+                <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-3">Dados da Venda</p>
+                
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.contractNumber ? 'text-destructive' : 'text-muted-foreground'}`}>
+                      Nº Contrato *
+                    </label>
+                    <input
+                      value={form.contractNumber}
+                      onChange={(e) => {
+                        setForm({ ...form, contractNumber: e.target.value });
+                        setErrors({ ...errors, contractNumber: false });
+                      }}
+                      placeholder="Obrigatório"
+                      className={`input-flat w-full text-card-foreground ${errors.contractNumber ? 'border-destructive ring-1 ring-destructive' : ''}`}
+                    />
+                    {errors.contractNumber && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
+                  </div>
+                  <div>
+                    <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.foccoProjectNumber ? 'text-destructive' : 'text-muted-foreground'}`}>
+                      Nº Projeto FOCCO *
+                    </label>
+                    <input
+                      value={form.foccoProjectNumber}
+                      onChange={(e) => {
+                        setForm({ ...form, foccoProjectNumber: e.target.value });
+                        setErrors({ ...errors, foccoProjectNumber: false });
+                      }}
+                      placeholder="Obrigatório"
+                      className={`input-flat w-full text-card-foreground ${errors.foccoProjectNumber ? 'border-destructive ring-1 ring-destructive' : ''}`}
+                    />
+                    {errors.foccoProjectNumber && <span className="text-xs text-destructive mt-1">Informe o projeto FOCCO para vincular a venda</span>}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="border-t border-border pt-4">
+                <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-3">Dados Adicionais do Cliente</p>
+                
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">CPF/CNPJ</label>
+                    <input
+                      value={form.clientCpfCnpj}
+                      onChange={(e) => setForm({ ...form, clientCpfCnpj: e.target.value })}
+                      placeholder="000.000.000-00"
+                      className="input-flat w-full text-card-foreground"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Telefone</label>
+                    <input
+                      value={form.clientPhone}
+                      onChange={(e) => setForm({ ...form, clientPhone: e.target.value })}
+                      placeholder="(00) 00000-0000"
+                      className="input-flat w-full text-card-foreground"
+                    />
+                  </div>
+                </div>
+                
+                <div className="mb-4">
+                  <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Email</label>
+                  <input
+                    type="email"
+                    value={form.clientEmail}
+                    onChange={(e) => setForm({ ...form, clientEmail: e.target.value })}
+                    placeholder="cliente@email.com"
+                    className="input-flat w-full text-card-foreground"
+                  />
+                </div>
+                
+                <div className="mb-4">
+                  <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Endereço</label>
+                  <input
+                    value={form.clientAddress}
+                    onChange={(e) => setForm({ ...form, clientAddress: e.target.value })}
+                    placeholder="Rua, número, complemento"
+                    className="input-flat w-full text-card-foreground"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Cidade</label>
+                    <input
+                      value={form.clientCity}
+                      onChange={(e) => setForm({ ...form, clientCity: e.target.value })}
+                      className="input-flat w-full text-card-foreground"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Estado</label>
+                    <input
+                      value={form.clientState}
+                      onChange={(e) => setForm({ ...form, clientState: e.target.value })}
+                      placeholder="UF"
+                      maxLength={2}
+                      className="input-flat w-full text-card-foreground"
+                    />
+                  </div>
                 </div>
               </div>
             </>
