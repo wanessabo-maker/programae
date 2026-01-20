@@ -28,12 +28,9 @@ export interface Project {
 }
 
 export const PROJECT_STAGES = [
-  { id: 'lead', name: 'Lead', color: 'bg-muted' },
-  { id: 'prospecting', name: 'Prospecção', color: 'bg-blue-500/20' },
-  { id: 'proposal', name: 'Proposta', color: 'bg-yellow-500/20' },
-  { id: 'negotiation', name: 'Negociação', color: 'bg-orange-500/20' },
-  { id: 'closed_won', name: 'Fechado', color: 'bg-green-500/20' },
+  { id: 'em_negociacao', name: 'Em Negociação', color: 'bg-yellow-500/20' },
   { id: 'closed_lost', name: 'Perdido', color: 'bg-red-500/20' },
+  { id: 'closed_won', name: 'Vendido', color: 'bg-green-500/20' },
 ] as const;
 
 export function useProjects() {
