@@ -536,6 +536,7 @@ export type Database = {
           consultant_id: string | null
           created_at: string | null
           id: string
+          is_manual_category: boolean | null
           last_action_date: string | null
           last_action_type_id: string | null
           name: string
@@ -546,6 +547,7 @@ export type Database = {
           consultant_id?: string | null
           created_at?: string | null
           id?: string
+          is_manual_category?: boolean | null
           last_action_date?: string | null
           last_action_type_id?: string | null
           name: string
@@ -556,6 +558,7 @@ export type Database = {
           consultant_id?: string | null
           created_at?: string | null
           id?: string
+          is_manual_category?: boolean | null
           last_action_date?: string | null
           last_action_type_id?: string | null
           name?: string

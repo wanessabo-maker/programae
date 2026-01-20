@@ -1,9 +1,10 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { Plus, Pencil, Trash2, Clock, Users } from 'lucide-react';
+import { Plus, Pencil, Trash2, Clock, Users, Settings2 } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { BulkAddProfessionalsModal } from '@/components/BulkAddProfessionalsModal';
+import { ManualCategoryModal } from '@/components/ManualCategoryModal';
 import { ProfessionalsFilter, FilterState, defaultFilters } from '@/components/ProfessionalsFilter';
 import { useCurrentTeamMember } from '@/hooks/useCurrentTeamMember';
 import { format, parseISO, differenceInDays, addDays, isWithinInterval } from 'date-fns';
@@ -40,6 +41,11 @@ export default function Profissionais({ embedded = false }: ProfissionaisProps) 
   const [editingProfessional, setEditingProfessional] = useState<string | null>(null);
   const [editingReminder, setEditingReminder] = useState<string | null>(null);
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
+  const [manualCategoryProfessional, setManualCategoryProfessional] = useState<{
+    id: string;
+    name: string;
+    categoryId: string;
+  } | null>(null);
 
   const [professionalForm, setProfessionalForm] = useState({
     name: '',
@@ -90,7 +96,8 @@ export default function Profissionais({ embedded = false }: ProfissionaisProps) 
         ...p,
         calculatedCategoryId: calculation.categoryId,
         daysRemaining: calculation.daysRemaining,
-        needsUpdate: p.categoryId !== calculation.categoryId,
+        needsUpdate: p.categoryId !== calculation.categoryId && !p.isManualCategory,
+        isManualCategory: calculation.isManualCategory || p.isManualCategory,
       };
     });
   }, [professionals, professionalCategories, actionTypes]);
@@ -389,7 +396,16 @@ export default function Profissionais({ embedded = false }: ProfissionaisProps) 
                   <tbody>
                     {category.professionals.map((prof) => (
                       <tr key={prof.id} className="border-b border-black/10 last:border-0">
-                        <td className="p-3 text-sm font-medium">{prof.name}</td>
+                        <td className="p-3 text-sm font-medium">
+                          <div className="flex items-center gap-2">
+                            {prof.name}
+                            {prof.isManualCategory && (
+                              <span className="text-[10px] bg-warning/20 text-warning px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                Manual
+                              </span>
+                            )}
+                          </div>
+                        </td>
                         <td className="p-3 text-sm">{prof.typeName}</td>
                         <td className="p-3 text-sm">{prof.consultantName}</td>
                         <td className="p-3 text-sm">{prof.lastActionTypeName}</td>
@@ -403,6 +419,19 @@ export default function Profissionais({ embedded = false }: ProfissionaisProps) 
                         </td>
                         <td className="p-3 text-right">
                           <div className="flex justify-end gap-1">
+                            {isAdmin && (
+                              <button
+                                onClick={() => setManualCategoryProfessional({
+                                  id: prof.id,
+                                  name: prof.name,
+                                  categoryId: prof.calculatedCategoryId,
+                                })}
+                                className="p-2 opacity-40 hover:opacity-100 text-warning"
+                                title="Ajustar Categoria Manualmente"
+                              >
+                                <Settings2 className="w-4 h-4" />
+                              </button>
+                            )}
                             <button
                               onClick={() => handleEditProfessional(prof.id)}
                               className="p-2 opacity-40 hover:opacity-100"
@@ -429,10 +458,30 @@ export default function Profissionais({ embedded = false }: ProfissionaisProps) 
                   <div key={prof.id} className="card-flat">
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <p className="text-sm font-medium">{prof.name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium">{prof.name}</p>
+                          {prof.isManualCategory && (
+                            <span className="text-[10px] bg-warning/20 text-warning px-1.5 py-0.5 rounded uppercase tracking-wider">
+                              Manual
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-muted-foreground">{prof.typeName} • {prof.consultantName}</p>
                       </div>
                       <div className="flex items-center gap-1">
+                        {isAdmin && (
+                          <button
+                            onClick={() => setManualCategoryProfessional({
+                              id: prof.id,
+                              name: prof.name,
+                              categoryId: prof.calculatedCategoryId,
+                            })}
+                            className="p-1.5 opacity-40 hover:opacity-100 text-warning"
+                            title="Ajustar Categoria"
+                          >
+                            <Settings2 className="w-4 h-4" />
+                          </button>
+                        )}
                         <button
                           onClick={() => handleEditProfessional(prof.id)}
                           className="p-1.5 opacity-40 hover:opacity-100"
@@ -578,6 +627,17 @@ export default function Profissionais({ embedded = false }: ProfissionaisProps) 
 
       {/* Bulk Add Modal */}
       <BulkAddProfessionalsModal open={showBulkModal} onOpenChange={setShowBulkModal} />
+
+      {/* Manual Category Modal (Admin Only) */}
+      {manualCategoryProfessional && (
+        <ManualCategoryModal
+          open={!!manualCategoryProfessional}
+          onOpenChange={(open) => !open && setManualCategoryProfessional(null)}
+          professionalId={manualCategoryProfessional.id}
+          professionalName={manualCategoryProfessional.name}
+          currentCategoryId={manualCategoryProfessional.categoryId}
+        />
+      )}
     </div>
   );
 }

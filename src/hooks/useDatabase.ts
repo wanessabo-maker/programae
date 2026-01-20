@@ -442,6 +442,7 @@ export function useUpdateProfessional() {
       category_id?: string | null;
       last_action_date?: string | null;
       last_action_type_id?: string | null;
+      is_manual_category?: boolean;
     }) => {
       const { data, error } = await supabase.from('professionals').update(updates).eq('id', id).select().single();
       if (error) throw error;
