@@ -130,6 +130,67 @@ export function getCategoryForAction(
 }
 
 /**
+ * Determines if a new action should update the professional's category tracking.
+ * A higher-rank category should NOT be overwritten by a lower-rank action
+ * while still within the protection period.
+ * 
+ * Returns true if the professional's lastActionTypeId and lastActionDate should be updated.
+ */
+export function shouldUpdateProfessionalCategory(
+  professional: { lastActionDate?: string; lastActionTypeId?: string },
+  newActionType: ActionType,
+  categories: ProfessionalCategory[],
+  actionTypes: ActionType[],
+  newActionDate: string
+): boolean {
+  // Sort categories by hierarchy (order) - lower number = higher rank
+  const sortedCategories = [...categories].sort((a, b) => a.order - b.order);
+  
+  if (sortedCategories.length === 0) return true;
+
+  // If no previous action, always update
+  if (!professional.lastActionDate || !professional.lastActionTypeId) {
+    return true;
+  }
+
+  // Find the current action type
+  const currentActionType = actionTypes.find(at => at.id === professional.lastActionTypeId);
+  if (!currentActionType) {
+    return true;
+  }
+
+  // Find categories for current and new action types
+  const currentCategory = sortedCategories.find(
+    cat => cat.condition === currentActionType.classification
+  );
+  const newCategory = sortedCategories.find(
+    cat => cat.condition === newActionType.classification
+  );
+
+  // If either category is not found, allow update
+  if (!currentCategory || !newCategory) {
+    return true;
+  }
+
+  // If new action has equal or higher rank (lower order number), always update
+  if (newCategory.order <= currentCategory.order) {
+    return true;
+  }
+
+  // New action has LOWER rank - check if current category protection period has expired
+  const lastActionDate = parseISO(professional.lastActionDate);
+  const daysSinceAction = differenceInDays(new Date(), lastActionDate);
+
+  // If still within the protection period of current (higher) category, DO NOT update
+  if (daysSinceAction < currentCategory.daysToChange) {
+    return false;
+  }
+
+  // Protection period has expired, allow update
+  return true;
+}
+
+/**
  * Hook that returns professionals with their calculated categories
  */
 export function useProfessionalsWithCalculatedCategories(

@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useApp } from '@/contexts/AppContext';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { getCategoryForAction } from '@/hooks/useProfessionalCategory';
+import { getCategoryForAction, shouldUpdateProfessionalCategory } from '@/hooks/useProfessionalCategory';
 import { findProjectByFocco } from '@/hooks/useProjects';
 import { createClientDirect } from '@/hooks/useClients';
 import { supabase } from '@/integrations/supabase/client';
@@ -147,12 +147,29 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           toast.success(`Lembrete criado para ${specialDate.reason}`);
         }
       } else if (professionalId && professionalId !== '') {
-        // Update existing professional with new category based on action
-        updateProfessional(professionalId, {
-          lastActionDate: form.date,
-          lastActionTypeId: selectedActionType?.id,
-          categoryId: targetCategory?.id,
-        });
+        // Check if we should update the professional's category tracking
+        // A higher-rank category (like ENCANTADO from VENDA) should be protected
+        const existingProfessional = professionals.find(p => p.id === professionalId);
+        
+        if (existingProfessional && selectedActionType) {
+          const shouldUpdate = shouldUpdateProfessionalCategory(
+            existingProfessional,
+            selectedActionType,
+            professionalCategories,
+            actionTypes,
+            form.date
+          );
+
+          if (shouldUpdate) {
+            // Update existing professional with new category based on action
+            updateProfessional(professionalId, {
+              lastActionDate: form.date,
+              lastActionTypeId: selectedActionType?.id,
+              categoryId: targetCategory?.id,
+            });
+          }
+          // If shouldUpdate is false, we keep the existing higher-rank category
+        }
       }
 
       const points = selectedActionType?.programPoints || 0;
