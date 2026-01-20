@@ -1,11 +1,12 @@
-import { useState } from 'react';
-import { Plus, Search, Folder, Edit2, Trash2, Calendar, DollarSign, User, ArrowRight } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Search, Folder, Edit2, Trash2, Calendar, DollarSign, User, ArrowRight, XCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { useProjects, useCreateProject, useUpdateProject, useDeleteProject, PROJECT_STAGES, Project } from '@/hooks/useProjects';
-import { useClients } from '@/hooks/useClients';
+import { useProjects, useUpdateProject, useDeleteProject, PROJECT_STAGES, Project } from '@/hooks/useProjects';
+import { useClients, useUpdateClient } from '@/hooks/useClients';
 import { useProfessionals, useTeamMembers } from '@/hooks/useDatabase';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ProjectFormData {
   name: string;
@@ -35,9 +36,15 @@ const emptyForm: ProjectFormData = {
   responsible_id: '',
 };
 
+// Filter stages for display (exclude closed_won and closed_lost for kanban - they appear in Contratos)
+const ACTIVE_STAGES = PROJECT_STAGES.filter(s => s.id !== 'closed_won' && s.id !== 'closed_lost');
+
 export default function ProjetosTab() {
   const [showModal, setShowModal] = useState(false);
+  const [showLostModal, setShowLostModal] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [projectToLose, setProjectToLose] = useState<Project | null>(null);
+  const [lostReason, setLostReason] = useState('');
   const [form, setForm] = useState<ProjectFormData>(emptyForm);
   const [searchTerm, setSearchTerm] = useState('');
   const [stageFilter, setStageFilter] = useState('all');
@@ -47,29 +54,33 @@ export default function ProjetosTab() {
   const { data: clients = [] } = useClients();
   const { data: professionals = [] } = useProfessionals();
   const { data: teamMembers = [] } = useTeamMembers();
-  const createProject = useCreateProject();
   const updateProject = useUpdateProject();
   const deleteProject = useDeleteProject();
+  const updateClient = useUpdateClient();
 
   const activeTeamMembers = teamMembers.filter(m => m.active);
 
-  const filteredProjects = projects.filter(project => {
-    const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      project.clients?.name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStage = stageFilter === 'all' || project.stage === stageFilter;
-    return matchesSearch && matchesStage;
-  });
+  // Filter only active projects (not closed)
+  const activeProjects = useMemo(() => {
+    return projects.filter(p => p.stage !== 'closed_won' && p.stage !== 'closed_lost');
+  }, [projects]);
 
-  const projectsByStage = PROJECT_STAGES.reduce((acc, stage) => {
-    acc[stage.id] = filteredProjects.filter(p => p.stage === stage.id);
-    return acc;
-  }, {} as Record<string, Project[]>);
+  const filteredProjects = useMemo(() => {
+    return activeProjects.filter(project => {
+      const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        project.clients?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        project.focco_project_number?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStage = stageFilter === 'all' || project.stage === stageFilter;
+      return matchesSearch && matchesStage;
+    });
+  }, [activeProjects, searchTerm, stageFilter]);
 
-  const handleOpenNew = () => {
-    setForm(emptyForm);
-    setEditingProject(null);
-    setShowModal(true);
-  };
+  const projectsByStage = useMemo(() => {
+    return ACTIVE_STAGES.reduce((acc, stage) => {
+      acc[stage.id] = filteredProjects.filter(p => p.stage === stage.id);
+      return acc;
+    }, {} as Record<string, Project[]>);
+  }, [filteredProjects]);
 
   const handleEdit = (project: Project) => {
     setForm({
@@ -113,9 +124,6 @@ export default function ProjetosTab() {
       if (editingProject) {
         await updateProject.mutateAsync({ id: editingProject.id, ...projectData });
         toast.success('Projeto atualizado com sucesso');
-      } else {
-        await createProject.mutateAsync(projectData);
-        toast.success('Projeto criado com sucesso');
       }
       setShowModal(false);
       setForm(emptyForm);
@@ -134,6 +142,45 @@ export default function ProjetosTab() {
       } catch (error) {
         toast.error('Erro ao excluir projeto');
       }
+    }
+  };
+
+  // Mark project as lost
+  const handleOpenLostModal = (project: Project) => {
+    setProjectToLose(project);
+    setLostReason('');
+    setShowLostModal(true);
+  };
+
+  const handleMarkAsLost = async () => {
+    if (!projectToLose) return;
+
+    try {
+      // Update project stage to closed_lost
+      await updateProject.mutateAsync({
+        id: projectToLose.id,
+        stage: 'closed_lost',
+        closed_date: new Date().toISOString().split('T')[0],
+        notes: projectToLose.notes 
+          ? `${projectToLose.notes}\n\nMotivo da perda: ${lostReason}`
+          : `Motivo da perda: ${lostReason}`,
+      });
+
+      // Update client status to lost if exists
+      if (projectToLose.client_id) {
+        await updateClient.mutateAsync({
+          id: projectToLose.client_id,
+          status: 'lost',
+        });
+      }
+
+      toast.success('Projeto marcado como perdido');
+      setShowLostModal(false);
+      setProjectToLose(null);
+      setLostReason('');
+    } catch (error) {
+      console.error('Error marking project as lost:', error);
+      toast.error('Erro ao marcar projeto como perdido');
     }
   };
 
@@ -162,8 +209,8 @@ export default function ProjetosTab() {
   };
 
   const getStageTotals = () => {
-    return PROJECT_STAGES.map(stage => {
-      const stageProjects = projects.filter(p => p.stage === stage.id);
+    return ACTIVE_STAGES.map(stage => {
+      const stageProjects = activeProjects.filter(p => p.stage === stage.id);
       const total = stageProjects.reduce((sum, p) => sum + (p.estimated_value || 0), 0);
       return { ...stage, count: stageProjects.length, total };
     });
@@ -205,12 +252,12 @@ export default function ProjetosTab() {
         </div>
         {/* Info: Projects are created automatically from action registration */}
         <div className="text-xs text-muted-foreground bg-muted/50 px-3 py-2 border border-border max-w-xs">
-          <span className="font-medium">Projetos são criados automaticamente</span> ao registrar ações do tipo "Apresentação de Projeto" com nº FOCCO.
+          <span className="font-medium">Projetos são criados automaticamente</span> ao registrar ações "Apresentação de Projeto" com nº FOCCO.
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {getStageTotals().map(stage => (
           <div key={stage.id} className={`border border-border p-3 ${stage.color}`}>
             <p className="text-lg font-bold">{stage.count}</p>
@@ -222,8 +269,8 @@ export default function ProjetosTab() {
 
       {/* Kanban View */}
       {viewMode === 'kanban' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 overflow-x-auto">
-          {PROJECT_STAGES.map(stage => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 overflow-x-auto">
+          {ACTIVE_STAGES.map(stage => (
             <div key={stage.id} className="min-w-[250px]">
               <div className={`p-2 mb-2 ${stage.color} border border-border`}>
                 <h3 className="text-xs font-semibold uppercase tracking-wider">{stage.name}</h3>
@@ -238,12 +285,21 @@ export default function ProjetosTab() {
                         <button
                           onClick={() => handleEdit(project)}
                           className="p-1 hover:bg-muted rounded"
+                          title="Editar"
                         >
                           <Edit2 className="w-3 h-3" />
                         </button>
                         <button
+                          onClick={() => handleOpenLostModal(project)}
+                          className="p-1 hover:bg-red-500/20 rounded text-red-600"
+                          title="Marcar como Perdido"
+                        >
+                          <XCircle className="w-3 h-3" />
+                        </button>
+                        <button
                           onClick={() => handleDelete(project.id)}
                           className="p-1 hover:bg-destructive/20 rounded text-destructive"
+                          title="Excluir"
                         >
                           <Trash2 className="w-3 h-3" />
                         </button>
@@ -271,9 +327,9 @@ export default function ProjetosTab() {
                     )}
                     
                     {/* Move buttons */}
-                    <div className="flex gap-1 mt-2 pt-2 border-t border-border">
-                      {PROJECT_STAGES.map((targetStage, idx) => {
-                        const currentIdx = PROJECT_STAGES.findIndex(s => s.id === project.stage);
+                    <div className="flex gap-1 mt-2 pt-2 border-t border-border flex-wrap">
+                      {ACTIVE_STAGES.map((targetStage, idx) => {
+                        const currentIdx = ACTIVE_STAGES.findIndex(s => s.id === project.stage);
                         if (idx === currentIdx) return null;
                         if (Math.abs(idx - currentIdx) > 1) return null;
                         
@@ -305,7 +361,8 @@ export default function ProjetosTab() {
               <tr>
                 <th className="text-left p-3 text-xs uppercase tracking-wider">Projeto</th>
                 <th className="text-left p-3 text-xs uppercase tracking-wider">Cliente</th>
-                <th className="text-left p-3 text-xs uppercase tracking-wider">Responsável</th>
+                <th className="text-left p-3 text-xs uppercase tracking-wider">Profissional</th>
+                <th className="text-left p-3 text-xs uppercase tracking-wider">Consultor</th>
                 <th className="text-left p-3 text-xs uppercase tracking-wider">Estágio</th>
                 <th className="text-right p-3 text-xs uppercase tracking-wider">Valor Est.</th>
                 <th className="text-left p-3 text-xs uppercase tracking-wider">Previsão</th>
@@ -316,12 +373,15 @@ export default function ProjetosTab() {
               {filteredProjects.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="p-8 text-center text-muted-foreground">
-                    Nenhum projeto encontrado
+                    Nenhum projeto ativo encontrado
                   </td>
                 </tr>
               ) : (
                 filteredProjects.map(project => {
-                  const stageInfo = PROJECT_STAGES.find(s => s.id === project.stage) || PROJECT_STAGES[0];
+                  const stageInfo = ACTIVE_STAGES.find(s => s.id === project.stage) || ACTIVE_STAGES[0];
+                  const professional = professionals.find(p => p.id === project.professional_id);
+                  const consultant = teamMembers.find(m => m.id === project.responsible_id);
+                  
                   return (
                     <tr key={project.id} className="border-t border-border hover:bg-muted/30">
                       <td className="p-3">
@@ -332,16 +392,12 @@ export default function ProjetosTab() {
                             {project.focco_project_number && (
                               <p className="text-xs text-primary font-mono">FOCCO: {project.focco_project_number}</p>
                             )}
-                            {project.description && (
-                              <p className="text-xs text-muted-foreground truncate max-w-[200px]">
-                                {project.description}
-                              </p>
-                            )}
                           </div>
                         </div>
                       </td>
                       <td className="p-3 text-sm">{project.clients?.name || '-'}</td>
-                      <td className="p-3 text-sm">{project.responsible?.name || '-'}</td>
+                      <td className="p-3 text-sm">{professional?.name || '-'}</td>
+                      <td className="p-3 text-sm">{consultant?.name || '-'}</td>
                       <td className="p-3">
                         <Badge className={`${stageInfo.color} border-0`}>{stageInfo.name}</Badge>
                       </td>
@@ -359,12 +415,21 @@ export default function ProjetosTab() {
                           <button
                             onClick={() => handleEdit(project)}
                             className="p-1.5 hover:bg-muted rounded"
+                            title="Editar"
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
                           <button
+                            onClick={() => handleOpenLostModal(project)}
+                            className="p-1.5 hover:bg-red-500/20 rounded text-red-600"
+                            title="Marcar como Perdido"
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </button>
+                          <button
                             onClick={() => handleDelete(project.id)}
                             className="p-1.5 hover:bg-destructive/20 rounded text-destructive"
+                            title="Excluir"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -379,7 +444,7 @@ export default function ProjetosTab() {
         </div>
       )}
 
-      {/* Edit Modal (only for editing, not creating) */}
+      {/* Edit Modal */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
         <DialogContent className="bg-card text-card-foreground border-border max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -425,7 +490,7 @@ export default function ProjetosTab() {
                 onChange={(e) => setForm({ ...form, professional_id: e.target.value })}
                 className="input-flat w-full"
               >
-                <option value="">Nenhum</option>
+                <option value="">Selecione</option>
                 {professionals.map(p => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
@@ -453,7 +518,7 @@ export default function ProjetosTab() {
                 onChange={(e) => setForm({ ...form, stage: e.target.value })}
                 className="input-flat w-full"
               >
-                {PROJECT_STAGES.map(s => (
+                {ACTIVE_STAGES.map(s => (
                   <option key={s.id} value={s.id}>{s.name}</option>
                 ))}
               </select>
@@ -469,18 +534,6 @@ export default function ProjetosTab() {
               />
             </div>
             
-            {form.stage === 'closed_won' && (
-              <div>
-                <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Valor Fechado (R$)</label>
-                <input
-                  type="number"
-                  value={form.closed_value}
-                  onChange={(e) => setForm({ ...form, closed_value: e.target.value })}
-                  className="input-flat w-full"
-                />
-              </div>
-            )}
-            
             <div>
               <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Data Início</label>
               <input
@@ -492,7 +545,7 @@ export default function ProjetosTab() {
             </div>
             
             <div>
-              <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Previsão Entrega</label>
+              <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Previsão de Entrega</label>
               <input
                 type="date"
                 value={form.expected_delivery}
@@ -500,7 +553,7 @@ export default function ProjetosTab() {
                 className="input-flat w-full"
               />
             </div>
-            
+
             <div className="md:col-span-2">
               <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Observações</label>
               <textarea
@@ -515,6 +568,60 @@ export default function ProjetosTab() {
                 Salvar
               </button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Mark as Lost Modal */}
+      <Dialog open={showLostModal} onOpenChange={setShowLostModal}>
+        <DialogContent className="bg-card text-card-foreground border-border max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <XCircle className="w-5 h-5" />
+              Marcar como Perdido
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="bg-muted/50 p-3 border border-border">
+              <p className="text-sm font-medium">{projectToLose?.name}</p>
+              {projectToLose?.focco_project_number && (
+                <p className="text-xs text-primary font-mono">FOCCO: {projectToLose.focco_project_number}</p>
+              )}
+              {projectToLose?.clients?.name && (
+                <p className="text-xs text-muted-foreground">Cliente: {projectToLose.clients.name}</p>
+              )}
+            </div>
+            
+            <div>
+              <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
+                Motivo da Perda
+              </label>
+              <textarea
+                value={lostReason}
+                onChange={(e) => setLostReason(e.target.value)}
+                className="input-flat w-full h-24 resize-none"
+                placeholder="Descreva o motivo pelo qual o projeto foi perdido..."
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <button 
+                onClick={() => setShowLostModal(false)} 
+                className="flex-1 px-4 py-2 border border-border hover:bg-muted"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={handleMarkAsLost} 
+                className="flex-1 px-4 py-2 bg-red-600 text-white hover:bg-red-700"
+              >
+                Confirmar Perda
+              </button>
+            </div>
+
+            <p className="text-xs text-muted-foreground text-center">
+              O projeto será movido para histórico e o cliente será marcado como perdido.
+            </p>
           </div>
         </DialogContent>
       </Dialog>
