@@ -217,7 +217,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 professional_id: professionalId || null,
                 responsible_id: form.consultantId,
                 client_id: clientId,
-                stage: 'lead',
+                stage: 'em_negociacao',
                 start_date: form.date,
               })
               .select('id')

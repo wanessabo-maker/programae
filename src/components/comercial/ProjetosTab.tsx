@@ -25,7 +25,7 @@ interface ProjectFormData {
 const emptyForm: ProjectFormData = {
   name: '',
   description: '',
-  stage: 'lead',
+  stage: 'em_negociacao',
   estimated_value: '',
   closed_value: '',
   start_date: '',
@@ -36,8 +36,8 @@ const emptyForm: ProjectFormData = {
   responsible_id: '',
 };
 
-// Filter stages for display (exclude closed_won and closed_lost for kanban - they appear in Contratos)
-const ACTIVE_STAGES = PROJECT_STAGES.filter(s => s.id !== 'closed_won' && s.id !== 'closed_lost');
+// Filter stages for display - only "Em negociação" and "Perdidos" (closed_won goes to Contratos)
+const ACTIVE_STAGES = PROJECT_STAGES.filter(s => s.id === 'em_negociacao' || s.id === 'closed_lost');
 
 export default function ProjetosTab() {
   const [showModal, setShowModal] = useState(false);
@@ -60,9 +60,9 @@ export default function ProjetosTab() {
 
   const activeTeamMembers = teamMembers.filter(m => m.active);
 
-  // Filter only active projects (not closed)
+  // Filter only projects for this tab (Em negociação and Perdidos)
   const activeProjects = useMemo(() => {
-    return projects.filter(p => p.stage !== 'closed_won' && p.stage !== 'closed_lost');
+    return projects.filter(p => p.stage === 'em_negociacao' || p.stage === 'closed_lost');
   }, [projects]);
 
   const filteredProjects = useMemo(() => {
@@ -269,7 +269,7 @@ export default function ProjetosTab() {
 
       {/* Kanban View */}
       {viewMode === 'kanban' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 overflow-x-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-x-auto">
           {ACTIVE_STAGES.map(stage => (
             <div key={stage.id} className="min-w-[250px]">
               <div className={`p-2 mb-2 ${stage.color} border border-border`}>
