@@ -150,6 +150,7 @@ function transformActionType(dbType: {
 function transformGoal(dbGoal: { 
   id: string; 
   area_id: string | null; 
+  team_member_id?: string | null;
   metric: string; 
   value: number; 
   category_id?: string | null;
@@ -161,6 +162,7 @@ function transformGoal(dbGoal: {
   return {
     id: dbGoal.id,
     areaId: dbGoal.area_id || '',
+    teamMemberId: dbGoal.team_member_id || undefined,
     type: dbGoal.metric as Meta['type'],
     value: Number(dbGoal.value),
     categoryId: dbGoal.category_id || undefined,
@@ -438,6 +440,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const addMeta = useCallback((meta: Omit<Meta, 'id'>) => {
     createGoal.mutate({
       area_id: meta.areaId,
+      team_member_id: meta.teamMemberId,
       metric: meta.type,
       value: meta.value,
       category_id: meta.categoryId,
@@ -452,6 +455,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     updateGoalMutation.mutate({
       id,
       area_id: meta.areaId,
+      team_member_id: meta.teamMemberId,
       metric: meta.type,
       value: meta.value,
       category_id: meta.categoryId,

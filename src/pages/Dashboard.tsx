@@ -121,11 +121,11 @@ export default function Dashboard() {
           return 0;
         });
 
-      // Get all ACTIVE metas for this area
-      const areaMetas = activeMetas.filter(m => m.areaId === member.areaId);
-      const areaMembers = activeMembers.filter(m => m.areaId === member.areaId).length;
+      // Get all ACTIVE metas for this member (individual goals) or area fallback
+      const memberMetas = activeMetas.filter(m => m.teamMemberId === member.id);
+      const areaMetas = memberMetas.length > 0 ? memberMetas : activeMetas.filter(m => m.areaId === member.areaId && !m.teamMemberId);
       
-      // Build metrics only for goals that exist in this area
+      // Build metrics only for goals that exist for this member
       const metricsForArea: Array<{
         type: string;
         label: string;
@@ -138,9 +138,10 @@ export default function Dashboard() {
         order?: number;
       }> = [];
 
-      // Build metrics only for goals that exist in this area AND have value > 1
+      // Build metrics only for goals that exist AND have value > 1
+      // Use individual meta value directly (no division by team members)
       areaMetas.filter(meta => meta.value > 1).forEach(meta => {
-        const individualMeta = areaMembers > 0 ? meta.value / areaMembers : 0;
+        const individualMeta = meta.value; // Direct value - no more division
         
         if (meta.type === 'vendas') {
           metricsForArea.push({

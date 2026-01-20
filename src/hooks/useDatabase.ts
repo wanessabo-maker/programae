@@ -278,7 +278,7 @@ export function useGoals() {
   return useQuery({
     queryKey: ['goals'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('goals').select('*, areas(name)');
+      const { data, error } = await supabase.from('goals').select('*, areas(name), team_members(name)');
       if (error) throw error;
       return data;
     },
@@ -290,6 +290,7 @@ export function useCreateGoal() {
   return useMutation({
     mutationFn: async (goal: { 
       area_id: string; 
+      team_member_id?: string;
       metric: string; 
       value: number; 
       category_id?: string;
@@ -315,6 +316,7 @@ export function useUpdateGoal() {
     mutationFn: async ({ id, ...updates }: { 
       id: string; 
       area_id?: string; 
+      team_member_id?: string;
       metric?: string; 
       value?: number; 
       category_id?: string;
