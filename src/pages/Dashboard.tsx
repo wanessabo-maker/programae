@@ -99,10 +99,27 @@ export default function Dashboard() {
 
       // Get member's professionals by category
       const memberProfessionals = professionals.filter(p => p.consultantId === member.id);
-      const categoryBreakdown = professionalCategories.map(cat => ({
-        name: cat.name,
-        count: memberProfessionals.filter(p => p.categoryId === cat.id).length,
-      }));
+      
+      // Define the order for categories (ENCANTADO, CURIOSO, DISTANTE)
+      const categoryOrder = ['ENCANTADO', 'CURIOSO', 'DISTANTE'];
+      
+      const categoryBreakdown = professionalCategories
+        .map(cat => ({
+          name: cat.name,
+          count: memberProfessionals.filter(p => p.categoryId === cat.id).length,
+        }))
+        .sort((a, b) => {
+          const aIndex = categoryOrder.indexOf(a.name.toUpperCase());
+          const bIndex = categoryOrder.indexOf(b.name.toUpperCase());
+          // If both are in the order list, sort by their position
+          if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+          // If only a is in the list, it comes first
+          if (aIndex !== -1) return -1;
+          // If only b is in the list, it comes first
+          if (bIndex !== -1) return 1;
+          // Otherwise, keep original order
+          return 0;
+        });
 
       // Get all ACTIVE metas for this area
       const areaMetas = activeMetas.filter(m => m.areaId === member.areaId);
@@ -469,28 +486,52 @@ export default function Dashboard() {
                             <div className="space-y-2">
                               {consultant.metricsForArea.filter(m => !m.isPrimary).map((metric) => (
                                 <div key={metric.type}>
-                                  <div className="flex justify-between items-baseline text-xs">
-                                    <span className="text-muted-foreground">{metric.label}</span>
-                                    <span className="text-muted-foreground">
-                                      {metric.isCurrency 
-                                        ? formatCurrency(metric.value as number) 
-                                        : metric.value}
-                                      <span className="ml-2 opacity-70">
-                                        ({metric.percentage.toFixed(0)}%)
-                                      </span>
-                                    </span>
-                                  </div>
-                                  <div className="h-0.5 bg-muted mt-1">
-                                    <div 
-                                      className="h-full bg-muted-foreground/50" 
-                                      style={{ width: `${Math.min(metric.percentage, 100)}%` }}
-                                    />
-                                  </div>
-                                  <div className="text-[10px] text-muted-foreground mt-0.5">
-                                    Meta: {metric.isCurrency 
-                                      ? formatCurrency(metric.meta) 
-                                      : Math.round(metric.meta)}
-                                  </div>
+                                  {metric.isCategory ? (
+                                    // Category metrics: show category name, meta below, current % in bar
+                                    <>
+                                      <div className="flex flex-col gap-0.5">
+                                        <span className="text-xs text-muted-foreground">{metric.label}</span>
+                                        <span className="text-[10px] text-muted-foreground">
+                                          Meta: {Math.round(metric.meta)}%
+                                        </span>
+                                      </div>
+                                      <div className="h-1 bg-muted mt-1 relative">
+                                        <div 
+                                          className="h-full bg-muted-foreground/50" 
+                                          style={{ width: `${Math.min(metric.percentage, 100)}%` }}
+                                        />
+                                      </div>
+                                      <div className="text-xs font-medium text-foreground mt-0.5">
+                                        {metric.value}
+                                      </div>
+                                    </>
+                                  ) : (
+                                    // Non-category secondary metrics (Projetos, etc)
+                                    <>
+                                      <div className="flex justify-between items-baseline text-xs">
+                                        <span className="text-muted-foreground">{metric.label}</span>
+                                        <span className="text-muted-foreground">
+                                          {metric.isCurrency 
+                                            ? formatCurrency(metric.value as number) 
+                                            : metric.value}
+                                          <span className="ml-2 opacity-70">
+                                            ({metric.percentage.toFixed(0)}%)
+                                          </span>
+                                        </span>
+                                      </div>
+                                      <div className="h-0.5 bg-muted mt-1">
+                                        <div 
+                                          className="h-full bg-muted-foreground/50" 
+                                          style={{ width: `${Math.min(metric.percentage, 100)}%` }}
+                                        />
+                                      </div>
+                                      <div className="text-[10px] text-muted-foreground mt-0.5">
+                                        Meta: {metric.isCurrency 
+                                          ? formatCurrency(metric.meta) 
+                                          : Math.round(metric.meta)}
+                                      </div>
+                                    </>
+                                  )}
                                 </div>
                               ))}
                             </div>
