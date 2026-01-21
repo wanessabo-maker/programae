@@ -13,10 +13,12 @@ import { ptBR } from 'date-fns/locale';
 import { Action } from '@/types';
 
 export default function Dashboard() {
+  // State hooks first
   const [showActionModal, setShowActionModal] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
   const [editingAction, setEditingAction] = useState<Action | null>(null);
-  const { data: currentTeamMember } = useCurrentTeamMember();
+  
+  // Context hooks
   const { isAdmin } = useAuthContext();
   const { 
     actions, 
@@ -28,6 +30,9 @@ export default function Dashboard() {
     professionalCategories,
     deleteAction 
   } = useApp();
+  
+  // Query hooks (that depend on context)
+  const { data: currentTeamMember } = useCurrentTeamMember();
 
   const activeMembers = teamMembers.filter(m => m.active);
 
