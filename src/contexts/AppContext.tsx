@@ -689,6 +689,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       expires_at: updates.expiresAt,
       status: updates.status,
       description: updates.description,
+      consultant_id: updates.consultantId,
+      points: updates.amount,
+      transaction_date: updates.date,
     });
   }, [updateCreditTransactionMutation]);
 

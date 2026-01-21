@@ -1,17 +1,22 @@
 import { useState, useMemo } from 'react';
-import { Plus, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, Pencil, ChevronDown, ChevronRight } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useCurrentTeamMember } from '@/hooks/useCurrentTeamMember';
 import { MetricCard } from '@/components/MetricCard';
 import { ActionModal } from '@/components/ActionModal';
+import { EditActionModal } from '@/components/EditActionModal';
 import { YearlyResultsBoard } from '@/components/YearlyResultsBoard';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { format, parseISO, isThisMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Action } from '@/types';
 
 export default function Dashboard() {
   const [showActionModal, setShowActionModal] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
+  const [editingAction, setEditingAction] = useState<Action | null>(null);
+  const { data: currentTeamMember } = useCurrentTeamMember();
   const { isAdmin } = useAuthContext();
   const { 
     actions, 
@@ -273,6 +278,11 @@ export default function Dashboard() {
       });
   }, [actions, teamMembers, professionals, actionTypes]);
 
+  // Check if current user can edit an action (is creator or admin)
+  const canEditAction = (action: Action) => {
+    return isAdmin || (currentTeamMember?.id && action.consultantId === currentTeamMember.id);
+  };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
   };
@@ -366,12 +376,24 @@ export default function Dashboard() {
                           <td className="p-3 text-sm">{action.value ? formatCurrency(action.value) : '-'}</td>
                           <td className="p-3 text-sm">{action.pointsGenerated}</td>
                           <td className="p-3 text-right">
-                            <button
-                              onClick={() => deleteAction(action.id)}
-                              className="p-2 opacity-40 hover:opacity-100 text-destructive"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            <div className="flex items-center justify-end gap-1">
+                              {canEditAction(action) && (
+                                <button
+                                  onClick={() => setEditingAction(action)}
+                                  className="p-2 opacity-40 hover:opacity-100 text-primary"
+                                  title="Editar ação"
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </button>
+                              )}
+                              <button
+                                onClick={() => deleteAction(action.id)}
+                                className="p-2 opacity-40 hover:opacity-100 text-destructive"
+                                title="Excluir ação"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -388,11 +410,21 @@ export default function Dashboard() {
                           <p className="text-sm font-medium">{action.professionalName}</p>
                           <p className="text-xs text-muted-foreground">{action.consultantName}</p>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground">{format(parseISO(action.date), 'dd/MM')}</span>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-muted-foreground mr-2">{format(parseISO(action.date), 'dd/MM')}</span>
+                          {canEditAction(action) && (
+                            <button
+                              onClick={() => setEditingAction(action)}
+                              className="p-1 opacity-40 hover:opacity-100 text-primary"
+                              title="Editar ação"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                          )}
                           <button
                             onClick={() => deleteAction(action.id)}
                             className="p-1 opacity-40 hover:opacity-100 text-destructive"
+                            title="Excluir ação"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -561,6 +593,11 @@ export default function Dashboard() {
       </section>
 
       <ActionModal open={showActionModal} onOpenChange={setShowActionModal} />
+      <EditActionModal 
+        open={!!editingAction} 
+        onOpenChange={(open) => !open && setEditingAction(null)} 
+        action={editingAction}
+      />
     </div>
   );
 }
