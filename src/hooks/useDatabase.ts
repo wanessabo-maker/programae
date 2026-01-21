@@ -663,6 +663,9 @@ export function useUpdateCreditTransaction() {
       expires_at?: string;
       status?: string;
       description?: string;
+      consultant_id?: string;
+      points?: number;
+      transaction_date?: string;
     }) => {
       const { data, error } = await supabase.from('credit_transactions').update(updates).eq('id', id).select().single();
       if (error) throw error;
