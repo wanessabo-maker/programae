@@ -285,7 +285,11 @@ export default function Dashboard() {
 
   // Check if current user can edit an action (is creator or admin)
   const canEditAction = (action: Action) => {
-    return isAdmin || (currentTeamMember?.id && action.consultantId === currentTeamMember.id);
+    // Admins can always edit
+    if (isAdmin) return true;
+    // Creator can edit their own actions
+    if (currentTeamMember?.id && action.consultantId === currentTeamMember.id) return true;
+    return false;
   };
 
   const formatCurrency = (value: number) => {
