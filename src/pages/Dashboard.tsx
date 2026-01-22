@@ -389,7 +389,7 @@ export default function Dashboard() {
                               {canEditAction(action) && (
                                 <button
                                   onClick={() => setEditingAction(action)}
-                                  className="p-2 opacity-40 hover:opacity-100 text-primary"
+                                   className="p-2 text-primary"
                                   title="Editar ação"
                                 >
                                   <Pencil className="w-4 h-4" />
@@ -424,7 +424,7 @@ export default function Dashboard() {
                           {canEditAction(action) && (
                             <button
                               onClick={() => setEditingAction(action)}
-                              className="p-1 opacity-40 hover:opacity-100 text-primary"
+                              className="p-1 text-primary"
                               title="Editar ação"
                             >
                               <Pencil className="w-4 h-4" />
