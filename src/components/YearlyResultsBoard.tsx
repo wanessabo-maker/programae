@@ -37,9 +37,9 @@ export function YearlyResultsBoard() {
         data[monthIndex].contratosFechados += 1;
       }
 
-      // Projetos Captados (impacts includes 'projeto')
+      // Projetos Captados (impacts includes 'projeto') - usa soma de valores igual ao Dashboard
       if (actionType?.impactsMetas.includes('projeto')) {
-        data[monthIndex].projetosCaptados += 1;
+        data[monthIndex].projetosCaptados += action.value || 0;
       }
 
       // Ações com Especificador (tem profissional vinculado)
