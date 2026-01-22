@@ -5,9 +5,10 @@ import { parseISO, getMonth, getYear } from 'date-fns';
 const MONTH_LABELS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
 interface MonthlyData {
-  sales: number;
-  actions: number;
-  projects: number;
+  valorVendido: number;
+  contratosFechados: number;
+  projetosCaptados: number;
+  acoesComEspecificador: number;
 }
 
 export function YearlyResultsBoard() {
@@ -17,9 +18,10 @@ export function YearlyResultsBoard() {
 
   const monthlyData = useMemo(() => {
     const data: MonthlyData[] = Array.from({ length: 12 }, () => ({
-      sales: 0,
-      actions: 0,
-      projects: 0,
+      valorVendido: 0,
+      contratosFechados: 0,
+      projetosCaptados: 0,
+      acoesComEspecificador: 0,
     }));
 
     actions.forEach(action => {
@@ -29,17 +31,20 @@ export function YearlyResultsBoard() {
       const monthIndex = getMonth(actionDate);
       const actionType = actionTypes.find(t => t.id === action.actionTypeId);
 
-      // Count action
-      data[monthIndex].actions += 1;
-
-      // Sales value (classification === 'venda')
+      // Valor Vendido e Contratos Fechados (classification === 'venda')
       if (actionType?.classification === 'venda') {
-        data[monthIndex].sales += action.value || 0;
+        data[monthIndex].valorVendido += action.value || 0;
+        data[monthIndex].contratosFechados += 1;
       }
 
-      // Projects (impacts includes 'projeto')
+      // Projetos Captados (impacts includes 'projeto')
       if (actionType?.impactsMetas.includes('projeto')) {
-        data[monthIndex].projects += action.value || 1;
+        data[monthIndex].projetosCaptados += 1;
+      }
+
+      // Ações com Especificador (tem profissional vinculado)
+      if (action.professionalId) {
+        data[monthIndex].acoesComEspecificador += 1;
       }
     });
 
@@ -49,13 +54,19 @@ export function YearlyResultsBoard() {
   const totals = useMemo(() => {
     return monthlyData.reduce(
       (acc, month) => ({
-        sales: acc.sales + month.sales,
-        actions: acc.actions + month.actions,
-        projects: acc.projects + month.projects,
+        valorVendido: acc.valorVendido + month.valorVendido,
+        contratosFechados: acc.contratosFechados + month.contratosFechados,
+        projetosCaptados: acc.projetosCaptados + month.projetosCaptados,
+        acoesComEspecificador: acc.acoesComEspecificador + month.acoesComEspecificador,
       }),
-      { sales: 0, actions: 0, projects: 0 }
+      { valorVendido: 0, contratosFechados: 0, projetosCaptados: 0, acoesComEspecificador: 0 }
     );
   }, [monthlyData]);
+
+  const calcTicketMedio = (valorVendido: number, contratos: number) => {
+    if (contratos === 0) return 0;
+    return valorVendido / contratos;
+  };
 
   const formatCurrency = (value: number) => {
     if (value >= 1000000) {
@@ -95,52 +106,72 @@ export function YearlyResultsBoard() {
             </tr>
           </thead>
           <tbody>
-            {/* Sales Row */}
+            {/* Valor Vendido Row */}
             <tr className="border-b border-black/10">
-              <td className="p-3 text-sm font-medium">Vendas (R$)</td>
+              <td className="p-3 text-sm font-medium">Valor Vendido</td>
               {monthlyData.map((data, idx) => (
                 <td 
                   key={idx} 
                   className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/10 font-medium' : ''} ${idx > currentMonth ? 'text-muted-foreground/50' : ''}`}
-                  title={formatFullCurrency(data.sales)}
+                  title={formatFullCurrency(data.valorVendido)}
                 >
-                  {data.sales > 0 ? formatCurrency(data.sales) : '-'}
+                  {data.valorVendido > 0 ? formatCurrency(data.valorVendido) : '-'}
                 </td>
               ))}
-              <td className="p-2 text-center text-sm font-bold bg-muted" title={formatFullCurrency(totals.sales)}>
-                {formatCurrency(totals.sales)}
+              <td className="p-2 text-center text-sm font-bold bg-muted" title={formatFullCurrency(totals.valorVendido)}>
+                {formatCurrency(totals.valorVendido)}
               </td>
             </tr>
 
-            {/* Actions Row */}
+            {/* Ticket Médio Row */}
             <tr className="border-b border-black/10">
-              <td className="p-3 text-sm font-medium">Ações (qtd)</td>
+              <td className="p-3 text-sm font-medium">Ticket Médio</td>
+              {monthlyData.map((data, idx) => {
+                const ticketMedio = calcTicketMedio(data.valorVendido, data.contratosFechados);
+                return (
+                  <td 
+                    key={idx} 
+                    className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/10 font-medium' : ''} ${idx > currentMonth ? 'text-muted-foreground/50' : ''}`}
+                    title={ticketMedio > 0 ? formatFullCurrency(ticketMedio) : undefined}
+                  >
+                    {ticketMedio > 0 ? formatCurrency(ticketMedio) : '-'}
+                  </td>
+                );
+              })}
+              <td className="p-2 text-center text-sm font-bold bg-muted" title={totals.contratosFechados > 0 ? formatFullCurrency(calcTicketMedio(totals.valorVendido, totals.contratosFechados)) : undefined}>
+                {totals.contratosFechados > 0 ? formatCurrency(calcTicketMedio(totals.valorVendido, totals.contratosFechados)) : '-'}
+              </td>
+            </tr>
+
+            {/* Projetos Captados Row */}
+            <tr className="border-b border-black/10">
+              <td className="p-3 text-sm font-medium">Projetos Captados</td>
               {monthlyData.map((data, idx) => (
                 <td 
                   key={idx} 
                   className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/10 font-medium' : ''} ${idx > currentMonth ? 'text-muted-foreground/50' : ''}`}
                 >
-                  {data.actions > 0 ? data.actions : '-'}
+                  {data.projetosCaptados > 0 ? data.projetosCaptados : '-'}
                 </td>
               ))}
               <td className="p-2 text-center text-sm font-bold bg-muted">
-                {totals.actions}
+                {totals.projetosCaptados}
               </td>
             </tr>
 
-            {/* Projects Row */}
+            {/* Ações com Especificador Row */}
             <tr className="border-b border-black/10 last:border-0">
-              <td className="p-3 text-sm font-medium">Projetos (qtd)</td>
+              <td className="p-3 text-sm font-medium">Ações c/ Especificador</td>
               {monthlyData.map((data, idx) => (
                 <td 
                   key={idx} 
                   className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/10 font-medium' : ''} ${idx > currentMonth ? 'text-muted-foreground/50' : ''}`}
                 >
-                  {data.projects > 0 ? data.projects : '-'}
+                  {data.acoesComEspecificador > 0 ? data.acoesComEspecificador : '-'}
                 </td>
               ))}
               <td className="p-2 text-center text-sm font-bold bg-muted">
-                {totals.projects}
+                {totals.acoesComEspecificador}
               </td>
             </tr>
           </tbody>
@@ -165,26 +196,37 @@ export function YearlyResultsBoard() {
           </thead>
           <tbody>
             <tr className="border-b border-black/10">
-              <td className="p-3 text-sm font-medium">Vendas</td>
+              <td className="p-3 text-sm font-medium">Valor Vendido</td>
               {monthlyData.slice(0, 6).map((data, idx) => (
                 <td key={idx} className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/10' : ''}`}>
-                  {data.sales > 0 ? formatCurrency(data.sales) : '-'}
+                  {data.valorVendido > 0 ? formatCurrency(data.valorVendido) : '-'}
                 </td>
               ))}
             </tr>
             <tr className="border-b border-black/10">
-              <td className="p-3 text-sm font-medium">Ações</td>
+              <td className="p-3 text-sm font-medium">Ticket Médio</td>
+              {monthlyData.slice(0, 6).map((data, idx) => {
+                const ticketMedio = calcTicketMedio(data.valorVendido, data.contratosFechados);
+                return (
+                  <td key={idx} className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/10' : ''}`}>
+                    {ticketMedio > 0 ? formatCurrency(ticketMedio) : '-'}
+                  </td>
+                );
+              })}
+            </tr>
+            <tr className="border-b border-black/10">
+              <td className="p-3 text-sm font-medium">Proj. Captados</td>
               {monthlyData.slice(0, 6).map((data, idx) => (
                 <td key={idx} className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/10' : ''}`}>
-                  {data.actions > 0 ? data.actions : '-'}
+                  {data.projetosCaptados > 0 ? data.projetosCaptados : '-'}
                 </td>
               ))}
             </tr>
             <tr className="border-b border-black/10">
-              <td className="p-3 text-sm font-medium">Projetos</td>
+              <td className="p-3 text-sm font-medium">Ações c/ Espec.</td>
               {monthlyData.slice(0, 6).map((data, idx) => (
                 <td key={idx} className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/10' : ''}`}>
-                  {data.projects > 0 ? data.projects : '-'}
+                  {data.acoesComEspecificador > 0 ? data.acoesComEspecificador : '-'}
                 </td>
               ))}
             </tr>
@@ -207,31 +249,45 @@ export function YearlyResultsBoard() {
           </thead>
           <tbody>
             <tr className="border-b border-black/10">
-              <td className="p-3 text-sm font-medium">Vendas</td>
+              <td className="p-3 text-sm font-medium">Valor Vendido</td>
               {monthlyData.slice(6).map((data, idx) => (
                 <td key={idx} className={`p-2 text-center text-xs ${(idx + 6) === currentMonth ? 'bg-primary/10' : ''}`}>
-                  {data.sales > 0 ? formatCurrency(data.sales) : '-'}
+                  {data.valorVendido > 0 ? formatCurrency(data.valorVendido) : '-'}
                 </td>
               ))}
-              <td className="p-2 text-center text-sm font-bold bg-muted">{formatCurrency(totals.sales)}</td>
+              <td className="p-2 text-center text-sm font-bold bg-muted">{formatCurrency(totals.valorVendido)}</td>
             </tr>
             <tr className="border-b border-black/10">
-              <td className="p-3 text-sm font-medium">Ações</td>
-              {monthlyData.slice(6).map((data, idx) => (
-                <td key={idx} className={`p-2 text-center text-xs ${(idx + 6) === currentMonth ? 'bg-primary/10' : ''}`}>
-                  {data.actions > 0 ? data.actions : '-'}
-                </td>
-              ))}
-              <td className="p-2 text-center text-sm font-bold bg-muted">{totals.actions}</td>
+              <td className="p-3 text-sm font-medium">Ticket Médio</td>
+              {monthlyData.slice(6).map((data, idx) => {
+                const ticketMedio = calcTicketMedio(data.valorVendido, data.contratosFechados);
+                return (
+                  <td key={idx} className={`p-2 text-center text-xs ${(idx + 6) === currentMonth ? 'bg-primary/10' : ''}`}>
+                    {ticketMedio > 0 ? formatCurrency(ticketMedio) : '-'}
+                  </td>
+                );
+              })}
+              <td className="p-2 text-center text-sm font-bold bg-muted">
+                {totals.contratosFechados > 0 ? formatCurrency(calcTicketMedio(totals.valorVendido, totals.contratosFechados)) : '-'}
+              </td>
             </tr>
             <tr className="border-b border-black/10">
-              <td className="p-3 text-sm font-medium">Projetos</td>
+              <td className="p-3 text-sm font-medium">Proj. Captados</td>
               {monthlyData.slice(6).map((data, idx) => (
                 <td key={idx} className={`p-2 text-center text-xs ${(idx + 6) === currentMonth ? 'bg-primary/10' : ''}`}>
-                  {data.projects > 0 ? data.projects : '-'}
+                  {data.projetosCaptados > 0 ? data.projetosCaptados : '-'}
                 </td>
               ))}
-              <td className="p-2 text-center text-sm font-bold bg-muted">{totals.projects}</td>
+              <td className="p-2 text-center text-sm font-bold bg-muted">{totals.projetosCaptados}</td>
+            </tr>
+            <tr className="border-b border-black/10">
+              <td className="p-3 text-sm font-medium">Ações c/ Espec.</td>
+              {monthlyData.slice(6).map((data, idx) => (
+                <td key={idx} className={`p-2 text-center text-xs ${(idx + 6) === currentMonth ? 'bg-primary/10' : ''}`}>
+                  {data.acoesComEspecificador > 0 ? data.acoesComEspecificador : '-'}
+                </td>
+              ))}
+              <td className="p-2 text-center text-sm font-bold bg-muted">{totals.acoesComEspecificador}</td>
             </tr>
           </tbody>
         </table>
@@ -242,18 +298,24 @@ export function YearlyResultsBoard() {
         {/* Summary Card */}
         <div className="card-flat">
           <h3 className="text-xs tracking-widest uppercase text-muted-foreground mb-3">Acumulado {currentYear}</h3>
-          <div className="grid grid-cols-3 gap-4 text-center">
+          <div className="grid grid-cols-2 gap-4 text-center">
             <div>
-              <p className="text-lg font-bold">{formatCurrency(totals.sales)}</p>
-              <p className="text-xs text-muted-foreground">Vendas</p>
+              <p className="text-lg font-bold">{formatCurrency(totals.valorVendido)}</p>
+              <p className="text-xs text-muted-foreground">Valor Vendido</p>
             </div>
             <div>
-              <p className="text-lg font-bold">{totals.actions}</p>
-              <p className="text-xs text-muted-foreground">Ações</p>
+              <p className="text-lg font-bold">
+                {totals.contratosFechados > 0 ? formatCurrency(calcTicketMedio(totals.valorVendido, totals.contratosFechados)) : '-'}
+              </p>
+              <p className="text-xs text-muted-foreground">Ticket Médio</p>
             </div>
             <div>
-              <p className="text-lg font-bold">{totals.projects}</p>
-              <p className="text-xs text-muted-foreground">Projetos</p>
+              <p className="text-lg font-bold">{totals.projetosCaptados}</p>
+              <p className="text-xs text-muted-foreground">Proj. Captados</p>
+            </div>
+            <div>
+              <p className="text-lg font-bold">{totals.acoesComEspecificador}</p>
+              <p className="text-xs text-muted-foreground">Ações c/ Espec.</p>
             </div>
           </div>
         </div>
@@ -261,9 +323,10 @@ export function YearlyResultsBoard() {
         {/* Monthly Cards - Only months with data or current/past months */}
         <div className="grid grid-cols-2 gap-3">
           {monthlyData.map((data, idx) => {
-            if (idx > currentMonth && data.sales === 0 && data.actions === 0 && data.projects === 0) {
+            if (idx > currentMonth && data.valorVendido === 0 && data.projetosCaptados === 0 && data.acoesComEspecificador === 0) {
               return null;
             }
+            const ticketMedio = calcTicketMedio(data.valorVendido, data.contratosFechados);
             return (
               <div 
                 key={idx} 
@@ -274,16 +337,20 @@ export function YearlyResultsBoard() {
                 </h4>
                 <div className="space-y-1 text-xs">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Vendas</span>
-                    <span>{data.sales > 0 ? formatCurrency(data.sales) : '-'}</span>
+                    <span className="text-muted-foreground">Valor Vendido</span>
+                    <span>{data.valorVendido > 0 ? formatCurrency(data.valorVendido) : '-'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Ações</span>
-                    <span>{data.actions || '-'}</span>
+                    <span className="text-muted-foreground">Ticket Médio</span>
+                    <span>{ticketMedio > 0 ? formatCurrency(ticketMedio) : '-'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Projetos</span>
-                    <span>{data.projects || '-'}</span>
+                    <span className="text-muted-foreground">Proj. Captados</span>
+                    <span>{data.projetosCaptados || '-'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Ações c/ Espec.</span>
+                    <span>{data.acoesComEspecificador || '-'}</span>
                   </div>
                 </div>
               </div>
