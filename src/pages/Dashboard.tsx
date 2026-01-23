@@ -525,7 +525,7 @@ export default function Dashboard() {
 
                         {/* Secondary metrics (Projetos, Categorias) */}
                         {consultant.metricsForArea.filter(m => !m.isPrimary).length > 0 && (
-                          <div className="pt-2 mt-1 border-t border-black/10">
+                          <div className="pt-2 mt-1 border-t border-black/20">
                             <div className="space-y-2">
                               {consultant.metricsForArea.filter(m => !m.isPrimary).map((metric) => (
                                 <div key={metric.type}>
@@ -533,18 +533,18 @@ export default function Dashboard() {
                                     // Category metrics: show category name, meta below, current % in bar
                                     <>
                                       <div className="flex flex-col gap-0.5">
-                                        <span className="text-xs text-muted-foreground">{metric.label}</span>
-                                        <span className="text-[10px] text-muted-foreground">
+                                        <span className="text-xs text-black font-medium">{metric.label}</span>
+                                        <span className="text-[10px] text-black/70">
                                           Meta: {Math.round(metric.meta)}%
                                         </span>
                                       </div>
-                                      <div className="h-1 bg-muted mt-1 relative">
+                                      <div className="h-1 bg-black/20 mt-1 relative">
                                         <div 
-                                          className="h-full bg-muted-foreground/50" 
+                                          className="h-full bg-black/60" 
                                           style={{ width: `${Math.min(metric.percentage, 100)}%` }}
                                         />
                                       </div>
-                                      <div className="text-xs font-medium text-foreground mt-0.5">
+                                      <div className="text-xs font-bold text-black mt-0.5">
                                         {metric.value}
                                       </div>
                                     </>
@@ -552,23 +552,23 @@ export default function Dashboard() {
                                     // Non-category secondary metrics (Projetos, etc)
                                     <>
                                       <div className="flex justify-between items-baseline text-xs">
-                                        <span className="text-muted-foreground">{metric.label}</span>
-                                        <span className="text-muted-foreground">
+                                        <span className="text-black/80 font-medium">{metric.label}</span>
+                                        <span className="text-black">
                                           {metric.isCurrency 
                                             ? formatCurrency(metric.value as number) 
                                             : metric.value}
-                                          <span className="ml-2 opacity-70">
+                                          <span className="ml-2 text-black/70">
                                             ({metric.percentage.toFixed(0)}%)
                                           </span>
                                         </span>
                                       </div>
-                                      <div className="h-0.5 bg-muted mt-1">
+                                      <div className="h-0.5 bg-black/20 mt-1">
                                         <div 
-                                          className="h-full bg-muted-foreground/50" 
+                                          className="h-full bg-black/60" 
                                           style={{ width: `${Math.min(metric.percentage, 100)}%` }}
                                         />
                                       </div>
-                                      <div className="text-[10px] text-muted-foreground mt-0.5">
+                                      <div className="text-[10px] text-black/70 mt-0.5">
                                         Meta: {metric.isCurrency 
                                           ? formatCurrency(metric.meta) 
                                           : Math.round(metric.meta)}
