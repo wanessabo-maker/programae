@@ -7,6 +7,7 @@ interface Project {
   focco_project_number: string;
   name: string;
   client_id: string | null;
+  professional_id: string | null;
   clients?: { name: string } | null;
   professionals?: { name: string } | null;
 }
@@ -36,17 +37,22 @@ export function FoccoProjectSelector({
   const [searchTerm, setSearchTerm] = useState('');
   const [isManualEntry, setIsManualEntry] = useState(false);
 
-  // Fetch all projects in negotiation
+  // Fetch projects in negotiation (optionally filtered by professional)
   useEffect(() => {
     const fetchProjects = async () => {
       setIsLoading(true);
       try {
         let query = supabase
           .from('projects')
-          .select('id, focco_project_number, name, client_id, clients(name), professionals(name)')
+          .select('id, focco_project_number, name, client_id, professional_id, clients(name), professionals(name)')
           .eq('stage', 'em_negociacao')
           .not('focco_project_number', 'is', null)
           .order('created_at', { ascending: false });
+
+        // Filter by professional if provided and valid
+        if (professionalId && professionalId !== 'none' && professionalId !== '') {
+          query = query.eq('professional_id', professionalId);
+        }
 
         const { data, error } = await query;
         
@@ -173,7 +179,9 @@ export function FoccoProjectSelector({
             {filteredProjects.length === 0 && !isNewFoccoNumber ? (
               <div className="p-4 text-center text-sm text-muted-foreground">
                 {projects.length === 0 
-                  ? 'Nenhum projeto em negociação encontrado'
+                  ? professionalId && professionalId !== 'none' && professionalId !== ''
+                    ? 'Nenhum projeto em negociação para este profissional'
+                    : 'Nenhum projeto em negociação encontrado'
                   : 'Nenhum resultado para a busca'
                 }
               </div>
@@ -207,6 +215,9 @@ export function FoccoProjectSelector({
           {/* Summary */}
           <div className="px-3 py-2 border-t border-border bg-muted/30 text-xs text-muted-foreground">
             {projects.length} projeto(s) em negociação
+            {professionalId && professionalId !== 'none' && professionalId !== '' && (
+              <span className="ml-1">(filtrado por profissional)</span>
+            )}
           </div>
         </div>
       )}
