@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
 import { format, differenceInDays, parseISO, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, Check, Clock, AlertCircle, Users, Calendar, Pencil } from 'lucide-react';
+import { Plus, Check, Clock, AlertCircle, Users, Calendar, Pencil, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useApp } from '@/contexts/AppContext';
 import {
@@ -11,6 +12,7 @@ import {
   useCSActions,
   useUpcomingCSActions,
   useUpdateCSAction,
+  useDeleteCSAction,
   useCSContactSchedules,
   useCSActionTypes,
   generateCSActionsForCase,
@@ -29,11 +31,14 @@ export function CSTab() {
   
   const createCaseMutation = useCreateCSCase();
   const updateActionMutation = useUpdateCSAction();
+  const deleteActionMutation = useDeleteCSAction();
 
   const [showNewCaseModal, setShowNewCaseModal] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedAction, setSelectedAction] = useState<typeof csActions[0] | null>(null);
+  const [actionToDelete, setActionToDelete] = useState<typeof csActions[0] | null>(null);
   const [viewTab, setViewTab] = useState<'cases' | 'upcoming' | 'history'>('cases');
 
   // Edit action form
@@ -234,6 +239,25 @@ export function CSTab() {
     }
   };
 
+  const openDeleteDialog = (action: typeof csActions[0]) => {
+    setActionToDelete(action);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteAction = async () => {
+    if (!actionToDelete) return;
+
+    try {
+      await deleteActionMutation.mutateAsync(actionToDelete.id);
+      toast({ title: 'Ocorrência excluída com sucesso' });
+      setShowDeleteDialog(false);
+      setActionToDelete(null);
+    } catch (error) {
+      console.error(error);
+      toast({ title: 'Erro ao excluir ocorrência', variant: 'destructive' });
+    }
+  };
+
   const getDaysUntil = (dateStr: string) => {
     return differenceInDays(parseISO(dateStr), new Date());
   };
@@ -383,6 +407,13 @@ export function CSTab() {
                             >
                               <Pencil className="w-3 h-3" />
                             </button>
+                            <button
+                              onClick={() => openDeleteDialog(csCase.nextAction)}
+                              className="btn-secondary border-destructive/50 text-destructive text-xs px-2 py-1"
+                              title="Excluir"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
                           </div>
                         </div>
                       ) : (
@@ -460,6 +491,13 @@ export function CSTab() {
                         >
                           <Pencil className="w-3 h-3" />
                         </button>
+                        <button
+                          onClick={() => openDeleteDialog(action)}
+                          className="btn-secondary border-destructive/50 text-destructive text-xs px-2 py-1.5"
+                          title="Excluir"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -506,13 +544,22 @@ export function CSTab() {
                       <td className="p-2">{action.action_type_name || action.schedule_name || 'Contato'}</td>
                       <td className="p-2">{action.performed_by_name || 'N/A'}</td>
                       <td className="p-2">
-                        <button
-                          onClick={() => openEditModal(action)}
-                          className="btn-secondary border-border text-xs px-2 py-1"
-                          title="Editar"
-                        >
-                          <Pencil className="w-3 h-3" />
-                        </button>
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => openEditModal(action)}
+                            className="btn-secondary border-border text-xs px-2 py-1"
+                            title="Editar"
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => openDeleteDialog(action)}
+                            className="btn-secondary border-destructive/50 text-destructive text-xs px-2 py-1"
+                            title="Excluir"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -841,6 +888,35 @@ export function CSTab() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta ocorrência?
+              {actionToDelete && (
+                <div className="mt-2 p-3 bg-muted/30 border border-border rounded text-sm">
+                  <p><strong>Tipo:</strong> {actionToDelete.schedule_name || 'Contato CS'}</p>
+                  <p><strong>Contrato:</strong> {actionToDelete.case_contract_number}</p>
+                  <p><strong>Data:</strong> {actionToDelete.scheduled_date ? format(parseISO(actionToDelete.scheduled_date), "dd/MM/yyyy", { locale: ptBR }) : '-'}</p>
+                </div>
+              )}
+              <p className="mt-2 text-destructive">Esta ação não pode ser desfeita.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAction}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
