@@ -195,15 +195,15 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     if (!form.actionTypeId) newErrors.actionTypeId = true;
     if (!form.date) newErrors.date = true;
     
-    // FOCCO number is required for Apresentação de Projeto and Venda
-    if ((isApresentacaoProjeto || isVenda) && !form.foccoProjectNumber.trim()) {
-      newErrors.foccoProjectNumber = true;
-    }
-    
-    // Contract number is required for Venda
-    if (isVenda && !form.contractNumber.trim()) {
-      newErrors.contractNumber = true;
-    }
+    // Validate enabled additional fields - all enabled fields are required
+    const enabledFields = selectedActionType?.enabledFields || [];
+    enabledFields.forEach(field => {
+      const formKey = field as keyof typeof form;
+      const value = form[formKey];
+      if (!value || (typeof value === 'string' && !value.trim())) {
+        newErrors[field] = true;
+      }
+    });
     
     if (isNewProfessional) {
       if (!newProfessional.name) newErrors.professionalName = true;
@@ -332,28 +332,29 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             }
             toast.info(`Ação vinculada ao projeto FOCCO ${foccoNumber} existente`);
           } else {
-            // Create new client if data provided
-            if (form.clientName.trim()) {
-              clientId = await createClientDirect({
-                name: form.clientName.trim(),
-                age: form.clientAge ? Number(form.clientAge) : null,
-                profession: form.clientProfession || null,
-                professional_id: professionalId || null,
-                responsible_id: form.consultantId,
-                status: 'apresentado',
+            // Always create a new client for Apresentação de Projeto (as Lead)
+            const clientNameForLead = form.clientName.trim() || `Lead FOCCO ${foccoNumber}`;
+            clientId = await createClientDirect({
+              name: clientNameForLead,
+              age: form.clientAge ? Number(form.clientAge) : null,
+              profession: form.clientProfession || null,
+              professional_id: professionalId || null,
+              responsible_id: form.consultantId,
+              status: 'apresentado',
+              origin_type: 'apresentacao',
+            });
+            
+            // Update client with additional data
+            if (clientId) {
+              await updateClientData(clientId, {
+                cpf_cnpj: form.clientCpfCnpj.trim() || undefined,
+                phone: form.clientPhone.trim() || undefined,
+                email: form.clientEmail.trim() || undefined,
+                address: form.clientAddress.trim() || undefined,
+                city: form.clientCity.trim() || undefined,
+                state: form.clientState.trim() || undefined,
               });
-              
-              // Update client with additional data
-              if (clientId) {
-                await updateClientData(clientId, {
-                  cpf_cnpj: form.clientCpfCnpj.trim() || undefined,
-                  phone: form.clientPhone.trim() || undefined,
-                  email: form.clientEmail.trim() || undefined,
-                  address: form.clientAddress.trim() || undefined,
-                  city: form.clientCity.trim() || undefined,
-                  state: form.clientState.trim() || undefined,
-                });
-              }
+              toast.success('Lead criado automaticamente na aba Clientes');
             }
             
             // Create new project
@@ -710,7 +711,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             </div>
           )}
 
-          {/* Smart Client Fields - Always available */}
+          {/* Smart Client Fields - Only show enabled fields for this action type */}
           <SmartClientFields
             formData={{
               clientName: form.clientName,
@@ -730,6 +731,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             onBulkUpdate={handleBulkUpdate}
             onClientDataLoaded={handleClientDataLoaded}
             errors={errors}
+            enabledFields={selectedActionType?.enabledFields || []}
             isVenda={isVenda}
             isApresentacao={isApresentacaoProjeto}
           />

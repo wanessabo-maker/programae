@@ -109,6 +109,7 @@ export async function createClientDirect(client: {
   professional_id?: string | null;
   responsible_id?: string | null;
   status?: string;
+  origin_type?: string;
 }): Promise<string | null> {
   const { data, error } = await supabase
     .from('clients')
