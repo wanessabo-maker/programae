@@ -4,6 +4,7 @@ import { fetchClientDataByFocco, fetchClientDataByContract, SmartClientData } fr
 import { ContractSelector } from '@/components/ContractSelector';
 import { AdditionalFieldKey } from '@/types';
 import { useProfessions } from '@/hooks/useProfessions';
+import { useFoccoProjects } from '@/hooks/useFoccoProjects';
 
 interface ClientFormData {
   clientName: string;
@@ -57,6 +58,11 @@ export function SmartClientFields({
   const [showProfessionSuggestions, setShowProfessionSuggestions] = useState(false);
   const [filteredProfessions, setFilteredProfessions] = useState<string[]>([]);
   const professionInputRef = useRef<HTMLInputElement>(null);
+
+  // FOCCO autocomplete state
+  const { foccoProjects } = useFoccoProjects();
+  const [showFoccoSuggestions, setShowFoccoSuggestions] = useState(false);
+  const [filteredFoccoProjects, setFilteredFoccoProjects] = useState<typeof foccoProjects>([]);
 
   // Helper to check if a field is enabled
   const isFieldEnabled = useCallback((field: AdditionalFieldKey) => {
@@ -248,17 +254,96 @@ export function SmartClientFields({
           <div className="grid grid-cols-2 gap-4">
             {/* FOCCO Project Number - show if enabled or if special action type */}
             {(isFieldEnabled('foccoProjectNumber') || isApresentacao || isVenda) && (
-              <div>
+              <div className="relative">
                 <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.foccoProjectNumber ? 'text-destructive' : 'text-muted-foreground'}`}>
                   Nº Projeto FOCCO {(isApresentacao || isVenda) && '*'}
                 </label>
                 <input
                   value={formData.foccoProjectNumber}
-                  onChange={(e) => onFieldChange('foccoProjectNumber', e.target.value)}
-                  onBlur={handleFoccoBlur}
-                  placeholder={isApresentacao || isVenda ? 'Obrigatório' : 'Opcional'}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    onFieldChange('foccoProjectNumber', value);
+                    
+                    // Filter FOCCO projects based on input
+                    if (value.trim()) {
+                      const filtered = foccoProjects.filter(p => 
+                        p.foccoNumber.toLowerCase().includes(value.toLowerCase()) ||
+                        (p.clientName && p.clientName.toLowerCase().includes(value.toLowerCase()))
+                      );
+                      setFilteredFoccoProjects(filtered);
+                      setShowFoccoSuggestions(filtered.length > 0);
+                    } else {
+                      setFilteredFoccoProjects(foccoProjects.slice(0, 10));
+                      setShowFoccoSuggestions(foccoProjects.length > 0);
+                    }
+                  }}
+                  onFocus={() => {
+                    const value = formData.foccoProjectNumber.trim();
+                    if (value) {
+                      const filtered = foccoProjects.filter(p => 
+                        p.foccoNumber.toLowerCase().includes(value.toLowerCase()) ||
+                        (p.clientName && p.clientName.toLowerCase().includes(value.toLowerCase()))
+                      );
+                      setFilteredFoccoProjects(filtered);
+                      setShowFoccoSuggestions(filtered.length > 0);
+                    } else {
+                      setFilteredFoccoProjects(foccoProjects.slice(0, 10));
+                      setShowFoccoSuggestions(foccoProjects.length > 0);
+                    }
+                  }}
+                  onBlur={() => {
+                    // Delay to allow click on suggestion
+                    setTimeout(() => {
+                      setShowFoccoSuggestions(false);
+                      handleFoccoBlur();
+                    }, 200);
+                  }}
+                  placeholder={isApresentacao || isVenda ? 'Digite para buscar...' : 'Opcional'}
                   className={`input-flat w-full text-card-foreground ${errors.foccoProjectNumber ? 'border-destructive ring-1 ring-destructive' : ''}`}
+                  autoComplete="off"
                 />
+                
+                {/* FOCCO Suggestions Dropdown */}
+                {showFoccoSuggestions && filteredFoccoProjects.length > 0 && (
+                  <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg max-h-48 overflow-auto">
+                    {filteredFoccoProjects.slice(0, 10).map((project, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        className="w-full px-3 py-2 text-left hover:bg-accent hover:text-accent-foreground transition-colors"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          onFieldChange('foccoProjectNumber', project.foccoNumber);
+                          setShowFoccoSuggestions(false);
+                          // Trigger data fetch for this FOCCO
+                          lastFoccoRef.current = '';
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-sm">{project.foccoNumber}</span>
+                          <span className={`text-xs px-1.5 py-0.5 rounded ${
+                            project.stage === 'closed_won' 
+                              ? 'bg-green-100 text-green-700' 
+                              : project.stage === 'lost'
+                              ? 'bg-red-100 text-red-700'
+                              : 'bg-blue-100 text-blue-700'
+                          }`}>
+                            {project.stage === 'closed_won' ? 'Vendido' : project.stage === 'lost' ? 'Perdido' : 'Em Negociação'}
+                          </span>
+                        </div>
+                        {project.clientName && (
+                          <span className="text-xs text-muted-foreground block mt-0.5">{project.clientName}</span>
+                        )}
+                      </button>
+                    ))}
+                    {filteredFoccoProjects.length > 10 && (
+                      <div className="px-3 py-2 text-xs text-muted-foreground border-t border-border">
+                        +{filteredFoccoProjects.length - 10} mais...
+                      </div>
+                    )}
+                  </div>
+                )}
+                
                 {errors.foccoProjectNumber && (
                   <span className="text-xs text-destructive mt-1">Campo obrigatório</span>
                 )}
