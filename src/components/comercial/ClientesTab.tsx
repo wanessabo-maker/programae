@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
-import { Search, User, Phone, Mail, Eye, TrendingUp, Users, XCircle, CheckCircle } from 'lucide-react';
+import { Search, User, Phone, Mail, Eye, TrendingUp, Users, XCircle, CheckCircle, Pencil } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { useClients, Client } from '@/hooks/useClients';
+import { useClients, useUpdateClient, Client } from '@/hooks/useClients';
 import { useProjects } from '@/hooks/useProjects';
 import { useApp } from '@/contexts/AppContext';
+import { useToast } from '@/hooks/use-toast';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -22,14 +23,34 @@ const CLIENT_STATUS = [
 ];
 
 export default function ClientesTab() {
+  const { toast } = useToast();
   const [showViewModal, setShowViewModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [viewingClient, setViewingClient] = useState<Client | null>(null);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+
+  // Edit form state
+  const [editForm, setEditForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    cpf_cnpj: '',
+    age: '',
+    profession: '',
+    address: '',
+    city: '',
+    state: '',
+    zip_code: '',
+    notes: '',
+    status: '',
+  });
 
   const { data: clients = [], isLoading } = useClients();
   const { data: projects = [] } = useProjects();
   const { actions, actionTypes, teamMembers, professionals } = useApp();
+  const updateClientMutation = useUpdateClient();
 
   // Get clients linked to projects (from "Apresentação de Projeto" actions)
   const funnelClients = useMemo(() => {
@@ -145,6 +166,54 @@ export default function ClientesTab() {
   const handleView = (client: Client) => {
     setViewingClient(client);
     setShowViewModal(true);
+  };
+
+  const handleEdit = (client: Client) => {
+    setEditingClient(client);
+    setEditForm({
+      name: client.name || '',
+      email: client.email || '',
+      phone: client.phone || '',
+      cpf_cnpj: client.cpf_cnpj || '',
+      age: client.age?.toString() || '',
+      profession: client.profession || '',
+      address: client.address || '',
+      city: client.city || '',
+      state: client.state || '',
+      zip_code: client.zip_code || '',
+      notes: client.notes || '',
+      status: client.status || 'apresentado',
+    });
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingClient) return;
+
+    try {
+      await updateClientMutation.mutateAsync({
+        id: editingClient.id,
+        name: editForm.name.trim(),
+        email: editForm.email.trim() || null,
+        phone: editForm.phone.trim() || null,
+        cpf_cnpj: editForm.cpf_cnpj.trim() || null,
+        age: editForm.age ? parseInt(editForm.age) : null,
+        profession: editForm.profession.trim() || null,
+        address: editForm.address.trim() || null,
+        city: editForm.city.trim() || null,
+        state: editForm.state.trim() || null,
+        zip_code: editForm.zip_code.trim() || null,
+        notes: editForm.notes.trim() || null,
+        status: editForm.status || null,
+      });
+
+      toast({ title: 'Cliente atualizado com sucesso' });
+      setShowEditModal(false);
+      setEditingClient(null);
+    } catch (error) {
+      console.error(error);
+      toast({ title: 'Erro ao atualizar cliente', variant: 'destructive' });
+    }
   };
 
   const getStatusBadge = (status: string | null | undefined) => {
@@ -397,13 +466,20 @@ export default function ClientesTab() {
                       {getStatusBadge(client.status)}
                     </td>
                     <td className="p-3">
-                      <div className="flex justify-center">
+                      <div className="flex justify-center gap-1">
                         <button
                           onClick={() => handleView(client)}
                           className="p-1.5 hover:bg-muted rounded"
                           title="Ver detalhes"
                         >
                           <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleEdit(client)}
+                          className="p-1.5 hover:bg-muted rounded"
+                          title="Editar"
+                        >
+                          <Pencil className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
@@ -514,6 +590,189 @@ export default function ClientesTab() {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Modal */}
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent className="bg-card text-card-foreground border-border max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="w-5 h-5" />
+              Editar Cliente
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Basic Info */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                  Nome *
+                </label>
+                <input
+                  type="text"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  className="input-flat w-full mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                  Status
+                </label>
+                <select
+                  value={editForm.status}
+                  onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                  className="input-flat w-full mt-1"
+                >
+                  <option value="apresentado">Em Negociação</option>
+                  <option value="lost">Perdido</option>
+                  <option value="closed">Vendido</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Contact Info */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                  className="input-flat w-full mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                  Telefone
+                </label>
+                <input
+                  type="text"
+                  value={editForm.phone}
+                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                  className="input-flat w-full mt-1"
+                />
+              </div>
+            </div>
+
+            {/* Personal Info */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                  CPF/CNPJ
+                </label>
+                <input
+                  type="text"
+                  value={editForm.cpf_cnpj}
+                  onChange={(e) => setEditForm({ ...editForm, cpf_cnpj: e.target.value })}
+                  className="input-flat w-full mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                  Idade
+                </label>
+                <input
+                  type="number"
+                  value={editForm.age}
+                  onChange={(e) => setEditForm({ ...editForm, age: e.target.value })}
+                  className="input-flat w-full mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                  Profissão
+                </label>
+                <input
+                  type="text"
+                  value={editForm.profession}
+                  onChange={(e) => setEditForm({ ...editForm, profession: e.target.value })}
+                  className="input-flat w-full mt-1"
+                />
+              </div>
+            </div>
+
+            {/* Address */}
+            <div>
+              <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                Endereço
+              </label>
+              <input
+                type="text"
+                value={editForm.address}
+                onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                className="input-flat w-full mt-1"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                  Cidade
+                </label>
+                <input
+                  type="text"
+                  value={editForm.city}
+                  onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
+                  className="input-flat w-full mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                  Estado
+                </label>
+                <input
+                  type="text"
+                  value={editForm.state}
+                  onChange={(e) => setEditForm({ ...editForm, state: e.target.value })}
+                  className="input-flat w-full mt-1"
+                  maxLength={2}
+                />
+              </div>
+              <div>
+                <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                  CEP
+                </label>
+                <input
+                  type="text"
+                  value={editForm.zip_code}
+                  onChange={(e) => setEditForm({ ...editForm, zip_code: e.target.value })}
+                  className="input-flat w-full mt-1"
+                />
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div>
+              <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                Observações
+              </label>
+              <textarea
+                value={editForm.notes}
+                onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                className="input-flat w-full mt-1 h-20 resize-none"
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={handleSaveEdit}
+              disabled={!editForm.name.trim()}
+              className="btn-primary bg-foreground text-background flex-1 disabled:opacity-50"
+            >
+              Salvar Alterações
+            </button>
+            <button
+              onClick={() => setShowEditModal(false)}
+              className="btn-secondary border-border flex-1"
+            >
+              Cancelar
+            </button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
