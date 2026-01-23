@@ -476,13 +476,10 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
         });
       }
 
-      // AUTOMATION: Create CS case when Assinatura de Certificado de Garantia OR Relacionamento with contract is registered
-      const isRelacionamento = selectedActionType?.classification === 'relacionamento';
-      const shouldTriggerCS = (isSeletiva || isRelacionamento) && form.contractNumber.trim();
-      
-      if (shouldTriggerCS) {
+      // AUTOMATION: Create CS case ONLY when Assinatura de Certificado de Garantia (seletiva) is registered
+      if (isSeletiva && form.contractNumber.trim()) {
         try {
-          // Check if CS case already exists for this contract
+          // Check if CS case already exists for this contract (prevent duplicates)
           const { data: existingCase } = await supabase
             .from('cs_cases')
             .select('id')
@@ -490,11 +487,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             .maybeSingle();
 
           if (!existingCase) {
-            // For relacionamento, we need to fetch client/project data from the contract if not already loaded
-            let clientId: string | null = loadedClientData?.clientId || null;
-            let projectIdForCS: string | null = loadedClientData?.projectId || projectId || null;
-
-            const triggerSource = isSeletiva ? 'Assinatura de Certificado de Garantia' : 'Relacionamento';
+            const clientId: string | null = loadedClientData?.clientId || null;
+            const projectIdForCS: string | null = loadedClientData?.projectId || projectId || null;
             
             // Create new CS case
             const { data: newCSCase, error: csCaseError } = await supabase
@@ -506,7 +500,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 signature_date: form.date,
                 responsible_id: form.consultantId,
                 status: 'active',
-                notes: `Caso criado automaticamente via ${triggerSource}`,
+                notes: 'Caso criado automaticamente via Assinatura de Certificado de Garantia',
               })
               .select('id')
               .single();
