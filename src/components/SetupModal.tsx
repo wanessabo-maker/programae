@@ -8,6 +8,16 @@ import { format, parseISO, isValid } from 'date-fns';
 import { getCategoryForAction } from '@/hooks/useProfessionalCategory';
 import { CSSetupTab } from '@/components/setup/CSSetupTab';
 import { ATSetupTab } from '@/components/setup/ATSetupTab';
+import { AdditionalFieldKey } from '@/types';
+
+// Field definitions for additional fields configuration
+const ADDITIONAL_FIELDS_CONFIG: { key: AdditionalFieldKey; label: string }[] = [
+  { key: 'clientName', label: 'Nome do Cliente' },
+  { key: 'clientAge', label: 'Idade' },
+  { key: 'clientProfession', label: 'Profissão' },
+  { key: 'presentationNumber', label: 'Nº Apresentação' },
+  { key: 'foccoProjectNumber', label: 'Nº Projeto FOCCO' },
+];
 
 interface SetupModalProps {
   open: boolean;
@@ -600,6 +610,7 @@ const MetasTab = () => {
   );
 }
 
+
 const TiposAcaoTab = () => {
   const { actionTypes, addActionType, updateActionType, deleteActionType } = useApp();
   const [formOpen, setFormOpen] = useState(false);
@@ -610,6 +621,7 @@ const TiposAcaoTab = () => {
     impactsMetas: [] as string[],
     requiresValue: false,
     additionalFields: false,
+    enabledFields: [] as AdditionalFieldKey[],
     programPoints: 0,
     creditValidityType: 'global' as 'global' | 'mensal' | 'anual' | 'dias' | 'personalizado' | 'sem_validade',
     creditValidityDays: undefined as number | undefined,
@@ -626,7 +638,7 @@ const TiposAcaoTab = () => {
   };
 
   const resetForm = () => {
-    setForm({ name: '', classification: 'relacionamento', impactsMetas: [], requiresValue: false, additionalFields: false, programPoints: 0, creditValidityType: 'global', creditValidityDays: undefined });
+    setForm({ name: '', classification: 'relacionamento', impactsMetas: [], requiresValue: false, additionalFields: false, enabledFields: [], programPoints: 0, creditValidityType: 'global', creditValidityDays: undefined });
     setFormOpen(false);
     setEditingId(null);
   };
@@ -637,11 +649,13 @@ const TiposAcaoTab = () => {
         updateActionType(editingId, {
           ...form,
           impactsMetas: form.impactsMetas as ('acoes' | 'vendas' | 'captacao' | 'projeto')[],
+          enabledFields: form.additionalFields ? form.enabledFields : [],
         });
       } else {
         addActionType({
           ...form,
           impactsMetas: form.impactsMetas as ('acoes' | 'vendas' | 'captacao' | 'projeto')[],
+          enabledFields: form.additionalFields ? form.enabledFields : [],
         });
       }
       resetForm();
@@ -657,6 +671,7 @@ const TiposAcaoTab = () => {
         impactsMetas: type.impactsMetas,
         requiresValue: type.requiresValue,
         additionalFields: type.additionalFields,
+        enabledFields: type.enabledFields || [],
         programPoints: type.programPoints,
         creditValidityType: type.creditValidityType,
         creditValidityDays: type.creditValidityDays,
@@ -688,6 +703,31 @@ const TiposAcaoTab = () => {
               Campos adicionais
             </label>
           </div>
+          
+          {/* Enabled Additional Fields Selection */}
+          {form.additionalFields && (
+            <div className="border border-border p-3 space-y-2 bg-muted/30">
+              <p className="text-xs uppercase tracking-widest text-muted-foreground">Selecionar Campos Adicionais</p>
+              <div className="flex flex-wrap gap-4">
+                {ADDITIONAL_FIELDS_CONFIG.map(({ key, label }) => (
+                  <label key={key} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={form.enabledFields.includes(key)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setForm({ ...form, enabledFields: [...form.enabledFields, key] });
+                        } else {
+                          setForm({ ...form, enabledFields: form.enabledFields.filter(f => f !== key) });
+                        }
+                      }}
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
           
           {/* Impacta Metas */}
           <div className="border-t border-border pt-3 mt-3 space-y-2">

@@ -572,63 +572,73 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             </div>
           )}
 
-          {selectedActionType?.additionalFields && (
+          {selectedActionType?.additionalFields && selectedActionType.enabledFields?.length > 0 && (
             <>
-              <div>
-                <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Nome do Cliente</label>
-                <input
-                  value={form.clientName}
-                  onChange={(e) => setForm({ ...form, clientName: e.target.value })}
-                  className="input-flat w-full text-card-foreground"
-                />
+              {selectedActionType.enabledFields.includes('clientName') && (
+                <div>
+                  <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Nome do Cliente</label>
+                  <input
+                    value={form.clientName}
+                    onChange={(e) => setForm({ ...form, clientName: e.target.value })}
+                    className="input-flat w-full text-card-foreground"
+                  />
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-4">
+                {selectedActionType.enabledFields.includes('clientAge') && (
+                  <div>
+                    <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Idade</label>
+                    <input
+                      type="number"
+                      value={form.clientAge}
+                      onChange={(e) => setForm({ ...form, clientAge: e.target.value })}
+                      className="input-flat w-full text-card-foreground"
+                    />
+                  </div>
+                )}
+                {selectedActionType.enabledFields.includes('presentationNumber') && (
+                  <div>
+                    <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Nº Apresentação</label>
+                    <input
+                      value={form.presentationNumber}
+                      onChange={(e) => setForm({ ...form, presentationNumber: e.target.value })}
+                      className="input-flat w-full text-card-foreground"
+                    />
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Idade</label>
-                  <input
-                    type="number"
-                    value={form.clientAge}
-                    onChange={(e) => setForm({ ...form, clientAge: e.target.value })}
-                    className="input-flat w-full text-card-foreground"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Nº Apresentação</label>
-                  <input
-                    value={form.presentationNumber}
-                    onChange={(e) => setForm({ ...form, presentationNumber: e.target.value })}
-                    className="input-flat w-full text-card-foreground"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Profissão</label>
-                  <input
-                    value={form.clientProfession}
-                    onChange={(e) => setForm({ ...form, clientProfession: e.target.value })}
-                    className="input-flat w-full text-card-foreground"
-                  />
-                </div>
-                <div>
-                  <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.foccoProjectNumber ? 'text-destructive' : 'text-muted-foreground'}`}>
-                    Nº Projeto FOCCO {(isApresentacaoProjeto || isVenda) ? '*' : ''}
-                  </label>
-                  <input
-                    value={form.foccoProjectNumber}
-                    onChange={(e) => {
-                      setForm({ ...form, foccoProjectNumber: e.target.value });
-                      setErrors({ ...errors, foccoProjectNumber: false });
-                    }}
-                    placeholder={(isApresentacaoProjeto || isVenda) ? 'Obrigatório' : 'Opcional'}
-                    className={`input-flat w-full text-card-foreground ${errors.foccoProjectNumber ? 'border-destructive ring-1 ring-destructive' : ''}`}
-                  />
-                  {errors.foccoProjectNumber && (
-                    <span className="text-xs text-destructive mt-1">
-                      {isVenda ? 'Informe o projeto FOCCO para vincular a venda' : 'Campo obrigatório para Apresentação de Projeto'}
-                    </span>
-                  )}
-                </div>
+                {selectedActionType.enabledFields.includes('clientProfession') && (
+                  <div>
+                    <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Profissão</label>
+                    <input
+                      value={form.clientProfession}
+                      onChange={(e) => setForm({ ...form, clientProfession: e.target.value })}
+                      className="input-flat w-full text-card-foreground"
+                    />
+                  </div>
+                )}
+                {selectedActionType.enabledFields.includes('foccoProjectNumber') && (
+                  <div>
+                    <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.foccoProjectNumber ? 'text-destructive' : 'text-muted-foreground'}`}>
+                      Nº Projeto FOCCO {(isApresentacaoProjeto || isVenda) ? '*' : ''}
+                    </label>
+                    <input
+                      value={form.foccoProjectNumber}
+                      onChange={(e) => {
+                        setForm({ ...form, foccoProjectNumber: e.target.value });
+                        setErrors({ ...errors, foccoProjectNumber: false });
+                      }}
+                      placeholder={(isApresentacaoProjeto || isVenda) ? 'Obrigatório' : 'Opcional'}
+                      className={`input-flat w-full text-card-foreground ${errors.foccoProjectNumber ? 'border-destructive ring-1 ring-destructive' : ''}`}
+                    />
+                    {errors.foccoProjectNumber && (
+                      <span className="text-xs text-destructive mt-1">
+                        {isVenda ? 'Informe o projeto FOCCO para vincular a venda' : 'Campo obrigatório para Apresentação de Projeto'}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             </>
           )}

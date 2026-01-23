@@ -225,6 +225,7 @@ export function useCreateActionType() {
       impacts: string[];
       requires_value: boolean;
       additional_fields: boolean;
+      enabled_fields?: string[];
       points: number;
       credit_validity_type?: string;
       credit_validity_days?: number | null;
@@ -250,6 +251,7 @@ export function useUpdateActionType() {
       impacts?: string[];
       requires_value?: boolean;
       additional_fields?: boolean;
+      enabled_fields?: string[];
       points?: number;
       credit_validity_type?: string;
       credit_validity_days?: number | null;

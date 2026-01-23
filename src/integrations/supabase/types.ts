@@ -21,6 +21,7 @@ export type Database = {
           created_at: string | null
           credit_validity_days: number | null
           credit_validity_type: string | null
+          enabled_fields: string[] | null
           id: string
           impacts: string[] | null
           name: string
@@ -33,6 +34,7 @@ export type Database = {
           created_at?: string | null
           credit_validity_days?: number | null
           credit_validity_type?: string | null
+          enabled_fields?: string[] | null
           id?: string
           impacts?: string[] | null
           name: string
@@ -45,6 +47,7 @@ export type Database = {
           created_at?: string | null
           credit_validity_days?: number | null
           credit_validity_type?: string | null
+          enabled_fields?: string[] | null
           id?: string
           impacts?: string[] | null
           name?: string
