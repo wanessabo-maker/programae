@@ -127,14 +127,19 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     if (!form.actionTypeId) newErrors.actionTypeId = true;
     if (!form.date) newErrors.date = true;
     
-    // FOCCO number is required for Apresentação de Projeto and Venda
-    if ((isApresentacaoProjeto || isVenda) && !form.foccoProjectNumber.trim()) {
+    // FOCCO number is required only for Apresentação de Projeto
+    if (isApresentacaoProjeto && !form.foccoProjectNumber.trim()) {
       newErrors.foccoProjectNumber = true;
     }
     
-    // Contract number is required for Venda and Seletiva (e.g., Assinatura Certificado)
-    if ((isVenda || isSeletiva) && !form.contractNumber.trim()) {
+    // Contract number is required only for Seletiva (e.g., Assinatura Certificado)
+    if (isSeletiva && !form.contractNumber.trim()) {
       newErrors.contractNumber = true;
+    }
+    
+    // For Venda, require client name if no FOCCO project exists
+    if (isVenda && !form.foccoProjectNumber.trim() && !form.clientName.trim()) {
+      newErrors.clientName = true;
     }
     
     if (isNewProfessional) {
@@ -360,61 +365,163 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
         }
       }
 
-      // Handle Venda - update project to closed_won and update client with full data
-      if (isVenda && form.foccoProjectNumber.trim()) {
+      // Handle Venda - update existing project or create new contract automatically
+      if (isVenda) {
         const foccoNumber = form.foccoProjectNumber.trim();
         
         try {
-          const existingProject = await findProjectByFocco(foccoNumber);
-          
-          if (existingProject) {
-            const { error: updateError } = await supabase
-              .from('projects')
-              .update({
-                stage: 'closed_won',
-                closed_date: form.date,
-                closed_value: form.value ? Number(form.value) : existingProject.estimated_value,
-              })
-              .eq('id', existingProject.id);
+          if (foccoNumber) {
+            // If FOCCO number provided, try to find and update existing project
+            const existingProject = await findProjectByFocco(foccoNumber);
             
-            if (updateError) {
-              console.error('Error updating project to closed_won:', updateError);
-              toast.error('Erro ao atualizar status do projeto');
-            } else {
-              projectId = existingProject.id;
+            if (existingProject) {
+              const { error: updateError } = await supabase
+                .from('projects')
+                .update({
+                  stage: 'closed_won',
+                  closed_date: form.date,
+                  closed_value: form.value ? Number(form.value) : existingProject.estimated_value,
+                })
+                .eq('id', existingProject.id);
               
-              // Update the client with complete data including contract number
-              if (existingProject.client_id) {
-                clientId = existingProject.client_id;
-                await updateClientData(existingProject.client_id, {
-                  contract_number: form.contractNumber.trim(),
-                  name: form.clientName.trim() || undefined,
+              if (updateError) {
+                console.error('Error updating project to closed_won:', updateError);
+                toast.error('Erro ao atualizar status do projeto');
+              } else {
+                projectId = existingProject.id;
+                
+                // Update the client with complete data including contract number
+                if (existingProject.client_id) {
+                  clientId = existingProject.client_id;
+                  await updateClientData(existingProject.client_id, {
+                    contract_number: form.contractNumber.trim() || undefined,
+                    name: form.clientName.trim() || undefined,
+                    cpf_cnpj: form.clientCpfCnpj.trim() || undefined,
+                    phone: form.clientPhone.trim() || undefined,
+                    email: form.clientEmail.trim() || undefined,
+                    address: form.clientAddress.trim() || undefined,
+                    city: form.clientCity.trim() || undefined,
+                    state: form.clientState.trim() || undefined,
+                    age: form.clientAge ? Number(form.clientAge) : undefined,
+                    profession: form.clientProfession.trim() || undefined,
+                  });
+                  
+                  // Also update status to closed
+                  await supabase
+                    .from('clients')
+                    .update({ status: 'closed' })
+                    .eq('id', existingProject.client_id);
+                }
+                
+                toast.success(`Projeto FOCCO ${foccoNumber} fechado com sucesso!`);
+              }
+            } else {
+              // FOCCO provided but project doesn't exist - create new project as closed_won
+              if (form.clientName.trim()) {
+                clientId = await createClientDirect({
+                  name: form.clientName.trim(),
+                  age: form.clientAge ? Number(form.clientAge) : null,
+                  profession: form.clientProfession || null,
+                  professional_id: professionalId || null,
+                  responsible_id: form.consultantId,
+                  status: 'closed',
+                });
+                
+                if (clientId) {
+                  await updateClientData(clientId, {
+                    contract_number: form.contractNumber.trim() || undefined,
+                    cpf_cnpj: form.clientCpfCnpj.trim() || undefined,
+                    phone: form.clientPhone.trim() || undefined,
+                    email: form.clientEmail.trim() || undefined,
+                    address: form.clientAddress.trim() || undefined,
+                    city: form.clientCity.trim() || undefined,
+                    state: form.clientState.trim() || undefined,
+                  });
+                }
+              }
+              
+              const { data: newProject, error: projectError } = await supabase
+                .from('projects')
+                .insert({
+                  name: `Projeto FOCCO ${foccoNumber}`,
+                  focco_project_number: foccoNumber,
+                  professional_id: professionalId || null,
+                  responsible_id: form.consultantId,
+                  client_id: clientId,
+                  stage: 'closed_won',
+                  start_date: form.date,
+                  closed_date: form.date,
+                  closed_value: form.value ? Number(form.value) : null,
+                  estimated_value: form.value ? Number(form.value) : null,
+                })
+                .select('id')
+                .single();
+              
+              if (projectError) {
+                console.error('Error creating project:', projectError);
+                toast.error('Erro ao criar contrato automaticamente');
+              } else if (newProject) {
+                projectId = newProject.id;
+                toast.success(`Contrato criado com FOCCO ${foccoNumber}!`);
+              }
+            }
+          } else {
+            // No FOCCO number - create new contract directly
+            if (form.clientName.trim()) {
+              clientId = await createClientDirect({
+                name: form.clientName.trim(),
+                age: form.clientAge ? Number(form.clientAge) : null,
+                profession: form.clientProfession || null,
+                professional_id: professionalId || null,
+                responsible_id: form.consultantId,
+                status: 'closed',
+              });
+              
+              if (clientId) {
+                await updateClientData(clientId, {
+                  contract_number: form.contractNumber.trim() || undefined,
                   cpf_cnpj: form.clientCpfCnpj.trim() || undefined,
                   phone: form.clientPhone.trim() || undefined,
                   email: form.clientEmail.trim() || undefined,
                   address: form.clientAddress.trim() || undefined,
                   city: form.clientCity.trim() || undefined,
                   state: form.clientState.trim() || undefined,
-                  age: form.clientAge ? Number(form.clientAge) : undefined,
-                  profession: form.clientProfession.trim() || undefined,
                 });
-                
-                // Also update status to closed
-                await supabase
-                  .from('clients')
-                  .update({ status: 'closed' })
-                  .eq('id', existingProject.client_id);
               }
-              
-              toast.success(`Projeto FOCCO ${foccoNumber} fechado com sucesso!`);
             }
-          } else {
-            toast.error(`Projeto FOCCO ${foccoNumber} não encontrado. Registre uma Apresentação de Projeto primeiro.`);
-            setIsSubmitting(false);
-            return;
+            
+            // Generate a unique project name without FOCCO
+            const projectName = form.clientName.trim() 
+              ? `Venda - ${form.clientName.trim()}`
+              : `Venda - ${format(new Date(form.date), 'dd/MM/yyyy')}`;
+            
+            const { data: newProject, error: projectError } = await supabase
+              .from('projects')
+              .insert({
+                name: projectName,
+                focco_project_number: null,
+                professional_id: professionalId || null,
+                responsible_id: form.consultantId,
+                client_id: clientId,
+                stage: 'closed_won',
+                start_date: form.date,
+                closed_date: form.date,
+                closed_value: form.value ? Number(form.value) : null,
+                estimated_value: form.value ? Number(form.value) : null,
+              })
+              .select('id')
+              .single();
+            
+            if (projectError) {
+              console.error('Error creating project:', projectError);
+              toast.error('Erro ao criar contrato automaticamente');
+            } else if (newProject) {
+              projectId = newProject.id;
+              toast.success('Contrato criado com sucesso!');
+            }
           }
         } catch (err) {
-          console.error('Error in sale project update flow:', err);
+          console.error('Error in sale project flow:', err);
         }
       }
 
