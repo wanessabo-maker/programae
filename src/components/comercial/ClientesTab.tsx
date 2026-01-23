@@ -1,29 +1,19 @@
 import { useState, useMemo } from 'react';
-import { Search, User, Phone, Mail, Eye, TrendingUp, Users, XCircle, CheckCircle, Trash2 } from 'lucide-react';
+import { Search, User, Phone, Mail, Eye, TrendingUp, Users, XCircle, CheckCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { useClients, useDeleteClient, Client } from '@/hooks/useClients';
+import { useClients, Client } from '@/hooks/useClients';
 import { useProjects } from '@/hooks/useProjects';
 import { useApp } from '@/contexts/AppContext';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { toast } from 'sonner';
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from 'recharts';
+
 // Simplified status for the funnel - clients come from actions only
 const CLIENT_STATUS = [
   { id: 'apresentado', name: 'Em Negociação', color: 'bg-orange-500/20 text-orange-700', chartColor: 'hsl(var(--chart-2))' },
@@ -36,11 +26,9 @@ export default function ClientesTab() {
   const [viewingClient, setViewingClient] = useState<Client | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [deletingClient, setDeletingClient] = useState<Client | null>(null);
 
   const { data: clients = [], isLoading } = useClients();
   const { data: projects = [] } = useProjects();
-  const deleteClientMutation = useDeleteClient();
   const { actions, actionTypes, teamMembers, professionals } = useApp();
 
   // Get clients linked to projects (from "Apresentação de Projeto" actions)
@@ -157,21 +145,6 @@ export default function ClientesTab() {
   const handleView = (client: Client) => {
     setViewingClient(client);
     setShowViewModal(true);
-  };
-
-  const handleDeleteClick = (client: Client) => {
-    setDeletingClient(client);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!deletingClient) return;
-    try {
-      await deleteClientMutation.mutateAsync(deletingClient.id);
-      toast.success('Cliente excluído com sucesso');
-      setDeletingClient(null);
-    } catch (error) {
-      toast.error('Erro ao excluir cliente');
-    }
   };
 
   const getStatusBadge = (status: string | null | undefined) => {
@@ -424,20 +397,13 @@ export default function ClientesTab() {
                       {getStatusBadge(client.status)}
                     </td>
                     <td className="p-3">
-                      <div className="flex justify-center gap-1">
+                      <div className="flex justify-center">
                         <button
                           onClick={() => handleView(client)}
                           className="p-1.5 hover:bg-muted rounded"
                           title="Ver detalhes"
                         >
                           <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteClick(client)}
-                          className="p-1.5 hover:bg-destructive/10 rounded text-destructive"
-                          title="Excluir cliente"
-                        >
-                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
@@ -550,29 +516,6 @@ export default function ClientesTab() {
           )}
         </DialogContent>
       </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!deletingClient} onOpenChange={(open) => !open && setDeletingClient(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Cliente</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir o cliente <strong>{deletingClient?.name}</strong>?
-              <br /><br />
-              Esta ação não pode ser desfeita e todos os dados vinculados (interações, registros de CS/AT) serão removidos.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleConfirmDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

@@ -547,17 +547,9 @@ export function useDeleteAction() {
       if (error) throw error;
     },
     onSuccess: () => {
-      // Invalidate all related queries since cascade delete removes related records
       queryClient.invalidateQueries({ queryKey: ['actions'] });
       queryClient.invalidateQueries({ queryKey: ['professionals'] });
       queryClient.invalidateQueries({ queryKey: ['credit_transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
-      queryClient.invalidateQueries({ queryKey: ['clients'] });
-      queryClient.invalidateQueries({ queryKey: ['cs_cases'] });
-      queryClient.invalidateQueries({ queryKey: ['cs_actions'] });
-      queryClient.invalidateQueries({ queryKey: ['technical_assistance'] });
-      queryClient.invalidateQueries({ queryKey: ['customer_success'] });
-      queryClient.invalidateQueries({ queryKey: ['client_interactions'] });
     },
   });
 }

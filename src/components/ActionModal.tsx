@@ -8,7 +8,7 @@ import { findProjectByFocco } from '@/hooks/useProjects';
 import { createClientDirect } from '@/hooks/useClients';
 import { supabase } from '@/integrations/supabase/client';
 import { SmartClientFields } from '@/components/SmartClientFields';
-import { SmartClientData, updateClientData, fetchClientDataByFocco } from '@/hooks/useSmartClientData';
+import { SmartClientData, updateClientData } from '@/hooks/useSmartClientData';
 
 interface ActionModalProps {
   open: boolean;
@@ -96,9 +96,6 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
   
   // Check if this is a "Venda" action type
   const isVenda = selectedActionType?.classification === 'venda';
-  
-  // Check if this is a "Seletiva" action type (shows sold projects)
-  const isSeletiva = selectedActionType?.classification === 'seletiva';
 
   const handleFieldChange = useCallback((field: keyof FormState, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -115,82 +112,6 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     setLoadedClientData(data);
   }, []);
 
-  // Auto-fill FOCCO and client data when professional is selected for VENDA
-  const autoFillForVenda = useCallback(async (professionalId: string) => {
-    if (!professionalId || professionalId === 'none') return;
-    
-    try {
-      // Find the most recent open project for this professional
-      const { data: project, error } = await supabase
-        .from('projects')
-        .select('id, focco_project_number, client_id')
-        .eq('professional_id', professionalId)
-        .eq('stage', 'em_negociacao')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      
-      if (error) {
-        console.error('Error fetching project for professional:', error);
-        return;
-      }
-      
-      if (project?.focco_project_number) {
-        // Set FOCCO number
-        setForm(prev => ({ ...prev, foccoProjectNumber: project.focco_project_number }));
-        
-        // Fetch and set client data
-        const clientData = await fetchClientDataByFocco(project.focco_project_number);
-        if (clientData) {
-          setForm(prev => ({
-            ...prev,
-            clientName: clientData.clientName || prev.clientName,
-            clientCpfCnpj: clientData.clientCpfCnpj || prev.clientCpfCnpj,
-            clientPhone: clientData.clientPhone || prev.clientPhone,
-            clientEmail: clientData.clientEmail || prev.clientEmail,
-            clientAddress: clientData.clientAddress || prev.clientAddress,
-            clientCity: clientData.clientCity || prev.clientCity,
-            clientState: clientData.clientState || prev.clientState,
-            clientAge: clientData.clientAge || prev.clientAge,
-            clientProfession: clientData.clientProfession || prev.clientProfession,
-            contractNumber: clientData.contractNumber || prev.contractNumber,
-            presentationNumber: clientData.presentationNumber || prev.presentationNumber,
-          }));
-          setLoadedClientData(clientData);
-        }
-      }
-    } catch (err) {
-      console.error('Error auto-filling for venda:', err);
-    }
-  }, []);
-
-  // Trigger auto-fill when switching to VENDA with an existing professional selected
-  const handleActionTypeChange = useCallback((actionTypeId: string) => {
-    setForm(prev => ({ ...prev, actionTypeId }));
-    if (errors.actionTypeId) {
-      setErrors(prev => ({ ...prev, actionTypeId: false }));
-    }
-    
-    // Check if new action type is VENDA
-    const newActionType = actionTypes.find(t => t.id === actionTypeId);
-    const isNewVenda = newActionType?.classification === 'venda';
-    
-    // If switching to VENDA and a professional is already selected, auto-fill
-    if (isNewVenda && form.professionalId && form.professionalId !== 'none' && !isNewProfessional) {
-      autoFillForVenda(form.professionalId);
-    }
-  }, [actionTypes, form.professionalId, isNewProfessional, errors.actionTypeId, autoFillForVenda]);
-
-  // Trigger auto-fill when selecting a professional while VENDA is active
-  const handleProfessionalChange = useCallback((professionalId: string) => {
-    setForm(prev => ({ ...prev, professionalId }));
-    
-    // If VENDA is active and selecting an existing professional, auto-fill
-    if (isVenda && professionalId && professionalId !== 'none') {
-      autoFillForVenda(professionalId);
-    }
-  }, [isVenda, autoFillForVenda]);
-
   const validateForm = () => {
     const newErrors: Record<string, boolean> = {};
     
@@ -198,15 +119,15 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     if (!form.actionTypeId) newErrors.actionTypeId = true;
     if (!form.date) newErrors.date = true;
     
-    // Validate enabled additional fields - all enabled fields are required
-    const enabledFields = selectedActionType?.enabledFields || [];
-    enabledFields.forEach(field => {
-      const formKey = field as keyof typeof form;
-      const value = form[formKey];
-      if (!value || (typeof value === 'string' && !value.trim())) {
-        newErrors[field] = true;
-      }
-    });
+    // FOCCO number is required for Apresentação de Projeto and Venda
+    if ((isApresentacaoProjeto || isVenda) && !form.foccoProjectNumber.trim()) {
+      newErrors.foccoProjectNumber = true;
+    }
+    
+    // Contract number is required for Venda
+    if (isVenda && !form.contractNumber.trim()) {
+      newErrors.contractNumber = true;
+    }
     
     if (isNewProfessional) {
       if (!newProfessional.name) newErrors.professionalName = true;
@@ -225,9 +146,6 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
   };
 
   const handleSubmit = async () => {
-    // Prevent double submission
-    if (isSubmitting) return;
-    
     // Check for no categories first
     if (isNewProfessional && professionalCategories.length === 0) {
       toast.error('Configure pelo menos uma Categoria de Profissional no Setup antes de registrar novos profissionais');
@@ -335,29 +253,28 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             }
             toast.info(`Ação vinculada ao projeto FOCCO ${foccoNumber} existente`);
           } else {
-            // Always create a new client for Apresentação de Projeto (as Lead)
-            const clientNameForLead = form.clientName.trim() || `Lead FOCCO ${foccoNumber}`;
-            clientId = await createClientDirect({
-              name: clientNameForLead,
-              age: form.clientAge ? Number(form.clientAge) : null,
-              profession: form.clientProfession || null,
-              professional_id: professionalId || null,
-              responsible_id: form.consultantId,
-              status: 'apresentado',
-              origin_type: 'apresentacao',
-            });
-            
-            // Update client with additional data
-            if (clientId) {
-              await updateClientData(clientId, {
-                cpf_cnpj: form.clientCpfCnpj.trim() || undefined,
-                phone: form.clientPhone.trim() || undefined,
-                email: form.clientEmail.trim() || undefined,
-                address: form.clientAddress.trim() || undefined,
-                city: form.clientCity.trim() || undefined,
-                state: form.clientState.trim() || undefined,
+            // Create new client if data provided
+            if (form.clientName.trim()) {
+              clientId = await createClientDirect({
+                name: form.clientName.trim(),
+                age: form.clientAge ? Number(form.clientAge) : null,
+                profession: form.clientProfession || null,
+                professional_id: professionalId || null,
+                responsible_id: form.consultantId,
+                status: 'apresentado',
               });
-              toast.success('Lead criado automaticamente na aba Clientes');
+              
+              // Update client with additional data
+              if (clientId) {
+                await updateClientData(clientId, {
+                  cpf_cnpj: form.clientCpfCnpj.trim() || undefined,
+                  phone: form.clientPhone.trim() || undefined,
+                  email: form.clientEmail.trim() || undefined,
+                  address: form.clientAddress.trim() || undefined,
+                  city: form.clientCity.trim() || undefined,
+                  state: form.clientState.trim() || undefined,
+                });
+              }
             }
             
             // Create new project
@@ -591,7 +508,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
               {!isNewProfessional && form.professionalId !== 'none' ? (
                 <select
                   value={form.professionalId}
-                  onChange={(e) => handleProfessionalChange(e.target.value)}
+                  onChange={(e) => handleFieldChange('professionalId', e.target.value)}
                   className="input-flat w-full text-card-foreground"
                 >
                   <option value="">Selecione</option>
@@ -672,7 +589,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             </label>
             <select
               value={form.actionTypeId}
-              onChange={(e) => handleActionTypeChange(e.target.value)}
+              onChange={(e) => handleFieldChange('actionTypeId', e.target.value)}
               className={`input-flat w-full text-card-foreground ${errors.actionTypeId ? 'border-destructive ring-1 ring-destructive' : ''}`}
             >
               <option value="">Selecione</option>
@@ -714,7 +631,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             </div>
           )}
 
-          {/* Smart Client Fields - Only show enabled fields for this action type */}
+          {/* Smart Client Fields - Always available */}
           <SmartClientFields
             formData={{
               clientName: form.clientName,
@@ -734,12 +651,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             onBulkUpdate={handleBulkUpdate}
             onClientDataLoaded={handleClientDataLoaded}
             errors={errors}
-            enabledFields={selectedActionType?.enabledFields || []}
             isVenda={isVenda}
             isApresentacao={isApresentacaoProjeto}
-            isSeletiva={isSeletiva}
-            professionalId={form.professionalId}
-            consultantId={form.consultantId}
           />
 
           <button 

@@ -259,10 +259,10 @@ export default function ProjetosTab() {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {getStageTotals().map(stage => (
-          <div key={stage.id} className={`border border-border p-3 ${stage.color} bg-card`}>
-            <p className="text-lg font-bold text-black">{stage.count}</p>
-            <p className="text-xs text-black/70 uppercase tracking-wider truncate font-medium">{stage.name}</p>
-            <p className="text-xs font-bold text-black mt-1">{formatCurrency(stage.total)}</p>
+          <div key={stage.id} className={`border border-border p-3 ${stage.color}`}>
+            <p className="text-lg font-bold">{stage.count}</p>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider truncate">{stage.name}</p>
+            <p className="text-xs font-medium mt-1">{formatCurrency(stage.total)}</p>
           </div>
         ))}
       </div>
@@ -272,22 +272,22 @@ export default function ProjetosTab() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-x-auto">
           {ACTIVE_STAGES.map(stage => (
             <div key={stage.id} className="min-w-[250px]">
-              <div className={`p-2 mb-2 ${stage.color} border border-border bg-card`}>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-black">{stage.name}</h3>
-                <span className="text-xs text-black/70 font-medium">{projectsByStage[stage.id]?.length || 0} projeto(s)</span>
+              <div className={`p-2 mb-2 ${stage.color} border border-border`}>
+                <h3 className="text-xs font-semibold uppercase tracking-wider">{stage.name}</h3>
+                <span className="text-xs text-muted-foreground">{projectsByStage[stage.id]?.length || 0}</span>
               </div>
               <div className="space-y-2">
                 {projectsByStage[stage.id]?.map(project => (
                   <div key={project.id} className="border border-border p-3 bg-card hover:shadow-sm transition-shadow">
                     <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-bold text-sm truncate flex-1 text-black">{project.name}</h4>
+                      <h4 className="font-medium text-sm truncate flex-1">{project.name}</h4>
                       <div className="flex gap-1 ml-2">
                         <button
                           onClick={() => handleEdit(project)}
                           className="p-1 hover:bg-muted rounded"
                           title="Editar"
                         >
-                          <Edit2 className="w-3 h-3 text-black" />
+                          <Edit2 className="w-3 h-3" />
                         </button>
                         <button
                           onClick={() => handleOpenLostModal(project)}
@@ -307,20 +307,20 @@ export default function ProjetosTab() {
                     </div>
                     
                     {project.focco_project_number && (
-                      <p className="text-xs text-primary font-mono font-bold bg-primary/10 px-1.5 py-0.5 rounded mb-1 inline-block">
+                      <p className="text-xs text-primary font-mono bg-primary/10 px-1.5 py-0.5 rounded mb-1 inline-block">
                         FOCCO: {project.focco_project_number}
                       </p>
                     )}
                     
                     {project.clients?.name && (
-                      <p className="text-xs text-black/80 font-medium flex items-center gap-1 mb-1">
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
                         <User className="w-3 h-3" />
                         {project.clients.name}
                       </p>
                     )}
                     
                     {project.estimated_value && (
-                      <p className="text-xs font-bold text-black flex items-center gap-1 mb-2">
+                      <p className="text-xs font-medium flex items-center gap-1 mb-2">
                         <DollarSign className="w-3 h-3" />
                         {formatCurrency(project.estimated_value)}
                       </p>
@@ -355,24 +355,24 @@ export default function ProjetosTab() {
 
       {/* Table View */}
       {viewMode === 'table' && (
-        <div className="border border-border overflow-x-auto bg-card">
+        <div className="border border-border overflow-x-auto">
           <table className="w-full">
             <thead className="bg-muted/50">
               <tr>
-                <th className="text-left p-3 text-xs uppercase tracking-wider font-bold text-black">Projeto</th>
-                <th className="text-left p-3 text-xs uppercase tracking-wider font-bold text-black">Cliente</th>
-                <th className="text-left p-3 text-xs uppercase tracking-wider font-bold text-black">Profissional</th>
-                <th className="text-left p-3 text-xs uppercase tracking-wider font-bold text-black">Consultor</th>
-                <th className="text-left p-3 text-xs uppercase tracking-wider font-bold text-black">Estágio</th>
-                <th className="text-right p-3 text-xs uppercase tracking-wider font-bold text-black">Valor Est.</th>
-                <th className="text-left p-3 text-xs uppercase tracking-wider font-bold text-black">Previsão</th>
-                <th className="text-center p-3 text-xs uppercase tracking-wider font-bold text-black">Ações</th>
+                <th className="text-left p-3 text-xs uppercase tracking-wider">Projeto</th>
+                <th className="text-left p-3 text-xs uppercase tracking-wider">Cliente</th>
+                <th className="text-left p-3 text-xs uppercase tracking-wider">Profissional</th>
+                <th className="text-left p-3 text-xs uppercase tracking-wider">Consultor</th>
+                <th className="text-left p-3 text-xs uppercase tracking-wider">Estágio</th>
+                <th className="text-right p-3 text-xs uppercase tracking-wider">Valor Est.</th>
+                <th className="text-left p-3 text-xs uppercase tracking-wider">Previsão</th>
+                <th className="text-center p-3 text-xs uppercase tracking-wider">Ações</th>
               </tr>
             </thead>
             <tbody>
               {filteredProjects.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-black/60">
+                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
                     Nenhum projeto ativo encontrado
                   </td>
                 </tr>
@@ -386,23 +386,23 @@ export default function ProjetosTab() {
                     <tr key={project.id} className="border-t border-border hover:bg-muted/30">
                       <td className="p-3">
                         <div className="flex items-center gap-2">
-                          <Folder className="w-4 h-4 text-black/60" />
+                          <Folder className="w-4 h-4 text-muted-foreground" />
                           <div>
-                            <p className="font-bold text-black">{project.name}</p>
+                            <p className="font-medium">{project.name}</p>
                             {project.focco_project_number && (
-                              <p className="text-xs text-primary font-mono font-bold">FOCCO: {project.focco_project_number}</p>
+                              <p className="text-xs text-primary font-mono">FOCCO: {project.focco_project_number}</p>
                             )}
                           </div>
                         </div>
                       </td>
-                      <td className="p-3 text-sm font-semibold text-black">{project.clients?.name || '-'}</td>
-                      <td className="p-3 text-sm font-semibold text-black">{professional?.name || '-'}</td>
-                      <td className="p-3 text-sm font-semibold text-black">{consultant?.name || '-'}</td>
+                      <td className="p-3 text-sm">{project.clients?.name || '-'}</td>
+                      <td className="p-3 text-sm">{professional?.name || '-'}</td>
+                      <td className="p-3 text-sm">{consultant?.name || '-'}</td>
                       <td className="p-3">
-                        <Badge className={`${stageInfo.color} border-0 font-bold text-black`}>{stageInfo.name}</Badge>
+                        <Badge className={`${stageInfo.color} border-0`}>{stageInfo.name}</Badge>
                       </td>
-                      <td className="p-3 text-right text-sm font-bold text-black">{formatCurrency(project.estimated_value)}</td>
-                      <td className="p-3 text-sm font-semibold text-black">
+                      <td className="p-3 text-right text-sm">{formatCurrency(project.estimated_value)}</td>
+                      <td className="p-3 text-sm">
                         {project.expected_delivery && (
                           <span className="flex items-center gap-1">
                             <Calendar className="w-3 h-3" />
@@ -417,7 +417,7 @@ export default function ProjetosTab() {
                             className="p-1.5 hover:bg-muted rounded"
                             title="Editar"
                           >
-                            <Edit2 className="w-4 h-4 text-black" />
+                            <Edit2 className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleOpenLostModal(project)}

@@ -13,17 +13,10 @@ import { AdditionalFieldKey } from '@/types';
 // Field definitions for additional fields configuration
 const ADDITIONAL_FIELDS_CONFIG: { key: AdditionalFieldKey; label: string }[] = [
   { key: 'clientName', label: 'Nome do Cliente' },
-  { key: 'clientCpfCnpj', label: 'CPF/CNPJ' },
-  { key: 'clientPhone', label: 'Telefone' },
-  { key: 'clientEmail', label: 'Email' },
-  { key: 'clientAddress', label: 'Endereço' },
-  { key: 'clientCity', label: 'Cidade' },
-  { key: 'clientState', label: 'Estado' },
   { key: 'clientAge', label: 'Idade' },
   { key: 'clientProfession', label: 'Profissão' },
   { key: 'presentationNumber', label: 'Nº Apresentação' },
   { key: 'foccoProjectNumber', label: 'Nº Projeto FOCCO' },
-  { key: 'contractNumber', label: 'Nº Contrato' },
 ];
 
 interface SetupModalProps {
@@ -624,7 +617,7 @@ const TiposAcaoTab = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: '',
-    classification: 'relacionamento' as 'relacionamento' | 'venda' | 'projeto' | 'seletiva' | 'outro',
+    classification: 'relacionamento' as 'relacionamento' | 'venda' | 'projeto' | 'outro',
     impactsMetas: [] as string[],
     requiresValue: false,
     additionalFields: false,
@@ -634,7 +627,7 @@ const TiposAcaoTab = () => {
     creditValidityDays: undefined as number | undefined,
   });
 
-  const classLabels = { relacionamento: 'Relacionamento', venda: 'Venda', projeto: 'Projeto', seletiva: 'Seletiva', outro: 'Outro' };
+  const classLabels = { relacionamento: 'Relacionamento', venda: 'Venda', projeto: 'Projeto', outro: 'Outro' };
   const validityLabels: Record<string, string> = {
     global: 'Usar configuração global',
     mensal: 'Mensal (até o fim do mês)',
@@ -645,7 +638,7 @@ const TiposAcaoTab = () => {
   };
 
   const resetForm = () => {
-    setForm({ name: '', classification: 'relacionamento', impactsMetas: [], requiresValue: false, additionalFields: false, enabledFields: [], programPoints: 0, creditValidityType: 'global', creditValidityDays: undefined } as typeof form);
+    setForm({ name: '', classification: 'relacionamento', impactsMetas: [], requiresValue: false, additionalFields: false, enabledFields: [], programPoints: 0, creditValidityType: 'global', creditValidityDays: undefined });
     setFormOpen(false);
     setEditingId(null);
   };
