@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronDown, Loader2, Search, Building2 } from 'lucide-react';
+import { ChevronDown, Loader2, Search, Building2, Plus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Project {
@@ -18,6 +18,7 @@ interface FoccoProjectSelectorProps {
   consultantId?: string;
   hasError?: boolean;
   disabled?: boolean;
+  allowNew?: boolean; // Allow typing new FOCCO numbers (for Apresentação)
 }
 
 export function FoccoProjectSelector({
@@ -27,11 +28,13 @@ export function FoccoProjectSelector({
   consultantId,
   hasError = false,
   disabled = false,
+  allowNew = true, // Default to allowing new entries
 }: FoccoProjectSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isManualEntry, setIsManualEntry] = useState(false);
 
   // Fetch all projects in negotiation
   useEffect(() => {
@@ -44,12 +47,6 @@ export function FoccoProjectSelector({
           .eq('stage', 'em_negociacao')
           .not('focco_project_number', 'is', null)
           .order('created_at', { ascending: false });
-
-        // Optionally filter by professional if provided
-        if (professionalId && professionalId !== 'none') {
-          // We don't filter by professional - show ALL projects in negotiation
-          // The user might want to close a sale for any project
-        }
 
         const { data, error } = await query;
         
@@ -79,16 +76,30 @@ export function FoccoProjectSelector({
     );
   });
 
+  // Check if search term matches an existing FOCCO number
+  const isNewFoccoNumber = searchTerm.trim() && 
+    !projects.some(p => p.focco_project_number?.toLowerCase() === searchTerm.toLowerCase().trim());
+
   // Get selected project display text
   const selectedProject = projects.find(p => p.focco_project_number === value);
   const displayText = selectedProject 
     ? `${selectedProject.focco_project_number} - ${selectedProject.clients?.name || selectedProject.name}`
-    : value || 'Selecione um projeto';
+    : value 
+      ? `FOCCO ${value}` 
+      : 'Selecione ou digite um projeto';
 
   const handleSelect = (project: Project) => {
     onChange(project.focco_project_number, project);
     setIsOpen(false);
     setSearchTerm('');
+    setIsManualEntry(false);
+  };
+
+  const handleCreateNew = () => {
+    onChange(searchTerm.trim());
+    setIsOpen(false);
+    setSearchTerm('');
+    setIsManualEntry(false);
   };
 
   if (disabled) {
@@ -140,7 +151,26 @@ export function FoccoProjectSelector({
 
           {/* Project List */}
           <div className="max-h-56 overflow-y-auto">
-            {filteredProjects.length === 0 ? (
+            {/* Option to create new FOCCO number */}
+            {allowNew && isNewFoccoNumber && (
+              <button
+                type="button"
+                onClick={handleCreateNew}
+                className="w-full px-3 py-2 text-left hover:bg-primary/10 flex items-center gap-3 border-b border-border bg-primary/5"
+              >
+                <Plus className="h-4 w-4 text-primary shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium text-sm text-primary">
+                    Criar novo: FOCCO {searchTerm.trim()}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Novo projeto será criado
+                  </div>
+                </div>
+              </button>
+            )}
+            
+            {filteredProjects.length === 0 && !isNewFoccoNumber ? (
               <div className="p-4 text-center text-sm text-muted-foreground">
                 {projects.length === 0 
                   ? 'Nenhum projeto em negociação encontrado'

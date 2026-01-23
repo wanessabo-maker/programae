@@ -241,8 +241,8 @@ export function SmartClientFields({
       return undefined;
     };
 
-    // Special handling for FOCCO project number in VENDA - use project selector
-    if (fieldKey === 'foccoProjectNumber' && isVenda) {
+    // Special handling for FOCCO project number in VENDA or APRESENTAÇÃO - use project selector
+    if (fieldKey === 'foccoProjectNumber' && (isVenda || isApresentacao)) {
       return (
         <div key={fieldKey}>
           <label className={`text-xs tracking-widest uppercase block mb-2 ${hasError ? 'text-destructive' : 'text-muted-foreground'}`}>
