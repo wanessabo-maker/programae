@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, AlertCircle, Eye, Check, Clock, Calendar, Wrench } from 'lucide-react';
+import { Plus, AlertCircle, Eye, Check, Clock, Calendar, Wrench, UserPlus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useApp } from '@/contexts/AppContext';
@@ -14,7 +14,7 @@ import {
   useATActionTypes,
   TechnicalAssistance,
 } from '@/hooks/useTechnicalAssistance';
-import { useClients } from '@/hooks/useClients';
+import { useClients, useCreateClient } from '@/hooks/useClients';
 import { useProjects } from '@/hooks/useProjects';
 
 export function ATTab() {
@@ -29,6 +29,7 @@ export function ATTab() {
   const createMutation = useCreateTechnicalAssistance();
   const updateMutation = useUpdateTechnicalAssistance();
   const closeMutation = useCloseTechnicalAssistance();
+  const createClientMutation = useCreateClient();
 
   const [showNewModal, setShowNewModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
@@ -61,6 +62,14 @@ export function ATTab() {
     visit_date: '',
   });
 
+  // New client form
+  const [isNewClient, setIsNewClient] = useState(false);
+  const [newClient, setNewClient] = useState({
+    name: '',
+    phone: '',
+    email: '',
+  });
+
   const activeTeamMembers = useMemo(() => {
     return teamMembers.filter(m => m.active);
   }, [teamMembers]);
@@ -74,17 +83,47 @@ export function ATTab() {
   }, [allCases]);
 
   const handleCreateCase = async () => {
-    if (!newCase.title || !newCase.client_id || !newCase.contact_date) {
+    // Validate new client fields if creating a new client
+    if (isNewClient) {
+      if (!newClient.name.trim()) {
+        toast({ title: 'Informe o nome do cliente', variant: 'destructive' });
+        return;
+      }
+    } else if (!newCase.client_id) {
+      toast({ title: 'Selecione ou crie um cliente', variant: 'destructive' });
+      return;
+    }
+
+    if (!newCase.title || !newCase.contact_date) {
       toast({ title: 'Preencha os campos obrigatórios', variant: 'destructive' });
       return;
     }
 
     try {
+      let clientId = newCase.client_id;
+
+      // Create new client if needed
+      if (isNewClient && newClient.name.trim()) {
+        const createdClient = await createClientMutation.mutateAsync({
+          name: newClient.name.trim(),
+          phone: newClient.phone.trim() || null,
+          email: newClient.email.trim() || null,
+          status: 'closed', // AT clients are typically post-sale
+        });
+        
+        if (createdClient?.id) {
+          clientId = createdClient.id;
+          toast({ title: `Cliente "${newClient.name}" criado` });
+        } else {
+          throw new Error('Failed to create client');
+        }
+      }
+
       await createMutation.mutateAsync({
         title: newCase.title,
         description: newCase.description || null,
         priority: newCase.priority,
-        client_id: newCase.client_id,
+        client_id: clientId,
         project_id: newCase.project_id || null,
         responsible_id: newCase.responsible_id || null,
         contact_date: newCase.contact_date,
@@ -107,6 +146,8 @@ export function ATTab() {
         contract_number: '',
         action_type_id: '',
       });
+      setIsNewClient(false);
+      setNewClient({ name: '', phone: '', email: '' });
     } catch (error) {
       console.error(error);
       toast({ title: 'Erro ao criar chamado', variant: 'destructive' });
@@ -417,23 +458,77 @@ export function ATTab() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
+            {/* Client Selection */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
                 <label className="text-xs uppercase tracking-widest text-muted-foreground">
                   Cliente *
                 </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsNewClient(!isNewClient);
+                    if (!isNewClient) {
+                      setNewCase({ ...newCase, client_id: '' });
+                    } else {
+                      setNewClient({ name: '', phone: '', email: '' });
+                    }
+                  }}
+                  className="flex items-center gap-1 text-xs text-primary hover:underline"
+                >
+                  <UserPlus className="w-3 h-3" />
+                  {isNewClient ? 'Selecionar existente' : 'Novo cliente'}
+                </button>
+              </div>
+
+              {isNewClient ? (
+                <div className="space-y-3 p-3 border border-primary/30 bg-primary/5 rounded">
+                  <div>
+                    <label className="text-xs text-muted-foreground">Nome *</label>
+                    <input
+                      value={newClient.name}
+                      onChange={(e) => setNewClient({ ...newClient, name: e.target.value })}
+                      placeholder="Nome do cliente"
+                      className="input-flat w-full mt-1"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs text-muted-foreground">Telefone</label>
+                      <input
+                        value={newClient.phone}
+                        onChange={(e) => setNewClient({ ...newClient, phone: e.target.value })}
+                        placeholder="(00) 00000-0000"
+                        className="input-flat w-full mt-1"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">E-mail</label>
+                      <input
+                        type="email"
+                        value={newClient.email}
+                        onChange={(e) => setNewClient({ ...newClient, email: e.target.value })}
+                        placeholder="email@exemplo.com"
+                        className="input-flat w-full mt-1"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
                 <select
                   value={newCase.client_id}
                   onChange={(e) => setNewCase({ ...newCase, client_id: e.target.value })}
-                  className="input-flat w-full mt-1"
+                  className="input-flat w-full"
                 >
                   <option value="">Selecione</option>
                   {clients.map((c) => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
-              </div>
+              )}
+            </div>
 
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-xs uppercase tracking-widest text-muted-foreground">
                   Prioridade
@@ -447,6 +542,18 @@ export function ATTab() {
                   <option value="medium">Média</option>
                   <option value="high">Alta</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                  Data do Contato *
+                </label>
+                <input
+                  type="date"
+                  value={newCase.contact_date}
+                  onChange={(e) => setNewCase({ ...newCase, contact_date: e.target.value })}
+                  className="input-flat w-full mt-1"
+                />
               </div>
             </div>
 
@@ -489,18 +596,6 @@ export function ATTab() {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs uppercase tracking-widest text-muted-foreground">
-                  Data do Contato *
-                </label>
-                <input
-                  type="date"
-                  value={newCase.contact_date}
-                  onChange={(e) => setNewCase({ ...newCase, contact_date: e.target.value })}
-                  className="input-flat w-full mt-1"
-                />
-              </div>
-
               <div>
                 <label className="text-xs uppercase tracking-widest text-muted-foreground">
                   Visita Agendada
