@@ -13,10 +13,17 @@ import { AdditionalFieldKey } from '@/types';
 // Field definitions for additional fields configuration
 const ADDITIONAL_FIELDS_CONFIG: { key: AdditionalFieldKey; label: string }[] = [
   { key: 'clientName', label: 'Nome do Cliente' },
+  { key: 'clientCpfCnpj', label: 'CPF/CNPJ' },
+  { key: 'clientPhone', label: 'Telefone' },
+  { key: 'clientEmail', label: 'Email' },
+  { key: 'clientAddress', label: 'Endereço' },
+  { key: 'clientCity', label: 'Cidade' },
+  { key: 'clientState', label: 'Estado' },
   { key: 'clientAge', label: 'Idade' },
   { key: 'clientProfession', label: 'Profissão' },
   { key: 'presentationNumber', label: 'Nº Apresentação' },
   { key: 'foccoProjectNumber', label: 'Nº Projeto FOCCO' },
+  { key: 'contractNumber', label: 'Nº Contrato' },
 ];
 
 interface SetupModalProps {
