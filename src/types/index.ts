@@ -29,7 +29,7 @@ export type AdditionalFieldKey =
 export interface ActionType {
   id: string;
   name: string;
-  classification: 'relacionamento' | 'venda' | 'projeto' | 'outro';
+  classification: 'relacionamento' | 'venda' | 'projeto' | 'seletiva' | 'outro';
   impactsMetas: ('acoes' | 'vendas' | 'captacao' | 'projeto')[];
   requiresValue: boolean;
   additionalFields: boolean;

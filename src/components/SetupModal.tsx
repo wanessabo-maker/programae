@@ -624,7 +624,7 @@ const TiposAcaoTab = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: '',
-    classification: 'relacionamento' as 'relacionamento' | 'venda' | 'projeto' | 'outro',
+    classification: 'relacionamento' as 'relacionamento' | 'venda' | 'projeto' | 'seletiva' | 'outro',
     impactsMetas: [] as string[],
     requiresValue: false,
     additionalFields: false,
@@ -634,7 +634,7 @@ const TiposAcaoTab = () => {
     creditValidityDays: undefined as number | undefined,
   });
 
-  const classLabels = { relacionamento: 'Relacionamento', venda: 'Venda', projeto: 'Projeto', outro: 'Outro' };
+  const classLabels = { relacionamento: 'Relacionamento', venda: 'Venda', projeto: 'Projeto', seletiva: 'Seletiva', outro: 'Outro' };
   const validityLabels: Record<string, string> = {
     global: 'Usar configuração global',
     mensal: 'Mensal (até o fim do mês)',
@@ -645,7 +645,7 @@ const TiposAcaoTab = () => {
   };
 
   const resetForm = () => {
-    setForm({ name: '', classification: 'relacionamento', impactsMetas: [], requiresValue: false, additionalFields: false, enabledFields: [], programPoints: 0, creditValidityType: 'global', creditValidityDays: undefined });
+    setForm({ name: '', classification: 'relacionamento', impactsMetas: [], requiresValue: false, additionalFields: false, enabledFields: [], programPoints: 0, creditValidityType: 'global', creditValidityDays: undefined } as typeof form);
     setFormOpen(false);
     setEditingId(null);
   };

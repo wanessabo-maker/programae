@@ -29,6 +29,7 @@ interface SmartClientFieldsProps {
   enabledFields?: AdditionalFieldKey[]; // Fields enabled for this action type
   isVenda?: boolean;
   isApresentacao?: boolean;
+  isSeletiva?: boolean; // New: for "Seletiva" action type showing sold projects
   professionalId?: string;
   consultantId?: string;
 }
@@ -74,6 +75,7 @@ export function SmartClientFields({
   enabledFields = [],
   isVenda = false,
   isApresentacao = false,
+  isSeletiva = false,
   professionalId,
   consultantId,
 }: SmartClientFieldsProps) {
@@ -241,12 +243,18 @@ export function SmartClientFields({
       return undefined;
     };
 
-    // Special handling for FOCCO project number in VENDA or APRESENTAÇÃO - use project selector
-    if (fieldKey === 'foccoProjectNumber' && (isVenda || isApresentacao)) {
+    // Special handling for FOCCO project number in VENDA, APRESENTAÇÃO, or SELETIVA - use project selector
+    if (fieldKey === 'foccoProjectNumber' && (isVenda || isApresentacao || isSeletiva)) {
+      // Determine which stage to show:
+      // - Seletiva: show only sold projects (closed_won)
+      // - Venda/Apresentação: show projects in negotiation (em_negociacao)
+      const projectStage = isSeletiva ? 'closed_won' : 'em_negociacao';
+      const selectorLabel = isSeletiva ? 'Nº Projeto FOCCO (Vendidos)' : config.label;
+      
       return (
         <div key={fieldKey}>
           <label className={`text-xs tracking-widest uppercase block mb-2 ${hasError ? 'text-destructive' : 'text-muted-foreground'}`}>
-            {config.label} {isRequired && '*'}
+            {selectorLabel} {isRequired && '*'}
           </label>
           <FoccoProjectSelector
             value={value}
@@ -280,6 +288,8 @@ export function SmartClientFields({
             professionalId={professionalId}
             consultantId={consultantId}
             hasError={hasError}
+            allowNew={!isSeletiva} // Don't allow new projects in Seletiva
+            projectStage={projectStage}
           />
           {hasError && (
             <span className="text-xs text-destructive mt-1">Campo obrigatório</span>
