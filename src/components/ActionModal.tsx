@@ -9,7 +9,7 @@ import { createClientDirect } from '@/hooks/useClients';
 import { supabase } from '@/integrations/supabase/client';
 import { SmartClientFields } from '@/components/SmartClientFields';
 import { SmartClientData, updateClientData } from '@/hooks/useSmartClientData';
-
+import { useCSContactSchedules, generateCSActionsForCase } from '@/hooks/useCustomerSuccess';
 interface ActionModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -71,6 +71,9 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     updateProfessional,
     addReminder,
   } = useApp();
+
+  // CS schedules for automatic case creation
+  const { data: csSchedules } = useCSContactSchedules();
 
   const activeMembers = teamMembers.filter(m => m.active);
 
@@ -471,6 +474,50 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           actionTypeId: form.actionTypeId,
           status: 'active',
         });
+      }
+
+      // AUTOMATION: Create CS case when Assinatura de Certificado de Garantia is registered
+      if (isSeletiva && form.contractNumber.trim() && loadedClientData) {
+        try {
+          // Check if CS case already exists for this contract
+          const { data: existingCase } = await supabase
+            .from('cs_cases')
+            .select('id')
+            .eq('contract_number', form.contractNumber.trim())
+            .maybeSingle();
+
+          if (!existingCase) {
+            // Create new CS case
+            const { data: newCSCase, error: csCaseError } = await supabase
+              .from('cs_cases')
+              .insert({
+                client_id: loadedClientData.clientId || null,
+                project_id: loadedClientData.projectId || projectId || null,
+                contract_number: form.contractNumber.trim(),
+                signature_date: form.date,
+                responsible_id: form.consultantId,
+                status: 'active',
+                notes: `Caso criado automaticamente via Assinatura de Certificado de Garantia`,
+              })
+              .select('id')
+              .single();
+
+            if (csCaseError) {
+              console.error('Error creating CS case:', csCaseError);
+              toast.error('Erro ao criar caso de Customer Success');
+            } else if (newCSCase && csSchedules && csSchedules.length > 0) {
+              // Generate scheduled CS actions based on configured schedules
+              await generateCSActionsForCase(newCSCase.id, form.date, csSchedules);
+              toast.success('Caso de Customer Success iniciado com visitas programadas!');
+            } else if (newCSCase) {
+              toast.success('Caso de Customer Success criado (configure periodicidades no Setup para gerar visitas)');
+            }
+          } else {
+            toast.info('Caso de Customer Success já existe para este contrato');
+          }
+        } catch (csError) {
+          console.error('Error in CS case creation:', csError);
+        }
       }
 
       toast.success('Ação registrada com sucesso!');
