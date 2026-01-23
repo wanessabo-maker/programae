@@ -476,8 +476,11 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
         });
       }
 
-      // AUTOMATION: Create CS case when Assinatura de Certificado de Garantia is registered
-      if (isSeletiva && form.contractNumber.trim() && loadedClientData) {
+      // AUTOMATION: Create CS case when Assinatura de Certificado de Garantia OR Relacionamento with contract is registered
+      const isRelacionamento = selectedActionType?.classification === 'relacionamento';
+      const shouldTriggerCS = (isSeletiva || isRelacionamento) && form.contractNumber.trim();
+      
+      if (shouldTriggerCS) {
         try {
           // Check if CS case already exists for this contract
           const { data: existingCase } = await supabase
@@ -487,17 +490,23 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             .maybeSingle();
 
           if (!existingCase) {
+            // For relacionamento, we need to fetch client/project data from the contract if not already loaded
+            let clientId: string | null = loadedClientData?.clientId || null;
+            let projectIdForCS: string | null = loadedClientData?.projectId || projectId || null;
+
+            const triggerSource = isSeletiva ? 'Assinatura de Certificado de Garantia' : 'Relacionamento';
+            
             // Create new CS case
             const { data: newCSCase, error: csCaseError } = await supabase
               .from('cs_cases')
               .insert({
-                client_id: loadedClientData.clientId || null,
-                project_id: loadedClientData.projectId || projectId || null,
+                client_id: clientId,
+                project_id: projectIdForCS,
                 contract_number: form.contractNumber.trim(),
                 signature_date: form.date,
                 responsible_id: form.consultantId,
                 status: 'active',
-                notes: `Caso criado automaticamente via Assinatura de Certificado de Garantia`,
+                notes: `Caso criado automaticamente via ${triggerSource}`,
               })
               .select('id')
               .single();
