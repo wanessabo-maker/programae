@@ -44,6 +44,48 @@ export function SmartClientFields({
   const lastFoccoRef = useRef<string>('');
   const lastContractRef = useRef<string>('');
 
+  // Auto-fetch when FOCCO number already exists on mount (e.g., data passed from parent)
+  useEffect(() => {
+    const fetchExistingData = async () => {
+      const focco = formData.foccoProjectNumber.trim();
+      // Only auto-fetch if FOCCO exists and we haven't fetched it yet
+      if (!focco || focco === lastFoccoRef.current) return;
+      
+      lastFoccoRef.current = focco;
+      setIsLoading(true);
+      
+      try {
+        const data = await fetchClientDataByFocco(focco);
+        if (data) {
+          const updates: Partial<ClientFormData> = {};
+          if (!formData.clientName && data.clientName) updates.clientName = data.clientName;
+          if (!formData.clientCpfCnpj && data.clientCpfCnpj) updates.clientCpfCnpj = data.clientCpfCnpj;
+          if (!formData.clientPhone && data.clientPhone) updates.clientPhone = data.clientPhone;
+          if (!formData.clientEmail && data.clientEmail) updates.clientEmail = data.clientEmail;
+          if (!formData.clientAddress && data.clientAddress) updates.clientAddress = data.clientAddress;
+          if (!formData.clientCity && data.clientCity) updates.clientCity = data.clientCity;
+          if (!formData.clientState && data.clientState) updates.clientState = data.clientState;
+          if (!formData.clientAge && data.clientAge) updates.clientAge = data.clientAge;
+          if (!formData.clientProfession && data.clientProfession) updates.clientProfession = data.clientProfession;
+          if (!formData.contractNumber && data.contractNumber) updates.contractNumber = data.contractNumber;
+          
+          if (Object.keys(updates).length > 0) {
+            onBulkUpdate(updates);
+            setDataLoaded(true);
+            setIsExpanded(true);
+          }
+          
+          onClientDataLoaded?.(data);
+        }
+      } catch (err) {
+        console.error('Error auto-fetching client data:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchExistingData();
+  }, [formData.foccoProjectNumber]); // Re-run when FOCCO changes
   // Auto-fetch client data when FOCCO number changes
   const handleFoccoBlur = useCallback(async () => {
     const focco = formData.foccoProjectNumber.trim();
