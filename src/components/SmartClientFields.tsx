@@ -4,6 +4,7 @@ import { fetchClientDataByFocco, fetchClientDataByContract, SmartClientData } fr
 import { AdditionalFieldKey } from '@/types';
 import { ProfessionAutocomplete } from './ProfessionAutocomplete';
 import { FoccoProjectSelector } from './FoccoProjectSelector';
+import { ContractSelector } from './ContractSelector';
 
 interface ClientFormData {
   clientName: string;
@@ -310,6 +311,51 @@ export function SmartClientFields({
             onChange={(newValue) => onFieldChange('clientProfession', newValue)}
             placeholder={config.placeholder || (isRequired ? 'Obrigatório' : 'Opcional')}
             required={isRequired}
+            hasError={hasError}
+          />
+          {hasError && (
+            <span className="text-xs text-destructive mt-1">Campo obrigatório</span>
+          )}
+        </div>
+      );
+    }
+
+    // Special handling for Contract Number in SELETIVA - use contract selector for sold projects
+    if (fieldKey === 'contractNumber' && isSeletiva) {
+      return (
+        <div key={fieldKey}>
+          <label className={`text-xs tracking-widest uppercase block mb-2 ${hasError ? 'text-destructive' : 'text-muted-foreground'}`}>
+            Nº Contrato (Vendidos) {isRequired && '*'}
+          </label>
+          <ContractSelector
+            value={value}
+            onChange={async (contractNumber, contract) => {
+              onFieldChange('contractNumber', contractNumber);
+              // Auto-load client data when contract is selected
+              if (contractNumber) {
+                const data = await fetchClientDataByContract(contractNumber);
+                if (data) {
+                  const updates: Partial<ClientFormData> = {};
+                  if (data.clientName) updates.clientName = data.clientName;
+                  if (data.clientCpfCnpj) updates.clientCpfCnpj = data.clientCpfCnpj;
+                  if (data.clientPhone) updates.clientPhone = data.clientPhone;
+                  if (data.clientEmail) updates.clientEmail = data.clientEmail;
+                  if (data.clientAddress) updates.clientAddress = data.clientAddress;
+                  if (data.clientCity) updates.clientCity = data.clientCity;
+                  if (data.clientState) updates.clientState = data.clientState;
+                  if (data.clientAge) updates.clientAge = data.clientAge;
+                  if (data.clientProfession) updates.clientProfession = data.clientProfession;
+                  
+                  if (Object.keys(updates).length > 0) {
+                    onBulkUpdate(updates);
+                    setDataLoaded(true);
+                  }
+                  
+                  onClientDataLoaded?.(data);
+                }
+              }
+            }}
+            professionalId={professionalId}
             hasError={hasError}
           />
           {hasError && (
