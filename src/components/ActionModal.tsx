@@ -308,6 +308,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 client_id: clientId,
                 stage: 'em_negociacao',
                 start_date: form.date,
+                estimated_value: form.presentedValue ? Number(form.presentedValue) : null,
               })
               .select('id')
               .single();
