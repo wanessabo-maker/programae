@@ -17,6 +17,13 @@ const ADDITIONAL_FIELDS_CONFIG: { key: AdditionalFieldKey; label: string }[] = [
   { key: 'clientProfession', label: 'Profissão' },
   { key: 'presentationNumber', label: 'Nº Apresentação' },
   { key: 'foccoProjectNumber', label: 'Nº Projeto FOCCO' },
+  { key: 'contractNumber', label: 'Nº Contrato' },
+  { key: 'clientPhone', label: 'Telefone' },
+  { key: 'clientEmail', label: 'E-mail' },
+  { key: 'clientCpfCnpj', label: 'CPF/CNPJ' },
+  { key: 'clientAddress', label: 'Endereço' },
+  { key: 'clientCity', label: 'Cidade' },
+  { key: 'clientState', label: 'Estado' },
 ];
 
 interface SetupModalProps {
@@ -617,7 +624,7 @@ const TiposAcaoTab = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: '',
-    classification: 'relacionamento' as 'relacionamento' | 'venda' | 'projeto' | 'outro',
+    classification: 'relacionamento' as 'relacionamento' | 'venda' | 'projeto' | 'outro' | 'seletiva' | 'apresentacao',
     impactsMetas: [] as string[],
     requiresValue: false,
     additionalFields: false,
@@ -627,7 +634,7 @@ const TiposAcaoTab = () => {
     creditValidityDays: undefined as number | undefined,
   });
 
-  const classLabels = { relacionamento: 'Relacionamento', venda: 'Venda', projeto: 'Projeto', outro: 'Outro' };
+  const classLabels = { relacionamento: 'Relacionamento', venda: 'Venda', projeto: 'Projeto', seletiva: 'Seletiva', apresentacao: 'Apresentação', outro: 'Outro' };
   const validityLabels: Record<string, string> = {
     global: 'Usar configuração global',
     mensal: 'Mensal (até o fim do mês)',

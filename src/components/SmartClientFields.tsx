@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronDown, ChevronUp, Loader2, CheckCircle2 } from 'lucide-react';
 import { fetchClientDataByFocco, fetchClientDataByContract, SmartClientData } from '@/hooks/useSmartClientData';
+import { ContractSelector } from '@/components/ContractSelector';
 
 interface ClientFormData {
   clientName: string;
@@ -25,6 +26,7 @@ interface SmartClientFieldsProps {
   errors?: Record<string, boolean>;
   isVenda?: boolean;
   isApresentacao?: boolean;
+  isSeletiva?: boolean;
   showAllFields?: boolean;
 }
 
@@ -36,6 +38,7 @@ export function SmartClientFields({
   errors = {},
   isVenda = false,
   isApresentacao = false,
+  isSeletiva = false,
   showAllFields = true,
 }: SmartClientFieldsProps) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -124,10 +127,48 @@ export function SmartClientFields({
 
   // Auto-expand when required fields are present
   useEffect(() => {
-    if (isVenda || isApresentacao) {
+    if (isVenda || isApresentacao || isSeletiva) {
       setIsExpanded(true);
     }
-  }, [isVenda, isApresentacao]);
+  }, [isVenda, isApresentacao, isSeletiva]);
+
+  // Handle contract selection from selector (for seletiva actions)
+  const handleContractSelect = useCallback(async (contract: { contractNumber: string }) => {
+    const contractNumber = contract.contractNumber;
+    onFieldChange('contractNumber', contractNumber);
+    
+    // Fetch client data for this contract
+    setIsLoading(true);
+    setDataLoaded(false);
+    
+    try {
+      const data = await fetchClientDataByContract(contractNumber);
+      if (data) {
+        const updates: Partial<ClientFormData> = {};
+        if (data.clientName) updates.clientName = data.clientName;
+        if (data.clientCpfCnpj) updates.clientCpfCnpj = data.clientCpfCnpj;
+        if (data.clientPhone) updates.clientPhone = data.clientPhone;
+        if (data.clientEmail) updates.clientEmail = data.clientEmail;
+        if (data.clientAddress) updates.clientAddress = data.clientAddress;
+        if (data.clientCity) updates.clientCity = data.clientCity;
+        if (data.clientState) updates.clientState = data.clientState;
+        if (data.clientAge) updates.clientAge = data.clientAge;
+        if (data.clientProfession) updates.clientProfession = data.clientProfession;
+        if (data.presentationNumber) updates.presentationNumber = data.presentationNumber;
+        
+        if (Object.keys(updates).length > 0) {
+          onBulkUpdate(updates);
+          setDataLoaded(true);
+        }
+        
+        onClientDataLoaded?.(data);
+      }
+    } catch (err) {
+      console.error('Error fetching client data from contract:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [onFieldChange, onBulkUpdate, onClientDataLoaded]);
 
   const hasAnyData = !!(
     formData.clientName || formData.clientCpfCnpj || formData.clientPhone || 
@@ -188,15 +229,25 @@ export function SmartClientFields({
             </div>
             <div>
               <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.contractNumber ? 'text-destructive' : 'text-muted-foreground'}`}>
-                Nº Contrato {isVenda && '*'}
+                Nº Contrato {(isVenda || isSeletiva) && '*'}
               </label>
-              <input
-                value={formData.contractNumber}
-                onChange={(e) => onFieldChange('contractNumber', e.target.value)}
-                onBlur={handleContractBlur}
-                placeholder={isVenda ? 'Obrigatório' : 'Opcional'}
-                className={`input-flat w-full text-card-foreground ${errors.contractNumber ? 'border-destructive ring-1 ring-destructive' : ''}`}
-              />
+              {isSeletiva ? (
+                <ContractSelector
+                  value={formData.contractNumber}
+                  onChange={(value) => onFieldChange('contractNumber', value)}
+                  onContractSelect={handleContractSelect}
+                  error={errors.contractNumber}
+                  required={true}
+                />
+              ) : (
+                <input
+                  value={formData.contractNumber}
+                  onChange={(e) => onFieldChange('contractNumber', e.target.value)}
+                  onBlur={handleContractBlur}
+                  placeholder={isVenda ? 'Obrigatório' : 'Opcional'}
+                  className={`input-flat w-full text-card-foreground ${errors.contractNumber ? 'border-destructive ring-1 ring-destructive' : ''}`}
+                />
+              )}
               {errors.contractNumber && (
                 <span className="text-xs text-destructive mt-1">Campo obrigatório</span>
               )}
