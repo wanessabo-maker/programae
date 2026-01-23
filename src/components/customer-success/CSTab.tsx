@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { format, differenceInDays, parseISO, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, Check, Clock, AlertCircle, Users, Calendar } from 'lucide-react';
+import { Plus, Check, Clock, AlertCircle, Users, Calendar, Pencil } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useApp } from '@/contexts/AppContext';
@@ -32,8 +32,19 @@ export function CSTab() {
 
   const [showNewCaseModal, setShowNewCaseModal] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [selectedAction, setSelectedAction] = useState<typeof csActions[0] | null>(null);
   const [viewTab, setViewTab] = useState<'cases' | 'upcoming' | 'history'>('cases');
+
+  // Edit action form
+  const [editForm, setEditForm] = useState({
+    scheduled_date: '',
+    action_type_id: '',
+    performed_by: '',
+    notes: '',
+    status: 'pending',
+    completed_date: '',
+  });
 
   // New case form
   const [newCase, setNewCase] = useState({
@@ -187,6 +198,42 @@ export function CSTab() {
     setShowCompleteModal(true);
   };
 
+  const openEditModal = (action: typeof csActions[0]) => {
+    setSelectedAction(action);
+    setEditForm({
+      scheduled_date: action.scheduled_date,
+      action_type_id: action.action_type_id || '',
+      performed_by: action.performed_by || '',
+      notes: action.notes || '',
+      status: action.status,
+      completed_date: action.completed_date || '',
+    });
+    setShowEditModal(true);
+  };
+
+  const handleEditAction = async () => {
+    if (!selectedAction) return;
+
+    try {
+      await updateActionMutation.mutateAsync({
+        id: selectedAction.id,
+        scheduled_date: editForm.scheduled_date,
+        action_type_id: editForm.action_type_id || null,
+        performed_by: editForm.performed_by || null,
+        notes: editForm.notes || null,
+        status: editForm.status,
+        completed_date: editForm.status === 'completed' ? (editForm.completed_date || null) : null,
+      });
+
+      toast({ title: 'Ocorrência atualizada com sucesso' });
+      setShowEditModal(false);
+      setSelectedAction(null);
+    } catch (error) {
+      console.error(error);
+      toast({ title: 'Erro ao atualizar ocorrência', variant: 'destructive' });
+    }
+  };
+
   const getDaysUntil = (dateStr: string) => {
     return differenceInDays(parseISO(dateStr), new Date());
   };
@@ -321,13 +368,22 @@ export function CSTab() {
                           <div className="text-xs text-muted-foreground">
                             {csCase.nextAction.schedule_name || 'Próximo contato'}
                           </div>
-                          <button
-                            onClick={() => openCompleteModal(csCase.nextAction)}
-                            className="mt-2 btn-primary bg-foreground text-background text-xs px-3 py-1 flex items-center gap-1"
-                          >
-                            <Check className="w-3 h-3" />
-                            Concluir
-                          </button>
+                          <div className="flex gap-1 mt-2">
+                            <button
+                              onClick={() => openCompleteModal(csCase.nextAction)}
+                              className="btn-primary bg-foreground text-background text-xs px-3 py-1 flex items-center gap-1"
+                            >
+                              <Check className="w-3 h-3" />
+                              Concluir
+                            </button>
+                            <button
+                              onClick={() => openEditModal(csCase.nextAction)}
+                              className="btn-secondary border-border text-xs px-2 py-1"
+                              title="Editar"
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </button>
+                          </div>
                         </div>
                       ) : (
                         <div className="text-xs px-3 py-1.5 bg-success/10 text-success rounded">
@@ -389,13 +445,22 @@ export function CSTab() {
                       <div className="text-xs text-muted-foreground">
                         {format(parseISO(action.scheduled_date), "dd/MM/yyyy", { locale: ptBR })}
                       </div>
-                      <button
-                        onClick={() => openCompleteModal(action)}
-                        className="btn-primary bg-foreground text-background text-xs px-3 py-1.5 flex items-center gap-1"
-                      >
-                        <Check className="w-3 h-3" />
-                        Concluir
-                      </button>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => openCompleteModal(action)}
+                          className="btn-primary bg-foreground text-background text-xs px-3 py-1.5 flex items-center gap-1"
+                        >
+                          <Check className="w-3 h-3" />
+                          Concluir
+                        </button>
+                        <button
+                          onClick={() => openEditModal(action)}
+                          className="btn-secondary border-border text-xs px-2 py-1.5"
+                          title="Editar"
+                        >
+                          <Pencil className="w-3 h-3" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -424,6 +489,7 @@ export function CSTab() {
                     <th className="text-left p-2 font-medium uppercase tracking-widest">Cliente</th>
                     <th className="text-left p-2 font-medium uppercase tracking-widest">Tipo</th>
                     <th className="text-left p-2 font-medium uppercase tracking-widest">Realizado por</th>
+                    <th className="text-left p-2 font-medium uppercase tracking-widest">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -439,6 +505,15 @@ export function CSTab() {
                       <td className="p-2">{action.client_name || 'N/A'}</td>
                       <td className="p-2">{action.action_type_name || action.schedule_name || 'Contato'}</td>
                       <td className="p-2">{action.performed_by_name || 'N/A'}</td>
+                      <td className="p-2">
+                        <button
+                          onClick={() => openEditModal(action)}
+                          className="btn-secondary border-border text-xs px-2 py-1"
+                          title="Editar"
+                        >
+                          <Pencil className="w-3 h-3" />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -640,6 +715,125 @@ export function CSTab() {
             </button>
             <button
               onClick={() => setShowCompleteModal(false)}
+              className="btn-secondary border-border flex-1"
+            >
+              Cancelar
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Action Modal */}
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm uppercase tracking-widest">
+              Editar Ocorrência de CS
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {selectedAction && (
+              <div className="p-3 bg-muted/30 border border-border text-xs">
+                <p className="font-medium">{selectedAction.schedule_name || 'Contato CS'}</p>
+                <p className="text-muted-foreground">
+                  Contrato: {selectedAction.case_contract_number} | Cliente: {selectedAction.client_name || 'N/A'}
+                </p>
+              </div>
+            )}
+
+            <div>
+              <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                Status
+              </label>
+              <select
+                value={editForm.status}
+                onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                className="input-flat w-full mt-1"
+              >
+                <option value="pending">Pendente</option>
+                <option value="completed">Concluída</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                Data Agendada
+              </label>
+              <input
+                type="date"
+                value={editForm.scheduled_date}
+                onChange={(e) => setEditForm({ ...editForm, scheduled_date: e.target.value })}
+                className="input-flat w-full mt-1"
+              />
+            </div>
+
+            {editForm.status === 'completed' && (
+              <div>
+                <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                  Data de Conclusão
+                </label>
+                <input
+                  type="date"
+                  value={editForm.completed_date}
+                  onChange={(e) => setEditForm({ ...editForm, completed_date: e.target.value })}
+                  className="input-flat w-full mt-1"
+                />
+              </div>
+            )}
+
+            <div>
+              <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                Tipo de Ação
+              </label>
+              <select
+                value={editForm.action_type_id}
+                onChange={(e) => setEditForm({ ...editForm, action_type_id: e.target.value })}
+                className="input-flat w-full mt-1"
+              >
+                <option value="">Selecione</option>
+                {actionTypes.filter(t => t.is_active).map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                Realizado por
+              </label>
+              <select
+                value={editForm.performed_by}
+                onChange={(e) => setEditForm({ ...editForm, performed_by: e.target.value })}
+                className="input-flat w-full mt-1"
+              >
+                <option value="">Selecione</option>
+                {activeTeamMembers.map((m) => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                Observações
+              </label>
+              <textarea
+                value={editForm.notes}
+                onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                className="input-flat w-full mt-1 h-20 resize-none"
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={handleEditAction}
+              className="btn-primary bg-foreground text-background flex-1"
+            >
+              Salvar Alterações
+            </button>
+            <button
+              onClick={() => setShowEditModal(false)}
               className="btn-secondary border-border flex-1"
             >
               Cancelar
