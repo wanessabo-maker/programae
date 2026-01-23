@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, AlertCircle, Eye, Check, Clock, Calendar, Wrench, UserPlus } from 'lucide-react';
+import { Plus, AlertCircle, Eye, Check, Clock, Calendar, Wrench, UserPlus, Pencil, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useApp } from '@/contexts/AppContext';
 import {
@@ -11,6 +12,7 @@ import {
   useCreateTechnicalAssistance,
   useUpdateTechnicalAssistance,
   useCloseTechnicalAssistance,
+  useDeleteTechnicalAssistance,
   useATActionTypes,
   TechnicalAssistance,
 } from '@/hooks/useTechnicalAssistance';
@@ -29,11 +31,14 @@ export function ATTab() {
   const createMutation = useCreateTechnicalAssistance();
   const updateMutation = useUpdateTechnicalAssistance();
   const closeMutation = useCloseTechnicalAssistance();
+  const deleteMutation = useDeleteTechnicalAssistance();
   const createClientMutation = useCreateClient();
 
   const [showNewModal, setShowNewModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [showCloseModal, setShowCloseModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedCase, setSelectedCase] = useState<TechnicalAssistance | null>(null);
   const [viewTab, setViewTab] = useState<'open' | 'closed'>('open');
 
@@ -49,6 +54,23 @@ export function ATTab() {
     scheduled_date: '',
     contract_number: '',
     action_type_id: '',
+  });
+
+  // Edit case form
+  const [editForm, setEditForm] = useState({
+    title: '',
+    description: '',
+    priority: 'medium',
+    client_id: '',
+    project_id: '',
+    responsible_id: '',
+    contact_date: '',
+    scheduled_date: '',
+    visit_date: '',
+    solution_date: '',
+    contract_number: '',
+    action_type_id: '',
+    resolution_notes: '',
   });
 
   // Close case form
@@ -223,6 +245,79 @@ export function ATTab() {
     setShowCloseModal(true);
   };
 
+  const openEditModal = (atCase: TechnicalAssistance) => {
+    setSelectedCase(atCase);
+    setEditForm({
+      title: atCase.title || '',
+      description: atCase.description || '',
+      priority: atCase.priority || 'medium',
+      client_id: atCase.client_id || '',
+      project_id: atCase.project_id || '',
+      responsible_id: atCase.responsible_id || '',
+      contact_date: atCase.contact_date || '',
+      scheduled_date: atCase.scheduled_date || '',
+      visit_date: atCase.visit_date || '',
+      solution_date: atCase.solution_date || '',
+      contract_number: atCase.contract_number || '',
+      action_type_id: atCase.action_type_id || '',
+      resolution_notes: atCase.resolution_notes || '',
+    });
+    setShowEditModal(true);
+  };
+
+  const openDeleteDialog = (atCase: TechnicalAssistance) => {
+    setSelectedCase(atCase);
+    setShowDeleteDialog(true);
+  };
+
+  const handleEditCase = async () => {
+    if (!selectedCase) return;
+    
+    if (!editForm.title.trim()) {
+      toast({ title: 'O título é obrigatório', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      await updateMutation.mutateAsync({
+        id: selectedCase.id,
+        title: editForm.title.trim(),
+        description: editForm.description.trim() || null,
+        priority: editForm.priority,
+        client_id: editForm.client_id || null,
+        project_id: editForm.project_id || null,
+        responsible_id: editForm.responsible_id || null,
+        contact_date: editForm.contact_date || null,
+        scheduled_date: editForm.scheduled_date || null,
+        visit_date: editForm.visit_date || null,
+        contract_number: editForm.contract_number.trim() || null,
+        action_type_id: editForm.action_type_id || null,
+        resolution_notes: editForm.resolution_notes.trim() || null,
+      });
+
+      toast({ title: 'Chamado atualizado com sucesso' });
+      setShowEditModal(false);
+      setSelectedCase(null);
+    } catch (error) {
+      console.error(error);
+      toast({ title: 'Erro ao atualizar chamado', variant: 'destructive' });
+    }
+  };
+
+  const handleDeleteCase = async () => {
+    if (!selectedCase) return;
+
+    try {
+      await deleteMutation.mutateAsync(selectedCase.id);
+      toast({ title: 'Chamado excluído com sucesso' });
+      setShowDeleteDialog(false);
+      setSelectedCase(null);
+    } catch (error) {
+      console.error(error);
+      toast({ title: 'Erro ao excluir chamado', variant: 'destructive' });
+    }
+  };
+
   const getPriorityBadge = (priority: string) => {
     const styles: Record<string, string> = {
       high: 'bg-destructive/10 text-destructive',
@@ -345,6 +440,20 @@ export function ATTab() {
                       </div>
                       <div className="flex items-center gap-2">
                         <button
+                          onClick={() => openEditModal(atCase)}
+                          className="btn-secondary border-border text-xs px-2 py-1.5"
+                          title="Editar"
+                        >
+                          <Pencil className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={() => openDeleteDialog(atCase)}
+                          className="btn-secondary border-destructive text-destructive text-xs px-2 py-1.5"
+                          title="Excluir"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                        <button
                           onClick={() => openViewModal(atCase)}
                           className="btn-secondary border-border text-xs px-3 py-1.5 flex items-center gap-1"
                         >
@@ -393,6 +502,7 @@ export function ATTab() {
                     <th className="text-left p-2 font-medium uppercase tracking-widest">Visita</th>
                     <th className="text-left p-2 font-medium uppercase tracking-widest">Solução</th>
                     <th className="text-left p-2 font-medium uppercase tracking-widest">Dias</th>
+                    <th className="text-left p-2 font-medium uppercase tracking-widest">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -426,6 +536,24 @@ export function ATTab() {
                           <span className={totalDays > 30 ? 'text-destructive' : ''}>
                             {totalDays}d
                           </span>
+                        </td>
+                        <td className="p-2">
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => openEditModal(atCase)}
+                              className="p-1 hover:bg-muted rounded"
+                              title="Editar"
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={() => openDeleteDialog(atCase)}
+                              className="p-1 hover:bg-muted rounded text-destructive"
+                              title="Excluir"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -852,6 +980,209 @@ export function ATTab() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Case Modal */}
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-sm uppercase tracking-widest">
+              Editar Chamado de AT
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+            <div>
+              <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                Título *
+              </label>
+              <input
+                value={editForm.title}
+                onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                className="input-flat w-full mt-1"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                Cliente
+              </label>
+              <select
+                value={editForm.client_id}
+                onChange={(e) => setEditForm({ ...editForm, client_id: e.target.value })}
+                className="input-flat w-full mt-1"
+              >
+                <option value="">Selecione</option>
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                  Prioridade
+                </label>
+                <select
+                  value={editForm.priority}
+                  onChange={(e) => setEditForm({ ...editForm, priority: e.target.value })}
+                  className="input-flat w-full mt-1"
+                >
+                  <option value="low">Baixa</option>
+                  <option value="medium">Média</option>
+                  <option value="high">Alta</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                  Tipo de Ação
+                </label>
+                <select
+                  value={editForm.action_type_id}
+                  onChange={(e) => setEditForm({ ...editForm, action_type_id: e.target.value })}
+                  className="input-flat w-full mt-1"
+                >
+                  <option value="">Selecione</option>
+                  {actionTypes.filter(t => t.is_active).map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                  Data do Contato
+                </label>
+                <input
+                  type="date"
+                  value={editForm.contact_date}
+                  onChange={(e) => setEditForm({ ...editForm, contact_date: e.target.value })}
+                  className="input-flat w-full mt-1"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                  Data da Visita
+                </label>
+                <input
+                  type="date"
+                  value={editForm.visit_date}
+                  onChange={(e) => setEditForm({ ...editForm, visit_date: e.target.value })}
+                  className="input-flat w-full mt-1"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                  Projeto
+                </label>
+                <select
+                  value={editForm.project_id}
+                  onChange={(e) => setEditForm({ ...editForm, project_id: e.target.value })}
+                  className="input-flat w-full mt-1"
+                >
+                  <option value="">Selecione</option>
+                  {closedProjects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.focco_project_number || p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                  Nº Contrato
+                </label>
+                <input
+                  value={editForm.contract_number}
+                  onChange={(e) => setEditForm({ ...editForm, contract_number: e.target.value })}
+                  className="input-flat w-full mt-1"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                Responsável
+              </label>
+              <select
+                value={editForm.responsible_id}
+                onChange={(e) => setEditForm({ ...editForm, responsible_id: e.target.value })}
+                className="input-flat w-full mt-1"
+              >
+                <option value="">Selecione</option>
+                {activeTeamMembers.map((m) => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                Descrição
+              </label>
+              <textarea
+                value={editForm.description}
+                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                className="input-flat w-full mt-1 h-20 resize-none"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                Notas de Resolução
+              </label>
+              <textarea
+                value={editForm.resolution_notes}
+                onChange={(e) => setEditForm({ ...editForm, resolution_notes: e.target.value })}
+                className="input-flat w-full mt-1 h-20 resize-none"
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={handleEditCase}
+              className="btn-primary bg-foreground text-background flex-1"
+            >
+              Salvar Alterações
+            </button>
+            <button
+              onClick={() => setShowEditModal(false)}
+              className="btn-secondary border-border flex-1"
+            >
+              Cancelar
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Chamado de AT</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o chamado "{selectedCase?.title}"? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteCase}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
