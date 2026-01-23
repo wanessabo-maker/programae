@@ -10,14 +10,12 @@ import {
   useCreateCSCase,
   useCSActions,
   useUpcomingCSActions,
-  useCreateCSAction,
   useUpdateCSAction,
   useCSContactSchedules,
   useCSActionTypes,
   generateCSActionsForCase,
 } from '@/hooks/useCustomerSuccess';
 import { useProjects } from '@/hooks/useProjects';
-import { useClients } from '@/hooks/useClients';
 
 export function CSTab() {
   const { toast } = useToast();
@@ -379,7 +377,7 @@ export function CSTab() {
                 <option value="">Selecione um contrato</option>
                 {closedProjects.map((p) => (
                   <option key={p.id} value={p.focco_project_number || p.id}>
-                    {p.focco_project_number || p.name} - {p.client_name || 'Cliente não vinculado'}
+                    {p.focco_project_number || p.name} - {p.clients?.name || 'Cliente não vinculado'}
                   </option>
                 ))}
               </select>
