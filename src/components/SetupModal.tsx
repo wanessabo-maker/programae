@@ -331,12 +331,12 @@ const MetasTab = () => {
     setEditingId(null);
   };
 
-  const typeLabels: Record<string, string> = { 
-    acoes: 'Ações', 
-    vendas: 'Vendas', 
-    captacao: 'Captação', 
-    projeto: 'Projeto',
-    categoria: '% Categoria'
+  const typeLabels: Record<string, { label: string; description: string }> = { 
+    acoes: { label: 'Ações', description: 'Total de atividades registradas pelo colaborador' },
+    vendas: { label: 'Vendas', description: 'Valor total de vendas fechadas (R$)' },
+    captacao: { label: 'Captação', description: 'Quantidade de ações que impactam a meta de captação' },
+    projeto: { label: 'Projeto', description: 'Quantidade de ações que impactam a meta de projetos' },
+    categoria: { label: '% Categoria', description: 'Percentual de especificadores em determinada categoria' }
   };
 
   const validityLabels: Record<string, string> = {
@@ -352,7 +352,7 @@ const MetasTab = () => {
       const cat = professionalCategories.find(c => c.id === meta.categoryId);
       return `% ${cat?.name || 'Categoria'}`;
     }
-    return typeLabels[meta.type];
+    return typeLabels[meta.type]?.label || meta.type;
   };
 
   const isMetaExpired = (meta: typeof metas[0]) => {
@@ -389,9 +389,12 @@ const MetasTab = () => {
             <option value="">Colaborador</option>
             {filteredTeamMembers.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}
           </select>
-          <select value={newType} onChange={(e) => setNewType(e.target.value as typeof newType)} className="input-flat text-card-foreground">
-            {Object.entries(typeLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </select>
+          <div className="flex flex-col">
+            <select value={newType} onChange={(e) => setNewType(e.target.value as typeof newType)} className="input-flat text-card-foreground">
+              {Object.entries(typeLabels).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+            </select>
+            <span className="text-[10px] text-muted-foreground mt-1">{typeLabels[newType]?.description}</span>
+          </div>
           {newType === 'categoria' && (
             <select value={newCategoryId} onChange={(e) => setNewCategoryId(e.target.value)} className="input-flat text-card-foreground">
               <option value="">Selecione a Categoria</option>
