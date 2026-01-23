@@ -11,6 +11,9 @@ export interface TeamMember {
   userId?: string;
 }
 
+// Available additional fields that can be enabled per action type
+export type AdditionalFieldKey = 'clientName' | 'clientAge' | 'clientProfession' | 'presentationNumber' | 'foccoProjectNumber';
+
 export interface ActionType {
   id: string;
   name: string;
@@ -18,6 +21,7 @@ export interface ActionType {
   impactsMetas: ('acoes' | 'vendas' | 'captacao' | 'projeto')[];
   requiresValue: boolean;
   additionalFields: boolean;
+  enabledFields: AdditionalFieldKey[]; // Which specific fields are enabled
   programPoints: number;
   creditValidityType: 'global' | 'mensal' | 'anual' | 'dias' | 'personalizado' | 'sem_validade';
   creditValidityDays?: number;

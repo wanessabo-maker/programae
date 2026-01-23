@@ -130,6 +130,7 @@ function transformActionType(dbType: {
   impacts: string[] | null;
   requires_value: boolean | null;
   additional_fields: boolean | null;
+  enabled_fields: string[] | null;
   points: number | null;
   credit_validity_type: string | null;
   credit_validity_days: number | null;
@@ -141,6 +142,7 @@ function transformActionType(dbType: {
     impactsMetas: (dbType.impacts || []) as ActionType['impactsMetas'],
     requiresValue: dbType.requires_value ?? false,
     additionalFields: dbType.additional_fields ?? false,
+    enabledFields: (dbType.enabled_fields || []) as ActionType['enabledFields'],
     programPoints: dbType.points ?? 0,
     creditValidityType: (dbType.credit_validity_type as ActionType['creditValidityType']) ?? 'global',
     creditValidityDays: dbType.credit_validity_days ?? undefined,
@@ -415,6 +417,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       impacts: type.impactsMetas,
       requires_value: type.requiresValue,
       additional_fields: type.additionalFields,
+      enabled_fields: type.enabledFields || [],
       points: type.programPoints,
       credit_validity_type: type.creditValidityType,
       credit_validity_days: type.creditValidityDays ?? null,
@@ -429,6 +432,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       impacts: type.impactsMetas,
       requires_value: type.requiresValue,
       additional_fields: type.additionalFields,
+      enabled_fields: type.enabledFields,
       points: type.programPoints,
       credit_validity_type: type.creditValidityType,
       credit_validity_days: type.creditValidityDays ?? null,
