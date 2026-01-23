@@ -543,6 +543,60 @@ export function useDeleteAction() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
+      // First, get the action to find related data
+      const { data: action, error: actionError } = await supabase
+        .from('actions')
+        .select('project_id, focco_project_number, consultant_id')
+        .eq('id', id)
+        .single();
+      
+      if (actionError) throw actionError;
+      
+      // Delete credit transactions linked to this action
+      await supabase.from('credit_transactions').delete().eq('action_id', id);
+      
+      // If action has a project_id, handle cascade deletion
+      if (action?.project_id) {
+        // Get project to find client_id
+        const { data: project } = await supabase
+          .from('projects')
+          .select('client_id')
+          .eq('id', action.project_id)
+          .single();
+        
+        if (project?.client_id) {
+          // Delete CS cases linked to client
+          const { data: csCases } = await supabase
+            .from('cs_cases')
+            .select('id')
+            .eq('client_id', project.client_id);
+          
+          if (csCases && csCases.length > 0) {
+            const csCaseIds = csCases.map(c => c.id);
+            // Delete CS actions linked to CS cases
+            await supabase.from('cs_actions').delete().in('cs_case_id', csCaseIds);
+            // Delete CS cases
+            await supabase.from('cs_cases').delete().eq('client_id', project.client_id);
+          }
+          
+          // Delete technical assistance linked to client
+          await supabase.from('technical_assistance').delete().eq('client_id', project.client_id);
+          
+          // Delete customer success records linked to client
+          await supabase.from('customer_success').delete().eq('client_id', project.client_id);
+          
+          // Delete client interactions
+          await supabase.from('client_interactions').delete().eq('client_id', project.client_id);
+          
+          // Delete the client
+          await supabase.from('clients').delete().eq('id', project.client_id);
+        }
+        
+        // Delete the project
+        await supabase.from('projects').delete().eq('id', action.project_id);
+      }
+      
+      // Finally, delete the action
       const { error } = await supabase.from('actions').delete().eq('id', id);
       if (error) throw error;
     },
@@ -550,6 +604,12 @@ export function useDeleteAction() {
       queryClient.invalidateQueries({ queryKey: ['actions'] });
       queryClient.invalidateQueries({ queryKey: ['professionals'] });
       queryClient.invalidateQueries({ queryKey: ['credit_transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['cs_cases'] });
+      queryClient.invalidateQueries({ queryKey: ['cs_actions'] });
+      queryClient.invalidateQueries({ queryKey: ['technical_assistance'] });
+      queryClient.invalidateQueries({ queryKey: ['customer_success'] });
     },
   });
 }
