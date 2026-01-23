@@ -583,12 +583,18 @@ export default function Dashboard() {
 
                         {consultant.categoryBreakdown.length > 0 && consultant.categoryBreakdown.some(c => c.count > 0) && (
                           <div className="pt-2 border-t border-black/10">
-                            <div className="flex flex-wrap gap-2">
-                              {consultant.categoryBreakdown.filter(c => c.count > 0).map((cat) => (
-                                <span key={cat.name} className="text-[10px] text-muted-foreground">
-                                  {cat.name}: {cat.count}
-                                </span>
-                              ))}
+                            <div className="text-[10px] text-muted-foreground mb-1 uppercase tracking-wider">Categorias</div>
+                            <div className="flex flex-wrap gap-x-3 gap-y-1">
+                              {consultant.categoryBreakdown.filter(c => c.count > 0).map((cat) => {
+                                const percentage = consultant.totalProfessionals > 0 
+                                  ? ((cat.count / consultant.totalProfessionals) * 100).toFixed(2)
+                                  : '0.00';
+                                return (
+                                  <span key={cat.name} className="text-[10px] text-muted-foreground">
+                                    {cat.name}: {cat.count} <span className="text-foreground font-medium">({percentage}%)</span>
+                                  </span>
+                                );
+                              })}
                             </div>
                           </div>
                         )}
