@@ -41,8 +41,7 @@ export function ContractSelector({
           .select(`
             id,
             focco_project_number,
-            client_id,
-            clients (
+            client:client_id (
               id,
               name,
               contract_number
@@ -56,24 +55,23 @@ export function ContractSelector({
           return;
         }
 
-        console.log('ContractSelector - fetched projects:', projects);
-
-        if (projectsError) {
-          console.error('Error fetching contracts:', projectsError);
-          return;
-        }
-
         // Transform data to Contract format
         const contractsList: Contract[] = [];
         projects?.forEach((project) => {
-          const client = project.clients as { id: string; name: string; contract_number: string } | null;
-          if (client?.contract_number) {
+          const rawClient = (project as unknown as { client?: unknown }).client;
+          const client = (Array.isArray(rawClient) ? rawClient[0] : rawClient) as
+            | { id: string; name: string | null; contract_number: string | null }
+            | null
+            | undefined;
+
+          const contractNumber = client?.contract_number?.trim();
+          if (contractNumber) {
             // Avoid duplicates
-            if (!contractsList.find(c => c.contractNumber === client.contract_number)) {
+            if (!contractsList.find(c => c.contractNumber === contractNumber)) {
               contractsList.push({
                 id: project.id,
-                contractNumber: client.contract_number,
-                clientName: client.name || 'Cliente não identificado',
+                contractNumber,
+                clientName: client?.name || 'Cliente não identificado',
                 foccoNumber: project.focco_project_number || '',
               });
             }
