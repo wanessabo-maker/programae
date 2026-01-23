@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp, Loader2, CheckCircle2 } from 'lucide-react';
 import { fetchClientDataByFocco, fetchClientDataByContract, SmartClientData } from '@/hooks/useSmartClientData';
 import { ContractSelector } from '@/components/ContractSelector';
 import { AdditionalFieldKey } from '@/types';
+import { useProfessions } from '@/hooks/useProfessions';
 
 interface ClientFormData {
   clientName: string;
@@ -49,6 +50,12 @@ export function SmartClientFields({
   const [dataLoaded, setDataLoaded] = useState(false);
   const lastFoccoRef = useRef<string>('');
   const lastContractRef = useRef<string>('');
+  
+  // Profession autocomplete state
+  const { professions } = useProfessions();
+  const [showProfessionSuggestions, setShowProfessionSuggestions] = useState(false);
+  const [filteredProfessions, setFilteredProfessions] = useState<string[]>([]);
+  const professionInputRef = useRef<HTMLInputElement>(null);
 
   // Helper to check if a field is enabled
   const isFieldEnabled = useCallback((field: AdditionalFieldKey) => {
@@ -384,15 +391,75 @@ export function SmartClientFields({
                   </div>
                 )}
                 {isFieldEnabled('clientProfession') && (
-                  <div>
+                  <div className="relative">
                     <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
                       Profissão
                     </label>
                     <input
+                      ref={professionInputRef}
                       value={formData.clientProfession}
-                      onChange={(e) => onFieldChange('clientProfession', e.target.value)}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        onFieldChange('clientProfession', value);
+                        
+                        // Filter professions based on input
+                        if (value.trim()) {
+                          const filtered = professions.filter(p => 
+                            p.toLowerCase().includes(value.toLowerCase())
+                          );
+                          setFilteredProfessions(filtered);
+                          setShowProfessionSuggestions(filtered.length > 0);
+                        } else {
+                          setFilteredProfessions(professions);
+                          setShowProfessionSuggestions(professions.length > 0);
+                        }
+                      }}
+                      onFocus={() => {
+                        const value = formData.clientProfession.trim();
+                        if (value) {
+                          const filtered = professions.filter(p => 
+                            p.toLowerCase().includes(value.toLowerCase())
+                          );
+                          setFilteredProfessions(filtered);
+                          setShowProfessionSuggestions(filtered.length > 0);
+                        } else {
+                          setFilteredProfessions(professions);
+                          setShowProfessionSuggestions(professions.length > 0);
+                        }
+                      }}
+                      onBlur={() => {
+                        // Delay to allow click on suggestion
+                        setTimeout(() => setShowProfessionSuggestions(false), 200);
+                      }}
+                      placeholder="Digite para buscar..."
                       className="input-flat w-full text-card-foreground"
+                      autoComplete="off"
                     />
+                    
+                    {/* Profession Suggestions Dropdown */}
+                    {showProfessionSuggestions && filteredProfessions.length > 0 && (
+                      <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg max-h-48 overflow-auto">
+                        {filteredProfessions.slice(0, 10).map((profession, index) => (
+                          <button
+                            key={index}
+                            type="button"
+                            className="w-full px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground transition-colors"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              onFieldChange('clientProfession', profession);
+                              setShowProfessionSuggestions(false);
+                            }}
+                          >
+                            {profession}
+                          </button>
+                        ))}
+                        {filteredProfessions.length > 10 && (
+                          <div className="px-3 py-2 text-xs text-muted-foreground border-t border-border">
+                            +{filteredProfessions.length - 10} mais...
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
