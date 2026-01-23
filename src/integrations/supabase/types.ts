@@ -808,6 +808,58 @@ export type Database = {
           },
         ]
       }
+      project_value_history: {
+        Row: {
+          action_id: string | null
+          consultant_id: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          presented_value: number
+          project_id: string
+        }
+        Insert: {
+          action_id?: string | null
+          consultant_id?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          presented_value: number
+          project_id: string
+        }
+        Update: {
+          action_id?: string | null
+          consultant_id?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          presented_value?: number
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_value_history_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_value_history_consultant_id_fkey"
+            columns: ["consultant_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_value_history_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           actual_delivery: string | null

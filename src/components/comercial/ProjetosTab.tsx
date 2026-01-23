@@ -7,6 +7,7 @@ import { useClients, useUpdateClient } from '@/hooks/useClients';
 import { useProfessionals, useTeamMembers } from '@/hooks/useDatabase';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { ProjectValueHistory } from '@/components/ProjectValueHistory';
 
 interface ProjectFormData {
   name: string;
@@ -320,10 +321,16 @@ export default function ProjetosTab() {
                     )}
                     
                     {project.estimated_value && (
-                      <p className="text-xs font-medium flex items-center gap-1 mb-2">
-                        <DollarSign className="w-3 h-3" />
-                        {formatCurrency(project.estimated_value)}
-                      </p>
+                      <div className="mb-2">
+                        <p className="text-xs font-medium flex items-center gap-1">
+                          <DollarSign className="w-3 h-3" />
+                          {formatCurrency(project.estimated_value)}
+                        </p>
+                        <ProjectValueHistory 
+                          projectId={project.id} 
+                          currentValue={project.estimated_value} 
+                        />
+                      </div>
                     )}
                     
                     {/* Move buttons */}
