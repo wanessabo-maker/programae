@@ -446,8 +446,46 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
         }
       }
 
+      // Handle Seletiva - works with already sold projects (closed_won) and contract number
+      if (isSeletiva && form.foccoProjectNumber.trim()) {
+        const foccoNumber = form.foccoProjectNumber.trim();
+        
+        try {
+          const existingProject = await findProjectByFocco(foccoNumber);
+          
+          if (existingProject) {
+            projectId = existingProject.id;
+            
+            // Update client with contract number if provided
+            if (existingProject.client_id) {
+              clientId = existingProject.client_id;
+              await updateClientData(existingProject.client_id, {
+                contract_number: form.contractNumber.trim() || undefined,
+                name: form.clientName.trim() || undefined,
+                cpf_cnpj: form.clientCpfCnpj.trim() || undefined,
+                phone: form.clientPhone.trim() || undefined,
+                email: form.clientEmail.trim() || undefined,
+                address: form.clientAddress.trim() || undefined,
+                city: form.clientCity.trim() || undefined,
+                state: form.clientState.trim() || undefined,
+                age: form.clientAge ? Number(form.clientAge) : undefined,
+                profession: form.clientProfession.trim() || undefined,
+              });
+            }
+            
+            toast.success(`Ação vinculada ao projeto vendido FOCCO ${foccoNumber}`);
+          } else {
+            toast.error(`Projeto FOCCO ${foccoNumber} não encontrado entre os vendidos.`);
+            setIsSubmitting(false);
+            return;
+          }
+        } catch (err) {
+          console.error('Error in seletiva project flow:', err);
+        }
+      }
+
       // For any other action with FOCCO number - update client data progressively
-      if (!isApresentacaoProjeto && !isVenda && form.foccoProjectNumber.trim()) {
+      if (!isApresentacaoProjeto && !isVenda && !isSeletiva && form.foccoProjectNumber.trim()) {
         const existingProject = await findProjectByFocco(form.foccoProjectNumber.trim());
         if (existingProject?.client_id) {
           await updateClientData(existingProject.client_id, {
