@@ -734,6 +734,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             enabledFields={selectedActionType?.enabledFields || []}
             isVenda={isVenda}
             isApresentacao={isApresentacaoProjeto}
+            professionalId={form.professionalId}
+            consultantId={form.consultantId}
           />
 
           <button 

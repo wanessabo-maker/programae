@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp, Loader2, CheckCircle2 } from 'lucide-react';
 import { fetchClientDataByFocco, fetchClientDataByContract, SmartClientData } from '@/hooks/useSmartClientData';
 import { AdditionalFieldKey } from '@/types';
 import { ProfessionAutocomplete } from './ProfessionAutocomplete';
+import { FoccoProjectSelector } from './FoccoProjectSelector';
 
 interface ClientFormData {
   clientName: string;
@@ -28,6 +29,8 @@ interface SmartClientFieldsProps {
   enabledFields?: AdditionalFieldKey[]; // Fields enabled for this action type
   isVenda?: boolean;
   isApresentacao?: boolean;
+  professionalId?: string;
+  consultantId?: string;
 }
 
 // Field configuration with labels and grouping
@@ -71,6 +74,8 @@ export function SmartClientFields({
   enabledFields = [],
   isVenda = false,
   isApresentacao = false,
+  professionalId,
+  consultantId,
 }: SmartClientFieldsProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -235,6 +240,53 @@ export function SmartClientFields({
       if (fieldKey === 'contractNumber') return handleContractBlur;
       return undefined;
     };
+
+    // Special handling for FOCCO project number in VENDA - use project selector
+    if (fieldKey === 'foccoProjectNumber' && isVenda) {
+      return (
+        <div key={fieldKey}>
+          <label className={`text-xs tracking-widest uppercase block mb-2 ${hasError ? 'text-destructive' : 'text-muted-foreground'}`}>
+            {config.label} {isRequired && '*'}
+          </label>
+          <FoccoProjectSelector
+            value={value}
+            onChange={async (foccoNumber, project) => {
+              onFieldChange('foccoProjectNumber', foccoNumber);
+              // Auto-load client data when project is selected
+              if (foccoNumber) {
+                const data = await fetchClientDataByFocco(foccoNumber);
+                if (data) {
+                  const updates: Partial<ClientFormData> = {};
+                  if (data.clientName) updates.clientName = data.clientName;
+                  if (data.clientCpfCnpj) updates.clientCpfCnpj = data.clientCpfCnpj;
+                  if (data.clientPhone) updates.clientPhone = data.clientPhone;
+                  if (data.clientEmail) updates.clientEmail = data.clientEmail;
+                  if (data.clientAddress) updates.clientAddress = data.clientAddress;
+                  if (data.clientCity) updates.clientCity = data.clientCity;
+                  if (data.clientState) updates.clientState = data.clientState;
+                  if (data.clientAge) updates.clientAge = data.clientAge;
+                  if (data.clientProfession) updates.clientProfession = data.clientProfession;
+                  if (data.contractNumber) updates.contractNumber = data.contractNumber;
+                  
+                  if (Object.keys(updates).length > 0) {
+                    onBulkUpdate(updates);
+                    setDataLoaded(true);
+                  }
+                  
+                  onClientDataLoaded?.(data);
+                }
+              }
+            }}
+            professionalId={professionalId}
+            consultantId={consultantId}
+            hasError={hasError}
+          />
+          {hasError && (
+            <span className="text-xs text-destructive mt-1">Campo obrigatório</span>
+          )}
+        </div>
+      );
+    }
 
     // Special handling for profession field - use autocomplete
     if (fieldKey === 'clientProfession') {
