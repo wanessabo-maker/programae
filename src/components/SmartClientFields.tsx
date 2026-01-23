@@ -18,6 +18,7 @@ interface ClientFormData {
   presentationNumber: string;
   foccoProjectNumber: string;
   contractNumber: string;
+  presentedValue: string;
 }
 
 interface SmartClientFieldsProps {
@@ -294,19 +295,36 @@ export function SmartClientFields({
             )}
           </div>
 
-          {/* Presentation Number */}
-          {isFieldEnabled('presentationNumber') && (
+          {/* Presentation Number and Presented Value */}
+          {(isFieldEnabled('presentationNumber') || isFieldEnabled('presentedValue')) && (
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
-                  Nº Apresentação
-                </label>
-                <input
-                  value={formData.presentationNumber}
-                  onChange={(e) => onFieldChange('presentationNumber', e.target.value)}
-                  className="input-flat w-full text-card-foreground"
-                />
-              </div>
+              {isFieldEnabled('presentationNumber') && (
+                <div>
+                  <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
+                    Nº Apresentação
+                  </label>
+                  <input
+                    value={formData.presentationNumber}
+                    onChange={(e) => onFieldChange('presentationNumber', e.target.value)}
+                    className="input-flat w-full text-card-foreground"
+                  />
+                </div>
+              )}
+              {isFieldEnabled('presentedValue') && (
+                <div>
+                  <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
+                    Valor Apresentado
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.presentedValue}
+                    onChange={(e) => onFieldChange('presentedValue', e.target.value)}
+                    placeholder="R$ 0,00"
+                    className="input-flat w-full text-card-foreground"
+                  />
+                </div>
+              )}
             </div>
           )}
 

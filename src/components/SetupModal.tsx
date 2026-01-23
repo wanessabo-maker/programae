@@ -24,6 +24,7 @@ const ADDITIONAL_FIELDS_CONFIG: { key: AdditionalFieldKey; label: string }[] = [
   { key: 'clientAddress', label: 'Endereço' },
   { key: 'clientCity', label: 'Cidade' },
   { key: 'clientState', label: 'Estado' },
+  { key: 'presentedValue', label: 'Valor Apresentado' },
 ];
 
 interface SetupModalProps {
