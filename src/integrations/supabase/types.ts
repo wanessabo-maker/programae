@@ -151,6 +151,30 @@ export type Database = {
         }
         Relationships: []
       }
+      at_action_types: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+        }
+        Relationships: []
+      }
       client_interactions: {
         Row: {
           client_id: string
@@ -353,6 +377,192 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      cs_action_types: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+        }
+        Relationships: []
+      }
+      cs_actions: {
+        Row: {
+          action_type_id: string | null
+          completed_date: string | null
+          created_at: string | null
+          cs_case_id: string
+          id: string
+          notes: string | null
+          performed_by: string | null
+          schedule_id: string | null
+          scheduled_date: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          action_type_id?: string | null
+          completed_date?: string | null
+          created_at?: string | null
+          cs_case_id: string
+          id?: string
+          notes?: string | null
+          performed_by?: string | null
+          schedule_id?: string | null
+          scheduled_date: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          action_type_id?: string | null
+          completed_date?: string | null
+          created_at?: string | null
+          cs_case_id?: string
+          id?: string
+          notes?: string | null
+          performed_by?: string | null
+          schedule_id?: string | null
+          scheduled_date?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cs_actions_action_type_id_fkey"
+            columns: ["action_type_id"]
+            isOneToOne: false
+            referencedRelation: "cs_action_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cs_actions_cs_case_id_fkey"
+            columns: ["cs_case_id"]
+            isOneToOne: false
+            referencedRelation: "cs_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cs_actions_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cs_actions_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "cs_contact_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cs_cases: {
+        Row: {
+          client_id: string | null
+          contract_number: string
+          created_at: string | null
+          id: string
+          notes: string | null
+          project_id: string | null
+          responsible_id: string | null
+          signature_date: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          contract_number: string
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          project_id?: string | null
+          responsible_id?: string | null
+          signature_date: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          contract_number?: string
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          project_id?: string | null
+          responsible_id?: string | null
+          signature_date?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cs_cases_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cs_cases_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cs_cases_responsible_id_fkey"
+            columns: ["responsible_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cs_contact_schedules: {
+        Row: {
+          created_at: string | null
+          days_after_signature: number
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          sort_order: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          days_after_signature: number
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          sort_order?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          days_after_signature?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          sort_order?: number | null
+        }
+        Relationships: []
       }
       customer_success: {
         Row: {
@@ -842,8 +1052,11 @@ export type Database = {
       }
       technical_assistance: {
         Row: {
+          action_type_id: string | null
           client_id: string | null
           completed_date: string | null
+          contact_date: string | null
+          contract_number: string | null
           created_at: string | null
           description: string | null
           id: string
@@ -853,13 +1066,18 @@ export type Database = {
           resolution_notes: string | null
           responsible_id: string | null
           scheduled_date: string | null
+          solution_date: string | null
           status: string | null
           title: string
           updated_at: string | null
+          visit_date: string | null
         }
         Insert: {
+          action_type_id?: string | null
           client_id?: string | null
           completed_date?: string | null
+          contact_date?: string | null
+          contract_number?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -869,13 +1087,18 @@ export type Database = {
           resolution_notes?: string | null
           responsible_id?: string | null
           scheduled_date?: string | null
+          solution_date?: string | null
           status?: string | null
           title: string
           updated_at?: string | null
+          visit_date?: string | null
         }
         Update: {
+          action_type_id?: string | null
           client_id?: string | null
           completed_date?: string | null
+          contact_date?: string | null
+          contract_number?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -885,11 +1108,20 @@ export type Database = {
           resolution_notes?: string | null
           responsible_id?: string | null
           scheduled_date?: string | null
+          solution_date?: string | null
           status?: string | null
           title?: string
           updated_at?: string | null
+          visit_date?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "technical_assistance_action_type_id_fkey"
+            columns: ["action_type_id"]
+            isOneToOne: false
+            referencedRelation: "at_action_types"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "technical_assistance_client_id_fkey"
             columns: ["client_id"]
