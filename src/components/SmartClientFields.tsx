@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronDown, ChevronUp, Loader2, CheckCircle2 } from 'lucide-react';
 import { fetchClientDataByFocco, fetchClientDataByContract, SmartClientData } from '@/hooks/useSmartClientData';
 import { AdditionalFieldKey } from '@/types';
+import { ProfessionAutocomplete } from './ProfessionAutocomplete';
 
 interface ClientFormData {
   clientName: string;
@@ -234,6 +235,27 @@ export function SmartClientFields({
       if (fieldKey === 'contractNumber') return handleContractBlur;
       return undefined;
     };
+
+    // Special handling for profession field - use autocomplete
+    if (fieldKey === 'clientProfession') {
+      return (
+        <div key={fieldKey}>
+          <label className={`text-xs tracking-widest uppercase block mb-2 ${hasError ? 'text-destructive' : 'text-muted-foreground'}`}>
+            {config.label} {isRequired && '*'}
+          </label>
+          <ProfessionAutocomplete
+            value={value}
+            onChange={(newValue) => onFieldChange('clientProfession', newValue)}
+            placeholder={config.placeholder || (isRequired ? 'Obrigatório' : 'Opcional')}
+            required={isRequired}
+            hasError={hasError}
+          />
+          {hasError && (
+            <span className="text-xs text-destructive mt-1">Campo obrigatório</span>
+          )}
+        </div>
+      );
+    }
 
     return (
       <div key={fieldKey}>
