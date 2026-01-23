@@ -7,7 +7,7 @@ const MONTH_LABELS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'S
 interface MonthlyData {
   valorVendido: number;
   contratosFechados: number;
-  projetosCaptados: number;
+  captacoes: number;
   acoesComEspecificador: number;
 }
 
@@ -21,7 +21,7 @@ export function YearlyResultsBoard() {
     const data: MonthlyData[] = Array.from({ length: 12 }, () => ({
       valorVendido: 0,
       contratosFechados: 0,
-      projetosCaptados: 0,
+      captacoes: 0,
       acoesComEspecificador: 0,
     }));
 
@@ -38,9 +38,9 @@ export function YearlyResultsBoard() {
         data[monthIndex].contratosFechados += 1;
       }
 
-      // Captações (mesma regra do Dashboard): contagem de ações que impactam a meta 'captacao'
+      // Captações: contagem de ações que impactam a meta 'captacao'
       if (actionType?.impactsMetas.includes('captacao')) {
-        data[monthIndex].projetosCaptados += 1;
+        data[monthIndex].captacoes += 1;
       }
 
       // Ações com Especificador (tem profissional vinculado)
@@ -57,10 +57,10 @@ export function YearlyResultsBoard() {
       (acc, month) => ({
         valorVendido: acc.valorVendido + month.valorVendido,
         contratosFechados: acc.contratosFechados + month.contratosFechados,
-        projetosCaptados: acc.projetosCaptados + month.projetosCaptados,
+        captacoes: acc.captacoes + month.captacoes,
         acoesComEspecificador: acc.acoesComEspecificador + month.acoesComEspecificador,
       }),
-      { valorVendido: 0, contratosFechados: 0, projetosCaptados: 0, acoesComEspecificador: 0 }
+      { valorVendido: 0, contratosFechados: 0, captacoes: 0, acoesComEspecificador: 0 }
     );
   }, [monthlyData]);
 
@@ -152,11 +152,11 @@ export function YearlyResultsBoard() {
                   key={idx} 
                   className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/10 font-medium' : ''} ${idx > currentMonth ? 'text-muted-foreground/50' : ''}`}
                 >
-                  {data.projetosCaptados}
+                  {data.captacoes}
                 </td>
               ))}
               <td className="p-2 text-center text-sm font-bold bg-muted">
-                {totals.projetosCaptados}
+                {totals.captacoes}
               </td>
             </tr>
 
@@ -219,7 +219,7 @@ export function YearlyResultsBoard() {
               <td className="p-3 text-sm font-medium">Captações</td>
               {monthlyData.slice(0, 6).map((data, idx) => (
                 <td key={idx} className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/10' : ''}`}>
-                  {data.projetosCaptados}
+                  {data.captacoes}
                 </td>
               ))}
             </tr>
@@ -276,10 +276,10 @@ export function YearlyResultsBoard() {
               <td className="p-3 text-sm font-medium">Captações</td>
               {monthlyData.slice(6).map((data, idx) => (
                 <td key={idx} className={`p-2 text-center text-xs ${(idx + 6) === currentMonth ? 'bg-primary/10' : ''}`}>
-                  {data.projetosCaptados}
+                  {data.captacoes}
                 </td>
               ))}
-              <td className="p-2 text-center text-sm font-bold bg-muted">{totals.projetosCaptados}</td>
+              <td className="p-2 text-center text-sm font-bold bg-muted">{totals.captacoes}</td>
             </tr>
             <tr className="border-b border-black/10">
               <td className="p-3 text-sm font-medium">Ações c/ Espec.</td>
@@ -311,7 +311,7 @@ export function YearlyResultsBoard() {
               <p className="text-xs text-muted-foreground">Ticket Médio</p>
             </div>
             <div>
-              <p className="text-lg font-bold">{totals.projetosCaptados}</p>
+              <p className="text-lg font-bold">{totals.captacoes}</p>
               <p className="text-xs text-muted-foreground">Captações</p>
             </div>
             <div>
@@ -344,7 +344,7 @@ export function YearlyResultsBoard() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Captações</span>
-                    <span>{data.projetosCaptados}</span>
+                    <span>{data.captacoes}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Ações c/ Espec.</span>
