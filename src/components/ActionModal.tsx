@@ -146,6 +146,9 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
   };
 
   const handleSubmit = async () => {
+    // Prevent double submission
+    if (isSubmitting) return;
+    
     // Check for no categories first
     if (isNewProfessional && professionalCategories.length === 0) {
       toast.error('Configure pelo menos uma Categoria de Profissional no Setup antes de registrar novos profissionais');
