@@ -7,6 +7,7 @@ import { MetricCard } from '@/components/MetricCard';
 import { ActionModal } from '@/components/ActionModal';
 import { EditActionModal } from '@/components/EditActionModal';
 import { YearlyResultsBoard } from '@/components/YearlyResultsBoard';
+import { DeleteActionConfirmDialog } from '@/components/DeleteActionConfirmDialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { format, parseISO, isThisMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -17,6 +18,7 @@ export default function Dashboard() {
   const [showActionModal, setShowActionModal] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
   const [editingAction, setEditingAction] = useState<Action | null>(null);
+  const [deletingActionId, setDeletingActionId] = useState<string | null>(null);
   
   // Context hooks
   const { isAdmin } = useAuthContext();
@@ -397,7 +399,7 @@ export default function Dashboard() {
                                 </button>
                               )}
                               <button
-                                onClick={() => deleteAction(action.id)}
+                                onClick={() => setDeletingActionId(action.id)}
                                 className="p-2 opacity-40 hover:opacity-100 text-destructive"
                                 title="Excluir ação"
                               >
@@ -432,7 +434,7 @@ export default function Dashboard() {
                             </button>
                           )}
                           <button
-                            onClick={() => deleteAction(action.id)}
+                            onClick={() => setDeletingActionId(action.id)}
                             className="p-1 opacity-40 hover:opacity-100 text-destructive"
                             title="Excluir ação"
                           >
@@ -613,6 +615,17 @@ export default function Dashboard() {
         open={!!editingAction} 
         onOpenChange={(open) => !open && setEditingAction(null)} 
         action={editingAction}
+      />
+      <DeleteActionConfirmDialog
+        open={!!deletingActionId}
+        onOpenChange={(open) => !open && setDeletingActionId(null)}
+        actionId={deletingActionId}
+        onConfirm={() => {
+          if (deletingActionId) {
+            deleteAction(deletingActionId);
+            setDeletingActionId(null);
+          }
+        }}
       />
     </div>
   );
