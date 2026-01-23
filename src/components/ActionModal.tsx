@@ -96,6 +96,9 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
   
   // Check if this is a "Venda" action type
   const isVenda = selectedActionType?.classification === 'venda';
+  
+  // Check if this is a "Seletiva" action type (shows sold projects)
+  const isSeletiva = selectedActionType?.classification === 'seletiva';
 
   const handleFieldChange = useCallback((field: keyof FormState, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -734,6 +737,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             enabledFields={selectedActionType?.enabledFields || []}
             isVenda={isVenda}
             isApresentacao={isApresentacaoProjeto}
+            isSeletiva={isSeletiva}
             professionalId={form.professionalId}
             consultantId={form.consultantId}
           />

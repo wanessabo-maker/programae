@@ -20,6 +20,7 @@ interface FoccoProjectSelectorProps {
   hasError?: boolean;
   disabled?: boolean;
   allowNew?: boolean; // Allow typing new FOCCO numbers (for Apresentação)
+  projectStage?: 'em_negociacao' | 'closed_won' | 'all'; // Filter by stage
 }
 
 export function FoccoProjectSelector({
@@ -30,6 +31,7 @@ export function FoccoProjectSelector({
   hasError = false,
   disabled = false,
   allowNew = true, // Default to allowing new entries
+  projectStage = 'em_negociacao', // Default to projects in negotiation
 }: FoccoProjectSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -37,7 +39,7 @@ export function FoccoProjectSelector({
   const [searchTerm, setSearchTerm] = useState('');
   const [isManualEntry, setIsManualEntry] = useState(false);
 
-  // Fetch projects in negotiation (optionally filtered by professional)
+  // Fetch projects based on stage filter
   useEffect(() => {
     const fetchProjects = async () => {
       setIsLoading(true);
@@ -45,9 +47,13 @@ export function FoccoProjectSelector({
         let query = supabase
           .from('projects')
           .select('id, focco_project_number, name, client_id, professional_id, clients(name), professionals(name)')
-          .eq('stage', 'em_negociacao')
           .not('focco_project_number', 'is', null)
           .order('created_at', { ascending: false });
+
+        // Filter by stage
+        if (projectStage !== 'all') {
+          query = query.eq('stage', projectStage);
+        }
 
         // Filter by professional if provided and valid
         if (professionalId && professionalId !== 'none' && professionalId !== '') {
@@ -70,7 +76,7 @@ export function FoccoProjectSelector({
     };
 
     fetchProjects();
-  }, [professionalId, consultantId]);
+  }, [professionalId, consultantId, projectStage]);
 
   // Filter projects based on search
   const filteredProjects = projects.filter(p => {
@@ -88,11 +94,15 @@ export function FoccoProjectSelector({
 
   // Get selected project display text
   const selectedProject = projects.find(p => p.focco_project_number === value);
+  const stageLabel = projectStage === 'closed_won' ? 'vendido' : 'em negociação';
+  const placeholderText = projectStage === 'closed_won' 
+    ? 'Selecione um projeto vendido' 
+    : 'Selecione ou digite um projeto';
   const displayText = selectedProject 
     ? `${selectedProject.focco_project_number} - ${selectedProject.clients?.name || selectedProject.name}`
     : value 
       ? `FOCCO ${value}` 
-      : 'Selecione ou digite um projeto';
+      : placeholderText;
 
   const handleSelect = (project: Project) => {
     onChange(project.focco_project_number, project);
@@ -180,8 +190,8 @@ export function FoccoProjectSelector({
               <div className="p-4 text-center text-sm text-muted-foreground">
                 {projects.length === 0 
                   ? professionalId && professionalId !== 'none' && professionalId !== ''
-                    ? 'Nenhum projeto em negociação para este profissional'
-                    : 'Nenhum projeto em negociação encontrado'
+                    ? `Nenhum projeto ${stageLabel} para este profissional`
+                    : `Nenhum projeto ${stageLabel} encontrado`
                   : 'Nenhum resultado para a busca'
                 }
               </div>
@@ -214,7 +224,7 @@ export function FoccoProjectSelector({
 
           {/* Summary */}
           <div className="px-3 py-2 border-t border-border bg-muted/30 text-xs text-muted-foreground">
-            {projects.length} projeto(s) em negociação
+            {projects.length} projeto(s) {stageLabel}
             {professionalId && professionalId !== 'none' && professionalId !== '' && (
               <span className="ml-1">(filtrado por profissional)</span>
             )}
