@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
-import { format, differenceInDays, parseISO } from 'date-fns';
+import { format, differenceInDays, parseISO, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, Check, Clock, AlertCircle } from 'lucide-react';
+import { Plus, Check, Clock, AlertCircle, Users, Calendar } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useApp } from '@/contexts/AppContext';
@@ -33,7 +33,7 @@ export function CSTab() {
   const [showNewCaseModal, setShowNewCaseModal] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [selectedAction, setSelectedAction] = useState<typeof csActions[0] | null>(null);
-  const [viewTab, setViewTab] = useState<'upcoming' | 'cases' | 'history'>('upcoming');
+  const [viewTab, setViewTab] = useState<'cases' | 'upcoming' | 'history'>('cases');
 
   // New case form
   const [newCase, setNewCase] = useState({
@@ -62,6 +62,51 @@ export function CSTab() {
   const activeTeamMembers = useMemo(() => {
     return teamMembers.filter(m => m.active);
   }, [teamMembers]);
+
+  // Active clients with their next scheduled visit
+  const activeClientsWithNextVisit = useMemo(() => {
+    const activeCases = csCases.filter(c => c.status === 'active');
+    
+    return activeCases.map(csCase => {
+      // Get pending actions for this case
+      const caseActions = csActions.filter(a => 
+        a.cs_case_id === csCase.id && a.status === 'pending'
+      );
+      
+      // Find next scheduled action
+      const sortedActions = caseActions.sort((a, b) => 
+        new Date(a.scheduled_date).getTime() - new Date(b.scheduled_date).getTime()
+      );
+      
+      const nextAction = sortedActions[0];
+      const completedActions = csActions.filter(a => 
+        a.cs_case_id === csCase.id && a.status === 'completed'
+      ).length;
+      
+      const totalScheduledActions = csActions.filter(a => 
+        a.cs_case_id === csCase.id
+      ).length;
+      
+      const daysUntilNext = nextAction 
+        ? differenceInDays(parseISO(nextAction.scheduled_date), new Date())
+        : null;
+
+      return {
+        ...csCase,
+        nextAction,
+        daysUntilNext,
+        completedActions,
+        totalScheduledActions,
+        pendingActions: caseActions.length,
+      };
+    }).sort((a, b) => {
+      // Sort by days until next (nulls last, then ascending)
+      if (a.daysUntilNext === null && b.daysUntilNext === null) return 0;
+      if (a.daysUntilNext === null) return 1;
+      if (b.daysUntilNext === null) return -1;
+      return a.daysUntilNext - b.daysUntilNext;
+    });
+  }, [csCases, csActions]);
 
   const handleCreateCase = async () => {
     if (!newCase.contract_number || !newCase.signature_date) {
@@ -166,20 +211,22 @@ export function CSTab() {
       <div className="flex items-center justify-between">
         <div className="flex gap-2">
           <button
-            onClick={() => setViewTab('upcoming')}
-            className={`px-4 py-2 text-xs uppercase tracking-widest border ${
-              viewTab === 'upcoming' ? 'bg-foreground text-background' : 'border-border'
-            }`}
-          >
-            Próximas Visitas ({upcomingActions.length})
-          </button>
-          <button
             onClick={() => setViewTab('cases')}
             className={`px-4 py-2 text-xs uppercase tracking-widest border ${
               viewTab === 'cases' ? 'bg-foreground text-background' : 'border-border'
             }`}
           >
-            Casos Ativos ({csCases.filter(c => c.status === 'active').length})
+            <Users className="w-3 h-3 inline mr-1" />
+            Clientes Ativos ({activeClientsWithNextVisit.length})
+          </button>
+          <button
+            onClick={() => setViewTab('upcoming')}
+            className={`px-4 py-2 text-xs uppercase tracking-widest border ${
+              viewTab === 'upcoming' ? 'bg-foreground text-background' : 'border-border'
+            }`}
+          >
+            <Clock className="w-3 h-3 inline mr-1" />
+            Próximos 30 dias ({upcomingActions.length})
           </button>
           <button
             onClick={() => setViewTab('history')}
@@ -199,12 +246,110 @@ export function CSTab() {
         </button>
       </div>
 
-      {/* Upcoming Actions (Next 30 days) */}
+      {/* Active Clients with Next Visit Countdown */}
+      {viewTab === 'cases' && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Users className="w-4 h-4" />
+            Clientes com ciclo de visitas ativo (pós-entrega de certificado de garantia)
+          </div>
+
+          {activeClientsWithNextVisit.length === 0 ? (
+            <div className="border border-border p-8 text-center">
+              <p className="text-xs text-muted-foreground">
+                Nenhum cliente ativo no momento
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {activeClientsWithNextVisit.map((csCase) => (
+                <div
+                  key={csCase.id}
+                  className="p-4 border border-border"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <div className="text-sm font-medium">
+                          {csCase.client_name || 'Cliente não identificado'}
+                        </div>
+                        <span className="text-xs px-2 py-0.5 bg-muted text-muted-foreground rounded">
+                          Contrato: {csCase.contract_number}
+                        </span>
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Assinatura: {format(parseISO(csCase.signature_date), "dd/MM/yyyy", { locale: ptBR })}
+                        {csCase.responsible_name && ` | Responsável: ${csCase.responsible_name}`}
+                      </div>
+                      
+                      {/* Progress bar */}
+                      <div className="mt-2">
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="text-muted-foreground">Progresso das visitas</span>
+                          <span className="font-medium">{csCase.completedActions}/{csCase.totalScheduledActions}</span>
+                        </div>
+                        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-primary transition-all"
+                            style={{ 
+                              width: csCase.totalScheduledActions > 0 
+                                ? `${(csCase.completedActions / csCase.totalScheduledActions) * 100}%` 
+                                : '0%' 
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Next visit countdown */}
+                    <div className="ml-4 text-right">
+                      {csCase.nextAction ? (
+                        <div>
+                          <div className={`inline-block px-3 py-1.5 text-xs font-medium rounded ${getUrgencyClass(csCase.daysUntilNext || 0)}`}>
+                            {csCase.daysUntilNext !== null && (
+                              csCase.daysUntilNext < 0 
+                                ? `${Math.abs(csCase.daysUntilNext)}d atrasado`
+                                : csCase.daysUntilNext === 0 
+                                ? 'Hoje'
+                                : `Em ${csCase.daysUntilNext}d`
+                            )}
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            <Calendar className="w-3 h-3 inline mr-1" />
+                            {format(parseISO(csCase.nextAction.scheduled_date), "dd/MM/yyyy", { locale: ptBR })}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {csCase.nextAction.schedule_name || 'Próximo contato'}
+                          </div>
+                          <button
+                            onClick={() => openCompleteModal(csCase.nextAction)}
+                            className="mt-2 btn-primary bg-foreground text-background text-xs px-3 py-1 flex items-center gap-1"
+                          >
+                            <Check className="w-3 h-3" />
+                            Concluir
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="text-xs px-3 py-1.5 bg-success/10 text-success rounded">
+                          <Check className="w-3 h-3 inline mr-1" />
+                          Ciclo Completo
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Upcoming Actions (Next 30 days) - Reminder View */}
       {viewTab === 'upcoming' && (
         <div className="space-y-4">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Clock className="w-4 h-4" />
-            Visitas programadas para os próximos 30 dias
+            Lembrete: Visitas programadas para os próximos 30 dias
           </div>
 
           {upcomingActions.length === 0 ? (
@@ -236,7 +381,7 @@ export function CSTab() {
                           {action.schedule_name || 'Contato CS'}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          Contrato: {action.case_contract_number} | Cliente: {action.client_name || 'N/A'}
+                          Cliente: {action.client_name || 'N/A'} | Contrato: {action.case_contract_number}
                         </div>
                       </div>
                     </div>
@@ -255,48 +400,6 @@ export function CSTab() {
                   </div>
                 );
               })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Active Cases */}
-      {viewTab === 'cases' && (
-        <div className="space-y-4">
-          {csCases.filter(c => c.status === 'active').length === 0 ? (
-            <div className="border border-border p-8 text-center">
-              <p className="text-xs text-muted-foreground">
-                Nenhum caso de CS ativo
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {csCases.filter(c => c.status === 'active').map((csCase) => (
-                <div
-                  key={csCase.id}
-                  className="p-4 border border-border"
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="text-sm font-medium">
-                        Contrato: {csCase.contract_number}
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        Cliente: {csCase.client_name || 'N/A'} | 
-                        Assinatura: {format(parseISO(csCase.signature_date), "dd/MM/yyyy", { locale: ptBR })}
-                      </div>
-                      {csCase.responsible_name && (
-                        <div className="text-xs text-muted-foreground">
-                          Responsável: {csCase.responsible_name}
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-xs px-2 py-1 bg-success/10 text-success rounded">
-                      Ativo
-                    </div>
-                  </div>
-                </div>
-              ))}
             </div>
           )}
         </div>
