@@ -189,10 +189,11 @@ export default function Dashboard() {
             order: 3,
           });
         } else if (meta.type === 'projeto') {
+          // Projetos: contagem de ações que impactam 'projeto' (não soma de valores)
           const totalProjetos = thisMonthActions.filter(a => {
             const type = actionTypes.find(t => t.id === a.actionTypeId);
             return type?.impactsMetas.includes('projeto');
-          }).reduce((sum, a) => sum + (a.value || 0), 0);
+          }).length;
           metricsForArea.push({
             type: 'projeto',
             label: 'PROJETOS',
