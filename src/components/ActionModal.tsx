@@ -34,6 +34,7 @@ interface FormState {
   clientAddress: string;
   clientCity: string;
   clientState: string;
+  presentedValue: string;
 }
 
 const initialFormState: FormState = {
@@ -54,6 +55,7 @@ const initialFormState: FormState = {
   clientAddress: '',
   clientCity: '',
   clientState: '',
+  presentedValue: '',
 };
 
 export function ActionModal({ open, onOpenChange }: ActionModalProps) {
@@ -664,6 +666,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
               presentationNumber: form.presentationNumber,
               foccoProjectNumber: form.foccoProjectNumber,
               contractNumber: form.contractNumber,
+              presentedValue: form.presentedValue,
             }}
             onFieldChange={handleFieldChange}
             onBulkUpdate={handleBulkUpdate}

@@ -24,7 +24,8 @@ export type AdditionalFieldKey =
   | 'clientCpfCnpj'
   | 'clientAddress'
   | 'clientCity'
-  | 'clientState';
+  | 'clientState'
+  | 'presentedValue';
 
 export interface ActionType {
   id: string;
