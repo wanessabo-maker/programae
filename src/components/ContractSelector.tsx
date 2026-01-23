@@ -49,8 +49,14 @@ export function ContractSelector({
             )
           `)
           .eq('stage', 'closed_won')
-          .not('clients.contract_number', 'is', null)
           .order('closed_date', { ascending: false });
+
+        if (projectsError) {
+          console.error('Error fetching contracts:', projectsError);
+          return;
+        }
+
+        console.log('ContractSelector - fetched projects:', projects);
 
         if (projectsError) {
           console.error('Error fetching contracts:', projectsError);
