@@ -38,8 +38,8 @@ export function YearlyResultsBoard() {
         data[monthIndex].contratosFechados += 1;
       }
 
-      // Projetos Captados: contagem de ações que impactam 'projeto' (alinhado com Dashboard)
-      if (actionType?.impactsMetas.includes('projeto')) {
+      // Captações (mesma regra do Dashboard): contagem de ações que impactam a meta 'captacao'
+      if (actionType?.impactsMetas.includes('captacao')) {
         data[monthIndex].projetosCaptados += 1;
       }
 
@@ -144,9 +144,9 @@ export function YearlyResultsBoard() {
               </td>
             </tr>
 
-            {/* Projetos Captados Row */}
+            {/* Captações Row */}
             <tr className="border-b border-black/10">
-              <td className="p-3 text-sm font-medium">Projetos Captados</td>
+              <td className="p-3 text-sm font-medium">Captações</td>
               {monthlyData.map((data, idx) => (
                 <td 
                   key={idx} 
@@ -216,7 +216,7 @@ export function YearlyResultsBoard() {
               })}
             </tr>
             <tr className="border-b border-black/10">
-              <td className="p-3 text-sm font-medium">Proj. Captados</td>
+              <td className="p-3 text-sm font-medium">Captações</td>
               {monthlyData.slice(0, 6).map((data, idx) => (
                 <td key={idx} className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/10' : ''}`}>
                   {data.projetosCaptados}
@@ -273,7 +273,7 @@ export function YearlyResultsBoard() {
               </td>
             </tr>
             <tr className="border-b border-black/10">
-              <td className="p-3 text-sm font-medium">Proj. Captados</td>
+              <td className="p-3 text-sm font-medium">Captações</td>
               {monthlyData.slice(6).map((data, idx) => (
                 <td key={idx} className={`p-2 text-center text-xs ${(idx + 6) === currentMonth ? 'bg-primary/10' : ''}`}>
                   {data.projetosCaptados}
@@ -312,7 +312,7 @@ export function YearlyResultsBoard() {
             </div>
             <div>
               <p className="text-lg font-bold">{totals.projetosCaptados}</p>
-              <p className="text-xs text-muted-foreground">Proj. Captados</p>
+              <p className="text-xs text-muted-foreground">Captações</p>
             </div>
             <div>
               <p className="text-lg font-bold">{totals.acoesComEspecificador}</p>
@@ -343,7 +343,7 @@ export function YearlyResultsBoard() {
                     <span>{formatCurrency(ticketMedio)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Proj. Captados</span>
+                    <span className="text-muted-foreground">Captações</span>
                     <span>{data.projetosCaptados}</span>
                   </div>
                   <div className="flex justify-between">
