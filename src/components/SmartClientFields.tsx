@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronDown, ChevronUp, Loader2, CheckCircle2 } from 'lucide-react';
 import { fetchClientDataByFocco, fetchClientDataByContract, SmartClientData } from '@/hooks/useSmartClientData';
 import { ContractSelector } from '@/components/ContractSelector';
+import { AdditionalFieldKey } from '@/types';
 
 interface ClientFormData {
   clientName: string;
@@ -27,6 +28,7 @@ interface SmartClientFieldsProps {
   isVenda?: boolean;
   isApresentacao?: boolean;
   isSeletiva?: boolean;
+  enabledFields?: AdditionalFieldKey[];
   showAllFields?: boolean;
 }
 
@@ -39,13 +41,23 @@ export function SmartClientFields({
   isVenda = false,
   isApresentacao = false,
   isSeletiva = false,
-  showAllFields = true,
+  enabledFields = [],
+  showAllFields = false,
 }: SmartClientFieldsProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [dataLoaded, setDataLoaded] = useState(false);
   const lastFoccoRef = useRef<string>('');
   const lastContractRef = useRef<string>('');
+
+  // Helper to check if a field is enabled
+  const isFieldEnabled = useCallback((field: AdditionalFieldKey) => {
+    if (showAllFields) return true;
+    return enabledFields.includes(field);
+  }, [enabledFields, showAllFields]);
+
+  // Check if any fields are enabled
+  const hasAnyEnabledFields = showAllFields || enabledFields.length > 0;
 
   // Auto-fetch client data when FOCCO number changes
   const handleFoccoBlur = useCallback(async () => {
@@ -127,10 +139,10 @@ export function SmartClientFields({
 
   // Auto-expand when required fields are present
   useEffect(() => {
-    if (isVenda || isApresentacao || isSeletiva) {
+    if (isVenda || isApresentacao || isSeletiva || hasAnyEnabledFields) {
       setIsExpanded(true);
     }
-  }, [isVenda, isApresentacao, isSeletiva]);
+  }, [isVenda, isApresentacao, isSeletiva, hasAnyEnabledFields]);
 
   // Handle contract selection from selector (for seletiva actions)
   const handleContractSelect = useCallback(async (contract: { contractNumber: string }) => {
@@ -177,6 +189,20 @@ export function SmartClientFields({
     formData.presentationNumber || formData.foccoProjectNumber || formData.contractNumber
   );
 
+  // If no fields are enabled and not a special action type, don't render anything
+  if (!hasAnyEnabledFields && !isVenda && !isApresentacao && !isSeletiva) {
+    return null;
+  }
+
+  // Check if any personal data fields are enabled
+  const hasPersonalFields = isFieldEnabled('clientName') || isFieldEnabled('clientAge') || 
+    isFieldEnabled('clientProfession') || isFieldEnabled('clientPhone') || 
+    isFieldEnabled('clientEmail') || isFieldEnabled('clientCpfCnpj');
+
+  // Check if any address fields are enabled
+  const hasAddressFields = isFieldEnabled('clientAddress') || isFieldEnabled('clientCity') || 
+    isFieldEnabled('clientState');
+
   return (
     <div className="border border-border rounded-lg overflow-hidden">
       {/* Header - Always visible */}
@@ -210,187 +236,222 @@ export function SmartClientFields({
       {/* Collapsible Content */}
       {isExpanded && (
         <div className="p-4 space-y-4 border-t border-border">
-          {/* Identification Fields - Always on top */}
+          {/* Identification Fields */}
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.foccoProjectNumber ? 'text-destructive' : 'text-muted-foreground'}`}>
-                Nº Projeto FOCCO {(isApresentacao || isVenda) && '*'}
-              </label>
-              <input
-                value={formData.foccoProjectNumber}
-                onChange={(e) => onFieldChange('foccoProjectNumber', e.target.value)}
-                onBlur={handleFoccoBlur}
-                placeholder={isApresentacao || isVenda ? 'Obrigatório' : 'Opcional'}
-                className={`input-flat w-full text-card-foreground ${errors.foccoProjectNumber ? 'border-destructive ring-1 ring-destructive' : ''}`}
-              />
-              {errors.foccoProjectNumber && (
-                <span className="text-xs text-destructive mt-1">Campo obrigatório</span>
-              )}
-            </div>
-            <div>
-              <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.contractNumber ? 'text-destructive' : 'text-muted-foreground'}`}>
-                Nº Contrato {(isVenda || isSeletiva) && '*'}
-              </label>
-              {isSeletiva ? (
-                <ContractSelector
-                  value={formData.contractNumber}
-                  onChange={(value) => onFieldChange('contractNumber', value)}
-                  onContractSelect={handleContractSelect}
-                  error={errors.contractNumber}
-                  required={true}
-                />
-              ) : (
+            {/* FOCCO Project Number - show if enabled or if special action type */}
+            {(isFieldEnabled('foccoProjectNumber') || isApresentacao || isVenda) && (
+              <div>
+                <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.foccoProjectNumber ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  Nº Projeto FOCCO {(isApresentacao || isVenda) && '*'}
+                </label>
                 <input
-                  value={formData.contractNumber}
-                  onChange={(e) => onFieldChange('contractNumber', e.target.value)}
-                  onBlur={handleContractBlur}
-                  placeholder={isVenda ? 'Obrigatório' : 'Opcional'}
-                  className={`input-flat w-full text-card-foreground ${errors.contractNumber ? 'border-destructive ring-1 ring-destructive' : ''}`}
+                  value={formData.foccoProjectNumber}
+                  onChange={(e) => onFieldChange('foccoProjectNumber', e.target.value)}
+                  onBlur={handleFoccoBlur}
+                  placeholder={isApresentacao || isVenda ? 'Obrigatório' : 'Opcional'}
+                  className={`input-flat w-full text-card-foreground ${errors.foccoProjectNumber ? 'border-destructive ring-1 ring-destructive' : ''}`}
                 />
+                {errors.foccoProjectNumber && (
+                  <span className="text-xs text-destructive mt-1">Campo obrigatório</span>
+                )}
+              </div>
+            )}
+            
+            {/* Contract Number - show if enabled or if special action type */}
+            {(isFieldEnabled('contractNumber') || isVenda || isSeletiva) && (
+              <div>
+                <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.contractNumber ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  Nº Contrato {(isVenda || isSeletiva) && '*'}
+                </label>
+                {isSeletiva ? (
+                  <ContractSelector
+                    value={formData.contractNumber}
+                    onChange={(value) => onFieldChange('contractNumber', value)}
+                    onContractSelect={handleContractSelect}
+                    error={errors.contractNumber}
+                    required={true}
+                  />
+                ) : (
+                  <input
+                    value={formData.contractNumber}
+                    onChange={(e) => onFieldChange('contractNumber', e.target.value)}
+                    onBlur={handleContractBlur}
+                    placeholder={isVenda ? 'Obrigatório' : 'Opcional'}
+                    className={`input-flat w-full text-card-foreground ${errors.contractNumber ? 'border-destructive ring-1 ring-destructive' : ''}`}
+                  />
+                )}
+                {errors.contractNumber && (
+                  <span className="text-xs text-destructive mt-1">Campo obrigatório</span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Presentation Number */}
+          {isFieldEnabled('presentationNumber') && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
+                  Nº Apresentação
+                </label>
+                <input
+                  value={formData.presentationNumber}
+                  onChange={(e) => onFieldChange('presentationNumber', e.target.value)}
+                  className="input-flat w-full text-card-foreground"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Personal Data Section */}
+          {hasPersonalFields && (
+            <>
+              <div className="border-t border-border pt-4">
+                <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground mb-3">
+                  Dados Pessoais
+                </p>
+              </div>
+
+              {isFieldEnabled('clientName') && (
+                <div>
+                  <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
+                    Nome do Cliente
+                  </label>
+                  <input
+                    value={formData.clientName}
+                    onChange={(e) => onFieldChange('clientName', e.target.value)}
+                    className="input-flat w-full text-card-foreground"
+                  />
+                </div>
               )}
-              {errors.contractNumber && (
-                <span className="text-xs text-destructive mt-1">Campo obrigatório</span>
+
+              <div className="grid grid-cols-2 gap-4">
+                {isFieldEnabled('clientCpfCnpj') && (
+                  <div>
+                    <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
+                      CPF/CNPJ
+                    </label>
+                    <input
+                      value={formData.clientCpfCnpj}
+                      onChange={(e) => onFieldChange('clientCpfCnpj', e.target.value)}
+                      placeholder="000.000.000-00"
+                      className="input-flat w-full text-card-foreground"
+                    />
+                  </div>
+                )}
+                {isFieldEnabled('clientPhone') && (
+                  <div>
+                    <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
+                      Telefone
+                    </label>
+                    <input
+                      value={formData.clientPhone}
+                      onChange={(e) => onFieldChange('clientPhone', e.target.value)}
+                      placeholder="(00) 00000-0000"
+                      className="input-flat w-full text-card-foreground"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {isFieldEnabled('clientEmail') && (
+                <div>
+                  <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={formData.clientEmail}
+                    onChange={(e) => onFieldChange('clientEmail', e.target.value)}
+                    placeholder="cliente@email.com"
+                    className="input-flat w-full text-card-foreground"
+                  />
+                </div>
               )}
-            </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
-                Nº Apresentação
-              </label>
-              <input
-                value={formData.presentationNumber}
-                onChange={(e) => onFieldChange('presentationNumber', e.target.value)}
-                className="input-flat w-full text-card-foreground"
-              />
-            </div>
-          </div>
-
-          {/* Divider */}
-          <div className="border-t border-border pt-4">
-            <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground mb-3">
-              Dados Pessoais
-            </p>
-          </div>
-
-          {/* Client Personal Data */}
-          <div>
-            <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
-              Nome do Cliente
-            </label>
-            <input
-              value={formData.clientName}
-              onChange={(e) => onFieldChange('clientName', e.target.value)}
-              className="input-flat w-full text-card-foreground"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
-                CPF/CNPJ
-              </label>
-              <input
-                value={formData.clientCpfCnpj}
-                onChange={(e) => onFieldChange('clientCpfCnpj', e.target.value)}
-                placeholder="000.000.000-00"
-                className="input-flat w-full text-card-foreground"
-              />
-            </div>
-            <div>
-              <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
-                Telefone
-              </label>
-              <input
-                value={formData.clientPhone}
-                onChange={(e) => onFieldChange('clientPhone', e.target.value)}
-                placeholder="(00) 00000-0000"
-                className="input-flat w-full text-card-foreground"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
-              Email
-            </label>
-            <input
-              type="email"
-              value={formData.clientEmail}
-              onChange={(e) => onFieldChange('clientEmail', e.target.value)}
-              placeholder="cliente@email.com"
-              className="input-flat w-full text-card-foreground"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
-                Idade
-              </label>
-              <input
-                type="number"
-                value={formData.clientAge}
-                onChange={(e) => onFieldChange('clientAge', e.target.value)}
-                className="input-flat w-full text-card-foreground"
-              />
-            </div>
-            <div>
-              <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
-                Profissão
-              </label>
-              <input
-                value={formData.clientProfession}
-                onChange={(e) => onFieldChange('clientProfession', e.target.value)}
-                className="input-flat w-full text-card-foreground"
-              />
-            </div>
-          </div>
+              <div className="grid grid-cols-2 gap-4">
+                {isFieldEnabled('clientAge') && (
+                  <div>
+                    <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
+                      Idade
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.clientAge}
+                      onChange={(e) => onFieldChange('clientAge', e.target.value)}
+                      className="input-flat w-full text-card-foreground"
+                    />
+                  </div>
+                )}
+                {isFieldEnabled('clientProfession') && (
+                  <div>
+                    <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
+                      Profissão
+                    </label>
+                    <input
+                      value={formData.clientProfession}
+                      onChange={(e) => onFieldChange('clientProfession', e.target.value)}
+                      className="input-flat w-full text-card-foreground"
+                    />
+                  </div>
+                )}
+              </div>
+            </>
+          )}
 
           {/* Address Section */}
-          <div className="border-t border-border pt-4">
-            <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground mb-3">
-              Endereço
-            </p>
-          </div>
+          {hasAddressFields && (
+            <>
+              <div className="border-t border-border pt-4">
+                <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground mb-3">
+                  Endereço
+                </p>
+              </div>
 
-          <div>
-            <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
-              Endereço
-            </label>
-            <input
-              value={formData.clientAddress}
-              onChange={(e) => onFieldChange('clientAddress', e.target.value)}
-              placeholder="Rua, número, complemento"
-              className="input-flat w-full text-card-foreground"
-            />
-          </div>
+              {isFieldEnabled('clientAddress') && (
+                <div>
+                  <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
+                    Endereço
+                  </label>
+                  <input
+                    value={formData.clientAddress}
+                    onChange={(e) => onFieldChange('clientAddress', e.target.value)}
+                    placeholder="Rua, número, complemento"
+                    className="input-flat w-full text-card-foreground"
+                  />
+                </div>
+              )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
-                Cidade
-              </label>
-              <input
-                value={formData.clientCity}
-                onChange={(e) => onFieldChange('clientCity', e.target.value)}
-                className="input-flat w-full text-card-foreground"
-              />
-            </div>
-            <div>
-              <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
-                Estado
-              </label>
-              <input
-                value={formData.clientState}
-                onChange={(e) => onFieldChange('clientState', e.target.value)}
-                placeholder="UF"
-                maxLength={2}
-                className="input-flat w-full text-card-foreground"
-              />
-            </div>
-          </div>
+              <div className="grid grid-cols-2 gap-4">
+                {isFieldEnabled('clientCity') && (
+                  <div>
+                    <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
+                      Cidade
+                    </label>
+                    <input
+                      value={formData.clientCity}
+                      onChange={(e) => onFieldChange('clientCity', e.target.value)}
+                      className="input-flat w-full text-card-foreground"
+                    />
+                  </div>
+                )}
+                {isFieldEnabled('clientState') && (
+                  <div>
+                    <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
+                      Estado
+                    </label>
+                    <input
+                      value={formData.clientState}
+                      onChange={(e) => onFieldChange('clientState', e.target.value)}
+                      placeholder="UF"
+                      maxLength={2}
+                      className="input-flat w-full text-card-foreground"
+                    />
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>

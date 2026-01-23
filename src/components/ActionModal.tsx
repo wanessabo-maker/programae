@@ -149,6 +149,9 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
   };
 
   const handleSubmit = async () => {
+    // Prevent double submission
+    if (isSubmitting) return;
+    
     // Check for no categories first
     if (isNewProfessional && professionalCategories.length === 0) {
       toast.error('Configure pelo menos uma Categoria de Profissional no Setup antes de registrar novos profissionais');
@@ -173,31 +176,43 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
 
       // Create new professional if needed
       if (isNewProfessional && newProfessional.name && newProfessional.typeId) {
-        const newId = await addProfessional({
-          name: newProfessional.name,
-          typeId: newProfessional.typeId,
-          consultantId: form.consultantId,
-          categoryId: targetCategory?.id || professionalCategories[0]?.id || '',
-          lastActionDate: form.date,
-          lastActionTypeId: selectedActionType?.id,
-        });
+        // Check if professional with same name already exists for this consultant
+        const existingProfessional = professionals.find(
+          p => p.name.toLowerCase().trim() === newProfessional.name.toLowerCase().trim() && 
+               p.consultantId === form.consultantId
+        );
         
-        if (!newId) {
-          toast.error('Erro ao criar profissional');
-          setIsSubmitting(false);
-          return;
+        if (existingProfessional) {
+          // Use existing professional instead of creating duplicate
+          professionalId = existingProfessional.id;
+          toast.info(`Profissional "${newProfessional.name}" já existe e foi selecionado automaticamente`);
+        } else {
+          const newId = await addProfessional({
+            name: newProfessional.name,
+            typeId: newProfessional.typeId,
+            consultantId: form.consultantId,
+            categoryId: targetCategory?.id || professionalCategories[0]?.id || '',
+            lastActionDate: form.date,
+            lastActionTypeId: selectedActionType?.id,
+          });
+          
+          if (!newId) {
+            toast.error('Erro ao criar profissional');
+            setIsSubmitting(false);
+            return;
+          }
+          
+          professionalId = newId;
         }
-        
-        professionalId = newId;
 
-        // Create reminder for special date if provided
-        if (specialDate.date && specialDate.reason) {
+        // Create reminder for special date if provided (only for new professionals)
+        if (specialDate.date && specialDate.reason && !existingProfessional) {
           addReminder({
             title: `${specialDate.reason} - ${newProfessional.name}`,
             date: specialDate.date,
             consultantId: form.consultantId,
             type: specialDate.type === 'unica' ? 'avulso' : 'recorrente',
-            professionalId: newId,
+            professionalId: professionalId,
           });
           toast.success(`Lembrete criado para ${specialDate.reason}`);
         }
@@ -634,7 +649,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             </div>
           )}
 
-          {/* Smart Client Fields - Always available */}
+          {/* Smart Client Fields - Only show if action type has enabled fields */}
           <SmartClientFields
             formData={{
               clientName: form.clientName,
@@ -657,6 +672,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             isVenda={isVenda}
             isApresentacao={isApresentacaoProjeto}
             isSeletiva={isSeletiva}
+            enabledFields={selectedActionType?.enabledFields || []}
           />
 
           <button 
