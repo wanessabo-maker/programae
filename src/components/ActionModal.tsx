@@ -258,10 +258,21 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             
             // Update existing project with new presented value (always use latest)
             if (form.presentedValue) {
+              const presentedValueNum = Number(form.presentedValue);
+              
               await supabase
                 .from('projects')
-                .update({ estimated_value: Number(form.presentedValue) })
+                .update({ estimated_value: presentedValueNum })
                 .eq('id', existingProject.id);
+              
+              // Save to value history
+              await supabase
+                .from('project_value_history')
+                .insert({
+                  project_id: existingProject.id,
+                  presented_value: presentedValueNum,
+                  consultant_id: form.consultantId,
+                });
             }
             
             // Update existing client with any new data (progressive filling)
@@ -326,6 +337,18 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
               toast.error('Erro ao criar projeto automaticamente');
             } else if (newProject) {
               projectId = newProject.id;
+              
+              // Save initial value to history if provided
+              if (form.presentedValue) {
+                await supabase
+                  .from('project_value_history')
+                  .insert({
+                    project_id: newProject.id,
+                    presented_value: Number(form.presentedValue),
+                    consultant_id: form.consultantId,
+                  });
+              }
+              
               toast.success(`Projeto FOCCO ${foccoNumber} criado automaticamente`);
             }
           }
