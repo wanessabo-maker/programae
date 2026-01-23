@@ -96,6 +96,9 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
   
   // Check if this is a "Venda" action type
   const isVenda = selectedActionType?.classification === 'venda';
+  
+  // Check if this is a "Seletiva" action type (e.g., Assinatura de Certificado de Garantia)
+  const isSeletiva = selectedActionType?.classification === 'seletiva';
 
   const handleFieldChange = useCallback((field: keyof FormState, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -124,8 +127,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
       newErrors.foccoProjectNumber = true;
     }
     
-    // Contract number is required for Venda
-    if (isVenda && !form.contractNumber.trim()) {
+    // Contract number is required for Venda and Seletiva (e.g., Assinatura Certificado)
+    if ((isVenda || isSeletiva) && !form.contractNumber.trim()) {
       newErrors.contractNumber = true;
     }
     
@@ -653,6 +656,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             errors={errors}
             isVenda={isVenda}
             isApresentacao={isApresentacaoProjeto}
+            isSeletiva={isSeletiva}
           />
 
           <button 

@@ -12,12 +12,24 @@ export interface TeamMember {
 }
 
 // Available additional fields that can be enabled per action type
-export type AdditionalFieldKey = 'clientName' | 'clientAge' | 'clientProfession' | 'presentationNumber' | 'foccoProjectNumber';
+export type AdditionalFieldKey = 
+  | 'clientName' 
+  | 'clientAge' 
+  | 'clientProfession' 
+  | 'presentationNumber' 
+  | 'foccoProjectNumber'
+  | 'contractNumber'
+  | 'clientPhone'
+  | 'clientEmail'
+  | 'clientCpfCnpj'
+  | 'clientAddress'
+  | 'clientCity'
+  | 'clientState';
 
 export interface ActionType {
   id: string;
   name: string;
-  classification: 'relacionamento' | 'venda' | 'projeto' | 'outro';
+  classification: 'relacionamento' | 'venda' | 'projeto' | 'outro' | 'seletiva' | 'apresentacao';
   impactsMetas: ('acoes' | 'vendas' | 'captacao' | 'projeto')[];
   requiresValue: boolean;
   additionalFields: boolean;
