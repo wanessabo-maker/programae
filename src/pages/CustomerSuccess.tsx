@@ -1,31 +1,7 @@
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
-const CSTab = () => (
-  <div className="py-8">
-    <div className="border border-border p-8 text-center">
-      <p className="text-xs tracking-widest uppercase text-muted-foreground">
-        Customer Success - Em desenvolvimento
-      </p>
-      <p className="text-xs text-muted-foreground mt-2">
-        Acompanhamento pós-venda vinculado a contratos fechados
-      </p>
-    </div>
-  </div>
-);
-
-const AssistenciaTecnicaTab = () => (
-  <div className="py-8">
-    <div className="border border-border p-8 text-center">
-      <p className="text-xs tracking-widest uppercase text-muted-foreground">
-        Assistência Técnica - Em desenvolvimento
-      </p>
-      <p className="text-xs text-muted-foreground mt-2">
-        Gestão de chamados técnicos e suporte
-      </p>
-    </div>
-  </div>
-);
+import { CSTab } from '@/components/customer-success/CSTab';
+import { ATTab } from '@/components/customer-success/ATTab';
 
 export default function CustomerSuccess() {
   const [activeTab, setActiveTab] = useState('cs');
@@ -60,7 +36,7 @@ export default function CustomerSuccess() {
         </TabsContent>
 
         <TabsContent value="at" className="mt-6">
-          <AssistenciaTecnicaTab />
+          <ATTab />
         </TabsContent>
       </Tabs>
     </div>

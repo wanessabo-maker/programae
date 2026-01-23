@@ -6,11 +6,26 @@ import { Plus, Pencil, Trash2, X, Check, Upload, ClipboardList, FileUp, AlertCir
 import * as XLSX from 'xlsx';
 import { format, parseISO, isValid } from 'date-fns';
 import { getCategoryForAction } from '@/hooks/useProfessionalCategory';
+import { CSSetupTab } from '@/components/setup/CSSetupTab';
+import { ATSetupTab } from '@/components/setup/ATSetupTab';
 
 interface SetupModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
+
+const TAB_CONFIG = [
+  { label: 'Áreas', value: 'areas' },
+  { label: 'Equipe', value: 'equipe' },
+  { label: 'Metas', value: 'metas' },
+  { label: 'Tipos de Ação', value: 'tipos-acao' },
+  { label: 'Programa E+', value: 'programa' },
+  { label: 'Tipos Prof.', value: 'tipos-prof' },
+  { label: 'Categorias', value: 'categorias' },
+  { label: 'Customer Success', value: 'cs' },
+  { label: 'Assist. Técnica', value: 'at' },
+  { label: 'Importação', value: 'importacao' },
+];
 
 export function SetupModal({ open, onOpenChange }: SetupModalProps) {
   // No more password authentication - access is controlled by isAdmin in Layout
@@ -26,13 +41,13 @@ export function SetupModal({ open, onOpenChange }: SetupModalProps) {
         </DialogHeader>
         <Tabs defaultValue="areas" className="h-full">
           <TabsList className="bg-transparent border-b border-black rounded-none w-full justify-start gap-0 h-auto p-0 flex-wrap">
-            {['Áreas', 'Equipe', 'Metas', 'Tipos de Ação', 'Programa E+', 'Tipos Prof.', 'Categorias', 'Importação'].map((tab, i) => (
+            {TAB_CONFIG.map((tab) => (
               <TabsTrigger
-                key={tab}
-                value={['areas', 'equipe', 'metas', 'tipos-acao', 'programa', 'tipos-prof', 'categorias', 'importacao'][i]}
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-black data-[state=active]:bg-transparent text-xs tracking-widest uppercase px-4 py-3"
+                key={tab.value}
+                value={tab.value}
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-black data-[state=active]:bg-transparent text-xs tracking-widest uppercase px-3 py-3"
               >
-                {tab}
+                {tab.label}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -45,6 +60,8 @@ export function SetupModal({ open, onOpenChange }: SetupModalProps) {
             <TabsContent value="programa"><ProgramaTab /></TabsContent>
             <TabsContent value="tipos-prof"><TiposProfTab /></TabsContent>
             <TabsContent value="categorias"><CategoriasTab /></TabsContent>
+            <TabsContent value="cs"><CSSetupTab /></TabsContent>
+            <TabsContent value="at"><ATSetupTab /></TabsContent>
             <TabsContent value="importacao"><ImportacaoTab /></TabsContent>
           </div>
         </Tabs>
