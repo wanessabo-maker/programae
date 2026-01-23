@@ -6,6 +6,7 @@ import { useCurrentTeamMember } from '@/hooks/useCurrentTeamMember';
 import { MetricCard } from '@/components/MetricCard';
 import { ActionModal } from '@/components/ActionModal';
 import { EditActionModal } from '@/components/EditActionModal';
+import { DeleteActionConfirmDialog } from '@/components/DeleteActionConfirmDialog';
 import { YearlyResultsBoard } from '@/components/YearlyResultsBoard';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { format, parseISO, isThisMonth } from 'date-fns';
@@ -17,6 +18,13 @@ export default function Dashboard() {
   const [showActionModal, setShowActionModal] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
   const [editingAction, setEditingAction] = useState<Action | null>(null);
+  const [deletingAction, setDeletingAction] = useState<{
+    id: string;
+    projectId?: string | null;
+    foccoProjectNumber?: string | null;
+    actionTypeName?: string;
+    professionalName?: string;
+  } | null>(null);
   
   // Context hooks
   const { isAdmin } = useAuthContext();
@@ -280,9 +288,28 @@ export default function Dashboard() {
           consultantName: consultant?.name || '-',
           professionalName: professional?.name || '-',
           actionTypeName: actionType?.name || '-',
+          foccoProjectNumber: (action as any).foccoProjectNumber || null,
         };
       });
   }, [actions, teamMembers, professionals, actionTypes]);
+
+  // Handle delete action with confirmation
+  const handleDeleteClick = (action: typeof recentActions[0]) => {
+    setDeletingAction({
+      id: action.id,
+      projectId: action.projectId,
+      foccoProjectNumber: action.foccoProjectNumber,
+      actionTypeName: action.actionTypeName,
+      professionalName: action.professionalName,
+    });
+  };
+
+  const handleConfirmDelete = () => {
+    if (deletingAction) {
+      deleteAction(deletingAction.id);
+      setDeletingAction(null);
+    }
+  };
 
   // Check if current user can edit an action (is creator or admin)
   const canEditAction = (action: Action) => {
@@ -397,7 +424,7 @@ export default function Dashboard() {
                                 </button>
                               )}
                               <button
-                                onClick={() => deleteAction(action.id)}
+                                onClick={() => handleDeleteClick(action)}
                                 className="p-2 opacity-40 hover:opacity-100 text-destructive"
                                 title="Excluir ação"
                               >
@@ -432,7 +459,7 @@ export default function Dashboard() {
                             </button>
                           )}
                           <button
-                            onClick={() => deleteAction(action.id)}
+                            onClick={() => handleDeleteClick(action)}
                             className="p-1 opacity-40 hover:opacity-100 text-destructive"
                             title="Excluir ação"
                           >
@@ -613,6 +640,16 @@ export default function Dashboard() {
         open={!!editingAction} 
         onOpenChange={(open) => !open && setEditingAction(null)} 
         action={editingAction}
+      />
+      <DeleteActionConfirmDialog
+        open={!!deletingAction}
+        onOpenChange={(open) => !open && setDeletingAction(null)}
+        actionId={deletingAction?.id || ''}
+        projectId={deletingAction?.projectId}
+        foccoProjectNumber={deletingAction?.foccoProjectNumber}
+        actionTypeName={deletingAction?.actionTypeName}
+        professionalName={deletingAction?.professionalName}
+        onConfirm={handleConfirmDelete}
       />
     </div>
   );
