@@ -38,8 +38,8 @@ export function YearlyResultsBoard() {
         data[monthIndex].contratosFechados += 1;
       }
 
-      // Projetos Captados: alinhar com o card de "Captações" do Dashboard (contagem por impacto 'captacao')
-      if (actionType?.impactsMetas.includes('captacao')) {
+      // Projetos Captados: contagem de ações que impactam 'projeto' (alinhado com Dashboard)
+      if (actionType?.impactsMetas.includes('projeto')) {
         data[monthIndex].projetosCaptados += 1;
       }
 
