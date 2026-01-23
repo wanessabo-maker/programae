@@ -14,7 +14,8 @@ interface MonthlyData {
 export function YearlyResultsBoard() {
   const { actions, actionTypes } = useApp();
 
-  const currentYear = new Date().getFullYear();
+  // Regra: considerar apenas dados do ano de 2026
+  const targetYear = 2026;
 
   const monthlyData = useMemo(() => {
     const data: MonthlyData[] = Array.from({ length: 12 }, () => ({
@@ -26,7 +27,7 @@ export function YearlyResultsBoard() {
 
     actions.forEach(action => {
       const actionDate = parseISO(action.date);
-      if (getYear(actionDate) !== currentYear) return;
+      if (getYear(actionDate) !== targetYear) return;
 
       const monthIndex = getMonth(actionDate);
       const actionType = actionTypes.find(t => t.id === action.actionTypeId);
@@ -37,9 +38,9 @@ export function YearlyResultsBoard() {
         data[monthIndex].contratosFechados += 1;
       }
 
-      // Projetos Captados (impacts includes 'projeto') - usa soma de valores igual ao Dashboard
-      if (actionType?.impactsMetas.includes('projeto')) {
-        data[monthIndex].projetosCaptados += action.value || 0;
+      // Projetos Captados: alinhar com o card de "Captações" do Dashboard (contagem por impacto 'captacao')
+      if (actionType?.impactsMetas.includes('captacao')) {
+        data[monthIndex].projetosCaptados += 1;
       }
 
       // Ações com Especificador (tem profissional vinculado)
@@ -49,7 +50,7 @@ export function YearlyResultsBoard() {
     });
 
     return data;
-  }, [actions, actionTypes, currentYear]);
+  }, [actions, actionTypes, targetYear]);
 
   const totals = useMemo(() => {
     return monthlyData.reduce(
@@ -86,7 +87,7 @@ export function YearlyResultsBoard() {
 
   return (
     <section>
-      <h2 className="title-section mb-4">Quadro Mensal de Resultados — {currentYear}</h2>
+      <h2 className="title-section mb-4">Quadro Mensal de Resultados — {targetYear}</h2>
       
       {/* Desktop View */}
       <div className="card-flat overflow-x-auto hidden lg:block">
@@ -115,7 +116,7 @@ export function YearlyResultsBoard() {
                   className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/10 font-medium' : ''} ${idx > currentMonth ? 'text-muted-foreground/50' : ''}`}
                   title={formatFullCurrency(data.valorVendido)}
                 >
-                  {data.valorVendido > 0 ? formatCurrency(data.valorVendido) : '-'}
+                  {formatCurrency(data.valorVendido)}
                 </td>
               ))}
               <td className="p-2 text-center text-sm font-bold bg-muted" title={formatFullCurrency(totals.valorVendido)}>
@@ -132,14 +133,14 @@ export function YearlyResultsBoard() {
                   <td 
                     key={idx} 
                     className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/10 font-medium' : ''} ${idx > currentMonth ? 'text-muted-foreground/50' : ''}`}
-                    title={ticketMedio > 0 ? formatFullCurrency(ticketMedio) : undefined}
+                     title={formatFullCurrency(ticketMedio)}
                   >
-                    {ticketMedio > 0 ? formatCurrency(ticketMedio) : '-'}
+                     {formatCurrency(ticketMedio)}
                   </td>
                 );
               })}
-              <td className="p-2 text-center text-sm font-bold bg-muted" title={totals.contratosFechados > 0 ? formatFullCurrency(calcTicketMedio(totals.valorVendido, totals.contratosFechados)) : undefined}>
-                {totals.contratosFechados > 0 ? formatCurrency(calcTicketMedio(totals.valorVendido, totals.contratosFechados)) : '-'}
+              <td className="p-2 text-center text-sm font-bold bg-muted" title={formatFullCurrency(calcTicketMedio(totals.valorVendido, totals.contratosFechados))}>
+                {formatCurrency(calcTicketMedio(totals.valorVendido, totals.contratosFechados))}
               </td>
             </tr>
 
@@ -151,7 +152,7 @@ export function YearlyResultsBoard() {
                   key={idx} 
                   className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/10 font-medium' : ''} ${idx > currentMonth ? 'text-muted-foreground/50' : ''}`}
                 >
-                  {data.projetosCaptados > 0 ? data.projetosCaptados : '-'}
+                  {data.projetosCaptados}
                 </td>
               ))}
               <td className="p-2 text-center text-sm font-bold bg-muted">
@@ -167,7 +168,7 @@ export function YearlyResultsBoard() {
                   key={idx} 
                   className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/10 font-medium' : ''} ${idx > currentMonth ? 'text-muted-foreground/50' : ''}`}
                 >
-                  {data.acoesComEspecificador > 0 ? data.acoesComEspecificador : '-'}
+                  {data.acoesComEspecificador}
                 </td>
               ))}
               <td className="p-2 text-center text-sm font-bold bg-muted">
@@ -199,7 +200,7 @@ export function YearlyResultsBoard() {
               <td className="p-3 text-sm font-medium">Valor Vendido</td>
               {monthlyData.slice(0, 6).map((data, idx) => (
                 <td key={idx} className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/10' : ''}`}>
-                  {data.valorVendido > 0 ? formatCurrency(data.valorVendido) : '-'}
+                  {formatCurrency(data.valorVendido)}
                 </td>
               ))}
             </tr>
@@ -209,7 +210,7 @@ export function YearlyResultsBoard() {
                 const ticketMedio = calcTicketMedio(data.valorVendido, data.contratosFechados);
                 return (
                   <td key={idx} className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/10' : ''}`}>
-                    {ticketMedio > 0 ? formatCurrency(ticketMedio) : '-'}
+                    {formatCurrency(ticketMedio)}
                   </td>
                 );
               })}
@@ -218,7 +219,7 @@ export function YearlyResultsBoard() {
               <td className="p-3 text-sm font-medium">Proj. Captados</td>
               {monthlyData.slice(0, 6).map((data, idx) => (
                 <td key={idx} className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/10' : ''}`}>
-                  {data.projetosCaptados > 0 ? data.projetosCaptados : '-'}
+                  {data.projetosCaptados}
                 </td>
               ))}
             </tr>
@@ -226,7 +227,7 @@ export function YearlyResultsBoard() {
               <td className="p-3 text-sm font-medium">Ações c/ Espec.</td>
               {monthlyData.slice(0, 6).map((data, idx) => (
                 <td key={idx} className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/10' : ''}`}>
-                  {data.acoesComEspecificador > 0 ? data.acoesComEspecificador : '-'}
+                  {data.acoesComEspecificador}
                 </td>
               ))}
             </tr>
@@ -252,7 +253,7 @@ export function YearlyResultsBoard() {
               <td className="p-3 text-sm font-medium">Valor Vendido</td>
               {monthlyData.slice(6).map((data, idx) => (
                 <td key={idx} className={`p-2 text-center text-xs ${(idx + 6) === currentMonth ? 'bg-primary/10' : ''}`}>
-                  {data.valorVendido > 0 ? formatCurrency(data.valorVendido) : '-'}
+                  {formatCurrency(data.valorVendido)}
                 </td>
               ))}
               <td className="p-2 text-center text-sm font-bold bg-muted">{formatCurrency(totals.valorVendido)}</td>
@@ -263,19 +264,19 @@ export function YearlyResultsBoard() {
                 const ticketMedio = calcTicketMedio(data.valorVendido, data.contratosFechados);
                 return (
                   <td key={idx} className={`p-2 text-center text-xs ${(idx + 6) === currentMonth ? 'bg-primary/10' : ''}`}>
-                    {ticketMedio > 0 ? formatCurrency(ticketMedio) : '-'}
+                    {formatCurrency(ticketMedio)}
                   </td>
                 );
               })}
               <td className="p-2 text-center text-sm font-bold bg-muted">
-                {totals.contratosFechados > 0 ? formatCurrency(calcTicketMedio(totals.valorVendido, totals.contratosFechados)) : '-'}
+                {formatCurrency(calcTicketMedio(totals.valorVendido, totals.contratosFechados))}
               </td>
             </tr>
             <tr className="border-b border-black/10">
               <td className="p-3 text-sm font-medium">Proj. Captados</td>
               {monthlyData.slice(6).map((data, idx) => (
                 <td key={idx} className={`p-2 text-center text-xs ${(idx + 6) === currentMonth ? 'bg-primary/10' : ''}`}>
-                  {data.projetosCaptados > 0 ? data.projetosCaptados : '-'}
+                  {data.projetosCaptados}
                 </td>
               ))}
               <td className="p-2 text-center text-sm font-bold bg-muted">{totals.projetosCaptados}</td>
@@ -284,7 +285,7 @@ export function YearlyResultsBoard() {
               <td className="p-3 text-sm font-medium">Ações c/ Espec.</td>
               {monthlyData.slice(6).map((data, idx) => (
                 <td key={idx} className={`p-2 text-center text-xs ${(idx + 6) === currentMonth ? 'bg-primary/10' : ''}`}>
-                  {data.acoesComEspecificador > 0 ? data.acoesComEspecificador : '-'}
+                  {data.acoesComEspecificador}
                 </td>
               ))}
               <td className="p-2 text-center text-sm font-bold bg-muted">{totals.acoesComEspecificador}</td>
@@ -297,7 +298,7 @@ export function YearlyResultsBoard() {
       <div className="space-y-4 md:hidden">
         {/* Summary Card */}
         <div className="card-flat">
-          <h3 className="text-xs tracking-widest uppercase text-muted-foreground mb-3">Acumulado {currentYear}</h3>
+          <h3 className="text-xs tracking-widest uppercase text-muted-foreground mb-3">Acumulado {targetYear}</h3>
           <div className="grid grid-cols-2 gap-4 text-center">
             <div>
               <p className="text-lg font-bold">{formatCurrency(totals.valorVendido)}</p>
@@ -305,7 +306,7 @@ export function YearlyResultsBoard() {
             </div>
             <div>
               <p className="text-lg font-bold">
-                {totals.contratosFechados > 0 ? formatCurrency(calcTicketMedio(totals.valorVendido, totals.contratosFechados)) : '-'}
+                {formatCurrency(calcTicketMedio(totals.valorVendido, totals.contratosFechados))}
               </p>
               <p className="text-xs text-muted-foreground">Ticket Médio</p>
             </div>
@@ -320,12 +321,9 @@ export function YearlyResultsBoard() {
           </div>
         </div>
 
-        {/* Monthly Cards - Only months with data or current/past months */}
+        {/* Monthly Cards */}
         <div className="grid grid-cols-2 gap-3">
           {monthlyData.map((data, idx) => {
-            if (idx > currentMonth && data.valorVendido === 0 && data.projetosCaptados === 0 && data.acoesComEspecificador === 0) {
-              return null;
-            }
             const ticketMedio = calcTicketMedio(data.valorVendido, data.contratosFechados);
             return (
               <div 
@@ -338,19 +336,19 @@ export function YearlyResultsBoard() {
                 <div className="space-y-1 text-xs">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Valor Vendido</span>
-                    <span>{data.valorVendido > 0 ? formatCurrency(data.valorVendido) : '-'}</span>
+                    <span>{formatCurrency(data.valorVendido)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Ticket Médio</span>
-                    <span>{ticketMedio > 0 ? formatCurrency(ticketMedio) : '-'}</span>
+                    <span>{formatCurrency(ticketMedio)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Proj. Captados</span>
-                    <span>{data.projetosCaptados || '-'}</span>
+                    <span>{data.projetosCaptados}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Ações c/ Espec.</span>
-                    <span>{data.acoesComEspecificador || '-'}</span>
+                    <span>{data.acoesComEspecificador}</span>
                   </div>
                 </div>
               </div>
