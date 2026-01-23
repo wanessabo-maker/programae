@@ -49,7 +49,7 @@ export default function ProjetosTab() {
   const [form, setForm] = useState<ProjectFormData>(emptyForm);
   const [searchTerm, setSearchTerm] = useState('');
   const [stageFilter, setStageFilter] = useState('all');
-  const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
+  
 
   const { data: projects = [], isLoading } = useProjects();
   const { data: clients = [] } = useClients();
@@ -236,20 +236,6 @@ export default function ProjetosTab() {
               className="input-flat w-full pl-10"
             />
           </div>
-          <div className="flex border border-border">
-            <button
-              onClick={() => setViewMode('kanban')}
-              className={`px-3 py-1.5 text-xs ${viewMode === 'kanban' ? 'bg-foreground text-background' : ''}`}
-            >
-              Kanban
-            </button>
-            <button
-              onClick={() => setViewMode('table')}
-              className={`px-3 py-1.5 text-xs ${viewMode === 'table' ? 'bg-foreground text-background' : ''}`}
-            >
-              Tabela
-            </button>
-          </div>
         </div>
         {/* Info: Projects are created automatically from action registration */}
         <div className="text-xs text-muted-foreground bg-muted/50 px-3 py-2 border border-border max-w-xs">
@@ -268,100 +254,8 @@ export default function ProjetosTab() {
         ))}
       </div>
 
-      {/* Kanban View */}
-      {viewMode === 'kanban' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-x-auto">
-          {ACTIVE_STAGES.map(stage => (
-            <div key={stage.id} className="min-w-[250px]">
-              <div className={`p-2 mb-2 ${stage.color} border border-border`}>
-                <h3 className="text-xs font-semibold uppercase tracking-wider">{stage.name}</h3>
-                <span className="text-xs text-muted-foreground">{projectsByStage[stage.id]?.length || 0}</span>
-              </div>
-              <div className="space-y-2">
-                {projectsByStage[stage.id]?.map(project => (
-                  <div key={project.id} className="border border-border p-3 bg-card hover:shadow-sm transition-shadow">
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-medium text-sm truncate flex-1">{project.name}</h4>
-                      <div className="flex gap-1 ml-2">
-                        <button
-                          onClick={() => handleEdit(project)}
-                          className="p-1 hover:bg-muted rounded"
-                          title="Editar"
-                        >
-                          <Edit2 className="w-3 h-3" />
-                        </button>
-                        <button
-                          onClick={() => handleOpenLostModal(project)}
-                          className="p-1 hover:bg-red-500/20 rounded text-red-600"
-                          title="Marcar como Perdido"
-                        >
-                          <XCircle className="w-3 h-3" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(project.id)}
-                          className="p-1 hover:bg-destructive/20 rounded text-destructive"
-                          title="Excluir"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-                    
-                    {project.focco_project_number && (
-                      <p className="text-xs text-primary font-mono bg-primary/10 px-1.5 py-0.5 rounded mb-1 inline-block">
-                        FOCCO: {project.focco_project_number}
-                      </p>
-                    )}
-                    
-                    {project.clients?.name && (
-                      <p className="text-xs text-muted-foreground flex items-center gap-1 mb-1">
-                        <User className="w-3 h-3" />
-                        {project.clients.name}
-                      </p>
-                    )}
-                    
-                    {project.estimated_value && (
-                      <div className="mb-2">
-                        <p className="text-xs font-medium flex items-center gap-1">
-                          <DollarSign className="w-3 h-3" />
-                          {formatCurrency(project.estimated_value)}
-                        </p>
-                        <ProjectValueHistory 
-                          projectId={project.id} 
-                          currentValue={project.estimated_value} 
-                        />
-                      </div>
-                    )}
-                    
-                    {/* Move buttons */}
-                    <div className="flex gap-1 mt-2 pt-2 border-t border-border flex-wrap">
-                      {ACTIVE_STAGES.map((targetStage, idx) => {
-                        const currentIdx = ACTIVE_STAGES.findIndex(s => s.id === project.stage);
-                        if (idx === currentIdx) return null;
-                        if (Math.abs(idx - currentIdx) > 1) return null;
-                        
-                        return (
-                          <button
-                            key={targetStage.id}
-                            onClick={() => handleMoveStage(project, targetStage.id)}
-                            className="text-xs px-2 py-1 border border-border hover:bg-muted flex items-center gap-1"
-                          >
-                            <ArrowRight className={`w-3 h-3 ${idx < currentIdx ? 'rotate-180' : ''}`} />
-                            {targetStage.name}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
       {/* Table View */}
-      {viewMode === 'table' && (
+      {(
         <div className="border border-border overflow-x-auto">
           <table className="w-full">
             <thead className="bg-muted/50">
