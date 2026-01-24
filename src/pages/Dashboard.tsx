@@ -19,6 +19,7 @@ export default function Dashboard() {
   const [actionsOpen, setActionsOpen] = useState(false);
   const [editingAction, setEditingAction] = useState<Action | null>(null);
   const [deletingActionId, setDeletingActionId] = useState<string | null>(null);
+  const [actionsFilter, setActionsFilter] = useState<string>('all');
   
   // Context hooks
   const { isAdmin } = useAuthContext();
@@ -268,11 +269,18 @@ export default function Dashboard() {
     return grouped;
   }, [consultantMetrics]);
 
-  // Recent actions
-  const recentActions = useMemo(() => {
-    return [...actions]
+  // Current month actions with optional team member filter
+  const currentMonthActions = useMemo(() => {
+    // Filter actions from current month
+    const thisMonthActions = actions.filter(a => isThisMonth(parseISO(a.date)));
+    
+    // Apply team member filter if selected
+    const filteredActions = actionsFilter === 'all' 
+      ? thisMonthActions 
+      : thisMonthActions.filter(a => a.consultantId === actionsFilter);
+    
+    return [...filteredActions]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 10)
       .map(action => {
         const consultant = teamMembers.find(m => m.id === action.consultantId);
         const professional = professionals.find(p => p.id === action.professionalId);
@@ -284,7 +292,20 @@ export default function Dashboard() {
           actionTypeName: actionType?.name || '-',
         };
       });
-  }, [actions, teamMembers, professionals, actionTypes]);
+  }, [actions, teamMembers, professionals, actionTypes, actionsFilter]);
+
+  // Team members available for filter (respecting permissions)
+  const availableTeamMembersForFilter = useMemo(() => {
+    // If admin, show all active members
+    if (isAdmin) {
+      return activeMembers;
+    }
+    // If user has team member, only show their own option
+    if (currentTeamMember) {
+      return activeMembers.filter(m => m.id === currentTeamMember.id);
+    }
+    return [];
+  }, [isAdmin, currentTeamMember, activeMembers]);
 
   // Check if current user can edit an action (is creator or admin)
   const canEditAction = (action: Action) => {
@@ -346,23 +367,44 @@ export default function Dashboard() {
       {/* Yearly Results Board - Admin Only */}
       {isAdmin && <YearlyResultsBoard />}
 
-      {/* Recent Actions - Collapsible Section */}
+      {/* Current Month Actions - Collapsible Section */}
       <Collapsible open={actionsOpen} onOpenChange={setActionsOpen}>
         <div className="border border-border">
           <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors">
             <div className="flex items-center gap-3">
               {actionsOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-              <span className="text-sm tracking-widest uppercase font-medium">Ações Recentes</span>
+              <span className="text-sm tracking-widest uppercase font-medium">Ações do Mês</span>
             </div>
-            <span className="text-xs text-muted-foreground">{recentActions.length} recentes</span>
+            <span className="text-xs text-muted-foreground">{currentMonthActions.length} ações</span>
           </CollapsibleTrigger>
           
           <CollapsibleContent>
             <div className="p-4 pt-0 space-y-4">
 
-              {/* Recent Actions */}
+              {/* Team Member Filter */}
+              <div className="flex items-center gap-3 pt-2">
+                <label className="text-xs tracking-widest uppercase text-muted-foreground whitespace-nowrap">
+                  Filtrar por:
+                </label>
+                <select
+                  value={actionsFilter}
+                  onChange={(e) => setActionsFilter(e.target.value)}
+                  className="flex h-9 w-full max-w-[200px] rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  {(isAdmin || availableTeamMembersForFilter.length > 1) && (
+                    <option value="all">Todos</option>
+                  )}
+                  {availableTeamMembersForFilter.map(member => (
+                    <option key={member.id} value={member.id}>{member.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Actions List */}
               <div>
-                <h3 className="text-xs tracking-widest uppercase text-muted-foreground mb-3">Ações Recentes</h3>
+                <h3 className="text-xs tracking-widest uppercase text-muted-foreground mb-3">
+                  Ações do Mês ({currentMonthActions.length})
+                </h3>
                 
                 {/* Desktop Table */}
                 <div className="card-flat overflow-hidden hidden md:block">
@@ -379,7 +421,7 @@ export default function Dashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {recentActions.map((action) => (
+                      {currentMonthActions.map((action) => (
                         <tr key={action.id} className="border-b border-black/10 last:border-0">
                           <td className="p-3 text-sm">{format(parseISO(action.date), 'dd/MM')}</td>
                           <td className="p-3 text-sm">{action.consultantName}</td>
@@ -415,7 +457,7 @@ export default function Dashboard() {
 
                 {/* Mobile Cards */}
                 <div className="space-y-3 md:hidden">
-                  {recentActions.map((action) => (
+                  {currentMonthActions.map((action) => (
                     <div key={action.id} className="card-flat">
                       <div className="flex justify-between items-start mb-2">
                         <div>
