@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, AlertCircle, Eye, Check, Clock, Calendar, Wrench, UserPlus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Eye, Check, Clock, Calendar, Wrench, Pencil, Trash2, Download, UserPlus, AlertCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { useExportData, ExportColumn } from '@/hooks/useExportData';
 import { useToast } from '@/hooks/use-toast';
 import { useApp } from '@/contexts/AppContext';
 import {
@@ -349,11 +350,58 @@ export function ATTab() {
     );
   }
 
+  const { exportToFile } = useExportData();
+
+  const handleExportAT = (exportFormat: 'xlsx' | 'csv') => {
+    const priorityLabels: Record<string, string> = { high: 'Alta', medium: 'Média', low: 'Baixa' };
+    
+    if (viewTab === 'open') {
+      const columns: ExportColumn<typeof openCases[0]>[] = [
+        { key: 'title', header: 'Título' },
+        { key: 'client_name', header: 'Cliente' },
+        { key: 'contract_number', header: 'Contrato' },
+        { key: 'priority', header: 'Prioridade', formatter: (v) => priorityLabels[v as string] || String(v) },
+        { key: 'contact_date', header: 'Data Contato', formatter: (v) => v ? format(parseISO(v as string), 'dd/MM/yyyy') : '' },
+        { key: 'visit_date', header: 'Data Visita', formatter: (v) => v ? format(parseISO(v as string), 'dd/MM/yyyy') : 'Pendente' },
+        { key: 'action_type_name', header: 'Tipo' },
+        { key: 'description', header: 'Descrição' },
+      ];
+      
+      if (openCases.length === 0) {
+        toast({ title: 'Nenhum dado para exportar', variant: 'destructive' });
+        return;
+      }
+      
+      const success = exportToFile(openCases, columns, { filename: 'at_chamados_abertos', format: exportFormat });
+      if (success) toast({ title: `Dados exportados com sucesso (${exportFormat.toUpperCase()})` });
+      
+    } else {
+      const columns: ExportColumn<typeof closedCases[0]>[] = [
+        { key: 'title', header: 'Título' },
+        { key: 'client_name', header: 'Cliente' },
+        { key: 'contract_number', header: 'Contrato' },
+        { key: 'priority', header: 'Prioridade', formatter: (v) => priorityLabels[v as string] || String(v) },
+        { key: 'contact_date', header: 'Data Contato', formatter: (v) => v ? format(parseISO(v as string), 'dd/MM/yyyy') : '' },
+        { key: 'visit_date', header: 'Data Visita', formatter: (v) => v ? format(parseISO(v as string), 'dd/MM/yyyy') : '' },
+        { key: 'solution_date', header: 'Data Solução', formatter: (v) => v ? format(parseISO(v as string), 'dd/MM/yyyy') : '' },
+        { key: 'resolution_notes', header: 'Resolução' },
+      ];
+      
+      if (closedCases.length === 0) {
+        toast({ title: 'Nenhum dado para exportar', variant: 'destructive' });
+        return;
+      }
+      
+      const success = exportToFile(closedCases, columns, { filename: 'at_chamados_encerrados', format: exportFormat });
+      if (success) toast({ title: `Dados exportados com sucesso (${exportFormat.toUpperCase()})` });
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setViewTab('open')}
             className={`px-4 py-2 text-xs uppercase tracking-widest border ${
@@ -371,13 +419,37 @@ export function ATTab() {
             Encerrados ({closedCases.length})
           </button>
         </div>
-        <button
-          onClick={() => setShowNewModal(true)}
-          className="btn-primary bg-foreground text-background flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Novo Chamado AT
-        </button>
+        <div className="flex gap-2">
+          <div className="relative group">
+            <button
+              className="btn-secondary border-border flex items-center gap-2 text-xs"
+            >
+              <Download className="w-4 h-4" />
+              Exportar
+            </button>
+            <div className="absolute right-0 top-full mt-1 hidden group-hover:flex flex-col bg-background border border-border shadow-md z-10 min-w-[120px]">
+              <button
+                onClick={() => handleExportAT('xlsx')}
+                className="px-4 py-2 text-xs text-left hover:bg-muted transition-colors"
+              >
+                Excel (.xlsx)
+              </button>
+              <button
+                onClick={() => handleExportAT('csv')}
+                className="px-4 py-2 text-xs text-left hover:bg-muted transition-colors"
+              >
+                CSV (.csv)
+              </button>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowNewModal(true)}
+            className="btn-primary bg-foreground text-background flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Novo Chamado AT
+          </button>
+        </div>
       </div>
 
       {/* Open Cases */}
