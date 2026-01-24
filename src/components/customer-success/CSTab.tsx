@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
-import { format, differenceInDays, parseISO, addDays } from 'date-fns';
+import { format, differenceInDays, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, Check, Clock, AlertCircle, Users, Calendar, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Check, Clock, Users, Calendar, Pencil, Trash2, Download, AlertCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useExportData, ExportColumn } from '@/hooks/useExportData';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useApp } from '@/contexts/AppContext';
@@ -276,11 +277,72 @@ export function CSTab() {
     );
   }
 
+  const { exportToFile } = useExportData();
+
+  const handleExportCS = (exportFormat: 'xlsx' | 'csv') => {
+    if (viewTab === 'cases') {
+      const columns: ExportColumn<typeof activeClientsWithNextVisit[0]>[] = [
+        { key: 'client_name', header: 'Cliente' },
+        { key: 'contract_number', header: 'Contrato' },
+        { key: 'signature_date', header: 'Data Assinatura', formatter: (v) => v ? format(parseISO(v as string), 'dd/MM/yyyy') : '' },
+        { key: 'responsible_name', header: 'Responsável' },
+        { key: 'completedActions', header: 'Visitas Concluídas', formatter: (v) => String(v) },
+        { key: 'totalScheduledActions', header: 'Total Visitas', formatter: (v) => String(v) },
+        { key: 'pendingActions', header: 'Pendentes', formatter: (v) => String(v) },
+        { key: 'daysUntilNext', header: 'Dias até Próxima', formatter: (v) => v !== null ? String(v) : 'Ciclo Completo' },
+      ];
+      
+      if (activeClientsWithNextVisit.length === 0) {
+        toast({ title: 'Nenhum dado para exportar', variant: 'destructive' });
+        return;
+      }
+      
+      const success = exportToFile(activeClientsWithNextVisit, columns, { filename: 'cs_clientes_ativos', format: exportFormat });
+      if (success) toast({ title: `Dados exportados com sucesso (${exportFormat.toUpperCase()})` });
+      
+    } else if (viewTab === 'upcoming') {
+      const columns: ExportColumn<typeof upcomingActions[0]>[] = [
+        { key: 'scheduled_date', header: 'Data Agendada', formatter: (v) => v ? format(parseISO(v as string), 'dd/MM/yyyy') : '' },
+        { key: 'case_contract_number', header: 'Contrato' },
+        { key: 'client_name', header: 'Cliente' },
+        { key: 'schedule_name', header: 'Tipo Contato' },
+        { key: 'status', header: 'Status' },
+      ];
+      
+      if (upcomingActions.length === 0) {
+        toast({ title: 'Nenhum dado para exportar', variant: 'destructive' });
+        return;
+      }
+      
+      const success = exportToFile(upcomingActions, columns, { filename: 'cs_proximos_30_dias', format: exportFormat });
+      if (success) toast({ title: `Dados exportados com sucesso (${exportFormat.toUpperCase()})` });
+      
+    } else {
+      const historyActions = csActions.filter(a => a.status === 'completed');
+      const columns: ExportColumn<typeof historyActions[0]>[] = [
+        { key: 'completed_date', header: 'Data Conclusão', formatter: (v) => v ? format(parseISO(v as string), 'dd/MM/yyyy') : '' },
+        { key: 'case_contract_number', header: 'Contrato' },
+        { key: 'client_name', header: 'Cliente' },
+        { key: 'action_type_name', header: 'Tipo' },
+        { key: 'performed_by_name', header: 'Realizado por' },
+        { key: 'notes', header: 'Observações' },
+      ];
+      
+      if (historyActions.length === 0) {
+        toast({ title: 'Nenhum dado para exportar', variant: 'destructive' });
+        return;
+      }
+      
+      const success = exportToFile(historyActions, columns, { filename: 'cs_historico', format: exportFormat });
+      if (success) toast({ title: `Dados exportados com sucesso (${exportFormat.toUpperCase()})` });
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header with actions */}
-      <div className="flex items-center justify-between">
-        <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setViewTab('cases')}
             className={`px-4 py-2 text-xs uppercase tracking-widest border ${
@@ -308,13 +370,37 @@ export function CSTab() {
             Histórico
           </button>
         </div>
-        <button
-          onClick={() => setShowNewCaseModal(true)}
-          className="btn-primary bg-foreground text-background flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Novo Caso CS
-        </button>
+        <div className="flex gap-2">
+          <div className="relative group">
+            <button
+              className="btn-secondary border-border flex items-center gap-2 text-xs"
+            >
+              <Download className="w-4 h-4" />
+              Exportar
+            </button>
+            <div className="absolute right-0 top-full mt-1 hidden group-hover:flex flex-col bg-background border border-border shadow-md z-10 min-w-[120px]">
+              <button
+                onClick={() => handleExportCS('xlsx')}
+                className="px-4 py-2 text-xs text-left hover:bg-muted transition-colors"
+              >
+                Excel (.xlsx)
+              </button>
+              <button
+                onClick={() => handleExportCS('csv')}
+                className="px-4 py-2 text-xs text-left hover:bg-muted transition-colors"
+              >
+                CSV (.csv)
+              </button>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowNewCaseModal(true)}
+            className="btn-primary bg-foreground text-background flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Novo Caso CS
+          </button>
+        </div>
       </div>
 
       {/* Active Clients with Next Visit Countdown */}
