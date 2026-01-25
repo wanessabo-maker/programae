@@ -74,6 +74,11 @@ export function ATDashboard() {
     const revenueCases = casesByYear.filter(c => c.generated_revenue === true);
     const revenuePercent = totalClients > 0 ? (revenueCases.length / totalClients) * 100 : 0;
     
+    // Financial totals
+    const totalCost = casesByYear.reduce((sum, c) => sum + (c.cost_value ?? 0), 0);
+    const totalSale = casesByYear.reduce((sum, c) => sum + (c.sale_value ?? 0), 0);
+    const totalProfit = totalSale - totalCost;
+    
     // Compare with previous year
     const prevYearCases = closedCases.filter(c => {
       if (!c.solution_date) return false;
@@ -91,6 +96,9 @@ export function ATDashboard() {
       revenuePercent,
       growth,
       prevYearCount: prevYearCases.length,
+      totalCost,
+      totalSale,
+      totalProfit,
     };
   }, [casesByYear, closedCases, selectedYear]);
 
@@ -206,6 +214,36 @@ export function ATDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Financial Summary */}
+      {(annualSummary.totalSale > 0 || annualSummary.totalCost > 0) && (
+        <div className="grid grid-cols-3 gap-4">
+          <div className="card-flat">
+            <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2">
+              Total Custo
+            </div>
+            <div className="text-xl font-bold text-foreground">
+              R$ {annualSummary.totalCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </div>
+          </div>
+          <div className="card-flat">
+            <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2">
+              Total Venda
+            </div>
+            <div className="text-xl font-bold text-foreground">
+              R$ {annualSummary.totalSale.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </div>
+          </div>
+          <div className="card-flat">
+            <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2">
+              Lucro Total
+            </div>
+            <div className={`text-xl font-bold ${annualSummary.totalProfit >= 0 ? 'text-success' : 'text-destructive'}`}>
+              R$ {annualSummary.totalProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Year Comparison */}
       {annualSummary.prevYearCount > 0 && (

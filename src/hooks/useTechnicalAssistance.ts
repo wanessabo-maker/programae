@@ -32,6 +32,8 @@ export interface TechnicalAssistance {
   contract_number: string | null;
   action_type_id: string | null;
   generated_revenue: boolean | null;
+  cost_value: number | null;
+  sale_value: number | null;
   created_at: string;
   updated_at: string;
   // Joined fields
@@ -227,12 +229,17 @@ export function useDeleteTechnicalAssistance() {
 export function useCloseTechnicalAssistance() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, solution_date, resolution_notes, generated_revenue }: { 
+    mutationFn: async ({ id, solution_date, resolution_notes, generated_revenue, cost_value, sale_value }: { 
       id: string; 
       solution_date: string; 
       resolution_notes?: string;
       generated_revenue?: boolean;
+      cost_value?: number | null;
+      sale_value?: number | null;
     }) => {
+      // Auto-set generated_revenue based on sale_value
+      const hasRevenue = (sale_value !== null && sale_value !== undefined && sale_value > 0) || generated_revenue;
+      
       const { data, error } = await supabase
         .from('technical_assistance')
         .update({
@@ -240,7 +247,9 @@ export function useCloseTechnicalAssistance() {
           solution_date,
           completed_date: solution_date,
           resolution_notes,
-          generated_revenue: generated_revenue ?? false,
+          generated_revenue: hasRevenue ?? false,
+          cost_value: cost_value ?? null,
+          sale_value: sale_value ?? null,
         })
         .eq('id', id)
         .select()

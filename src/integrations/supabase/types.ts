@@ -1112,6 +1112,7 @@ export type Database = {
           completed_date: string | null
           contact_date: string | null
           contract_number: string | null
+          cost_value: number | null
           created_at: string | null
           description: string | null
           generated_revenue: boolean | null
@@ -1121,6 +1122,7 @@ export type Database = {
           project_id: string | null
           resolution_notes: string | null
           responsible_id: string | null
+          sale_value: number | null
           scheduled_date: string | null
           solution_date: string | null
           status: string | null
@@ -1134,6 +1136,7 @@ export type Database = {
           completed_date?: string | null
           contact_date?: string | null
           contract_number?: string | null
+          cost_value?: number | null
           created_at?: string | null
           description?: string | null
           generated_revenue?: boolean | null
@@ -1143,6 +1146,7 @@ export type Database = {
           project_id?: string | null
           resolution_notes?: string | null
           responsible_id?: string | null
+          sale_value?: number | null
           scheduled_date?: string | null
           solution_date?: string | null
           status?: string | null
@@ -1156,6 +1160,7 @@ export type Database = {
           completed_date?: string | null
           contact_date?: string | null
           contract_number?: string | null
+          cost_value?: number | null
           created_at?: string | null
           description?: string | null
           generated_revenue?: boolean | null
@@ -1165,6 +1170,7 @@ export type Database = {
           project_id?: string | null
           resolution_notes?: string | null
           responsible_id?: string | null
+          sale_value?: number | null
           scheduled_date?: string | null
           solution_date?: string | null
           status?: string | null
