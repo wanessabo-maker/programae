@@ -8,7 +8,12 @@ interface FoccoProject {
   stage: string;
 }
 
-export function useFoccoProjects() {
+interface UseFoccoProjectsOptions {
+  filterByStage?: 'em_negociacao' | 'closed_won' | 'closed_lost' | null;
+}
+
+export function useFoccoProjects(options: UseFoccoProjectsOptions = {}) {
+  const { filterByStage = null } = options;
   const [foccoProjects, setFoccoProjects] = useState<FoccoProject[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -16,7 +21,7 @@ export function useFoccoProjects() {
     const fetchFoccoProjects = async () => {
       setIsLoading(true);
       try {
-        const { data, error } = await supabase
+        let query = supabase
           .from('projects')
           .select(`
             focco_project_number,
@@ -25,8 +30,14 @@ export function useFoccoProjects() {
             clients:client_id (name)
           `)
           .not('focco_project_number', 'is', null)
-          .not('focco_project_number', 'eq', '')
-          .order('focco_project_number', { ascending: false });
+          .not('focco_project_number', 'eq', '');
+
+        // Apply stage filter if specified
+        if (filterByStage) {
+          query = query.eq('stage', filterByStage);
+        }
+
+        const { data, error } = await query.order('focco_project_number', { ascending: false });
 
         if (error) throw error;
 
@@ -46,7 +57,7 @@ export function useFoccoProjects() {
     };
 
     fetchFoccoProjects();
-  }, []);
+  }, [filterByStage]);
 
   return { foccoProjects, isLoading };
 }
