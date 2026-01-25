@@ -1114,6 +1114,7 @@ export type Database = {
           contract_number: string | null
           created_at: string | null
           description: string | null
+          generated_revenue: boolean | null
           id: string
           opened_date: string | null
           priority: string | null
@@ -1135,6 +1136,7 @@ export type Database = {
           contract_number?: string | null
           created_at?: string | null
           description?: string | null
+          generated_revenue?: boolean | null
           id?: string
           opened_date?: string | null
           priority?: string | null
@@ -1156,6 +1158,7 @@ export type Database = {
           contract_number?: string | null
           created_at?: string | null
           description?: string | null
+          generated_revenue?: boolean | null
           id?: string
           opened_date?: string | null
           priority?: string | null

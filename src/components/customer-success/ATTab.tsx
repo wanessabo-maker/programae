@@ -1,12 +1,13 @@
 import { useState, useMemo } from 'react';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, Eye, Check, Clock, Calendar, Wrench, Pencil, Trash2, Download, UserPlus, AlertCircle } from 'lucide-react';
+import { Plus, Eye, Check, Clock, Calendar, Wrench, Pencil, Trash2, Download, UserPlus, AlertCircle, BarChart3 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useExportData, ExportColumn } from '@/hooks/useExportData';
 import { useToast } from '@/hooks/use-toast';
 import { useApp } from '@/contexts/AppContext';
+import { ATDashboard } from './ATDashboard';
 import {
   useTechnicalAssistances,
   useOpenTechnicalAssistances,
@@ -41,7 +42,7 @@ export function ATTab() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedCase, setSelectedCase] = useState<TechnicalAssistance | null>(null);
-  const [viewTab, setViewTab] = useState<'open' | 'closed'>('open');
+  const [viewTab, setViewTab] = useState<'dashboard' | 'open' | 'closed'>('dashboard');
 
   // New case form
   const [newCase, setNewCase] = useState({
@@ -72,12 +73,14 @@ export function ATTab() {
     contract_number: '',
     action_type_id: '',
     resolution_notes: '',
+    generated_revenue: false,
   });
 
   // Close case form
   const [closeForm, setCloseForm] = useState({
     solution_date: format(new Date(), 'yyyy-MM-dd'),
     resolution_notes: '',
+    generated_revenue: false,
   });
 
   // Update visit form
@@ -209,6 +212,7 @@ export function ATTab() {
         id: selectedCase.id,
         solution_date: closeForm.solution_date,
         resolution_notes: closeForm.resolution_notes,
+        generated_revenue: closeForm.generated_revenue,
       });
 
       toast({ title: 'Chamado encerrado com sucesso' });
@@ -217,6 +221,7 @@ export function ATTab() {
       setCloseForm({
         solution_date: format(new Date(), 'yyyy-MM-dd'),
         resolution_notes: '',
+        generated_revenue: false,
       });
     } catch (error) {
       console.error(error);
@@ -242,6 +247,7 @@ export function ATTab() {
     setCloseForm({
       solution_date: format(new Date(), 'yyyy-MM-dd'),
       resolution_notes: '',
+      generated_revenue: false,
     });
     setShowCloseModal(true);
   };
@@ -262,6 +268,7 @@ export function ATTab() {
       contract_number: atCase.contract_number || '',
       action_type_id: atCase.action_type_id || '',
       resolution_notes: atCase.resolution_notes || '',
+      generated_revenue: atCase.generated_revenue || false,
     });
     setShowEditModal(true);
   };
@@ -294,6 +301,7 @@ export function ATTab() {
         contract_number: editForm.contract_number.trim() || null,
         action_type_id: editForm.action_type_id || null,
         resolution_notes: editForm.resolution_notes.trim() || null,
+        generated_revenue: editForm.generated_revenue,
       });
 
       toast({ title: 'Chamado atualizado com sucesso' });
@@ -384,6 +392,7 @@ export function ATTab() {
         { key: 'contact_date', header: 'Data Contato', formatter: (v) => v ? format(parseISO(v as string), 'dd/MM/yyyy') : '' },
         { key: 'visit_date', header: 'Data Visita', formatter: (v) => v ? format(parseISO(v as string), 'dd/MM/yyyy') : '' },
         { key: 'solution_date', header: 'Data Solução', formatter: (v) => v ? format(parseISO(v as string), 'dd/MM/yyyy') : '' },
+        { key: 'generated_revenue', header: 'Gerou Caixa', formatter: (v) => v === true ? 'Sim' : 'Não' },
         { key: 'resolution_notes', header: 'Resolução' },
       ];
       
@@ -402,6 +411,15 @@ export function ATTab() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setViewTab('dashboard')}
+            className={`px-4 py-2 text-xs uppercase tracking-widest border flex items-center gap-1.5 ${
+              viewTab === 'dashboard' ? 'bg-foreground text-background' : 'border-border'
+            }`}
+          >
+            <BarChart3 className="w-3.5 h-3.5" />
+            Dashboard
+          </button>
           <button
             onClick={() => setViewTab('open')}
             className={`px-4 py-2 text-xs uppercase tracking-widest border ${
@@ -451,6 +469,9 @@ export function ATTab() {
           </button>
         </div>
       </div>
+
+      {/* Dashboard */}
+      {viewTab === 'dashboard' && <ATDashboard />}
 
       {/* Open Cases */}
       {viewTab === 'open' && (
@@ -568,13 +589,14 @@ export function ATTab() {
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-border">
-                    <th className="text-left p-2 font-medium uppercase tracking-widest">Título</th>
-                    <th className="text-left p-2 font-medium uppercase tracking-widest">Cliente</th>
-                    <th className="text-left p-2 font-medium uppercase tracking-widest">Contato</th>
-                    <th className="text-left p-2 font-medium uppercase tracking-widest">Visita</th>
-                    <th className="text-left p-2 font-medium uppercase tracking-widest">Solução</th>
-                    <th className="text-left p-2 font-medium uppercase tracking-widest">Dias</th>
-                    <th className="text-left p-2 font-medium uppercase tracking-widest">Ações</th>
+                    <th className="text-left p-2 font-medium uppercase tracking-widest text-foreground">Título</th>
+                    <th className="text-left p-2 font-medium uppercase tracking-widest text-foreground">Cliente</th>
+                    <th className="text-left p-2 font-medium uppercase tracking-widest text-foreground">Contato</th>
+                    <th className="text-left p-2 font-medium uppercase tracking-widest text-foreground">Visita</th>
+                    <th className="text-left p-2 font-medium uppercase tracking-widest text-foreground">Solução</th>
+                    <th className="text-left p-2 font-medium uppercase tracking-widest text-foreground">Dias</th>
+                    <th className="text-left p-2 font-medium uppercase tracking-widest text-foreground">Caixa</th>
+                    <th className="text-left p-2 font-medium uppercase tracking-widest text-foreground">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -584,30 +606,40 @@ export function ATTab() {
                       : 0;
                     return (
                       <tr key={atCase.id} className="border-b border-border/50">
-                        <td className="p-2">{atCase.title}</td>
-                        <td className="p-2">{atCase.client_name || 'N/A'}</td>
-                        <td className="p-2">
+                        <td className="p-2 text-foreground">{atCase.title}</td>
+                        <td className="p-2 text-foreground">{atCase.client_name || 'N/A'}</td>
+                        <td className="p-2 text-foreground">
                           {atCase.contact_date 
                             ? format(parseISO(atCase.contact_date), "dd/MM/yy", { locale: ptBR })
                             : '-'
                           }
                         </td>
-                        <td className="p-2">
+                        <td className="p-2 text-foreground">
                           {atCase.visit_date 
                             ? format(parseISO(atCase.visit_date), "dd/MM/yy", { locale: ptBR })
                             : '-'
                           }
                         </td>
-                        <td className="p-2">
+                        <td className="p-2 text-foreground">
                           {atCase.solution_date 
                             ? format(parseISO(atCase.solution_date), "dd/MM/yy", { locale: ptBR })
                             : '-'
                           }
                         </td>
                         <td className="p-2">
-                          <span className={totalDays > 30 ? 'text-destructive' : ''}>
+                          <span className={totalDays > 30 ? 'text-destructive' : 'text-foreground'}>
                             {totalDays}d
                           </span>
+                        </td>
+                        <td className="p-2">
+                          {atCase.generated_revenue ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-success/10 text-success rounded text-xs font-medium">
+                              <Check className="w-3 h-3" />
+                              Sim
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
                         </td>
                         <td className="p-2">
                           <div className="flex items-center gap-1">
@@ -1034,6 +1066,24 @@ export function ATTab() {
                 placeholder="Descreva como o problema foi resolvido"
               />
             </div>
+
+            {/* Generated Revenue Checkbox */}
+            <div className="p-3 border border-success/30 bg-success/5 rounded">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={closeForm.generated_revenue}
+                  onChange={(e) => setCloseForm({ ...closeForm, generated_revenue: e.target.checked })}
+                  className="w-4 h-4 accent-success"
+                />
+                <div>
+                  <span className="text-sm font-medium text-foreground">Gerou Caixa</span>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Marque se esta assistência técnica gerou receita para a empresa
+                  </p>
+                </div>
+              </label>
+            </div>
           </div>
 
           <div className="flex gap-3">
@@ -1215,6 +1265,24 @@ export function ATTab() {
                 onChange={(e) => setEditForm({ ...editForm, resolution_notes: e.target.value })}
                 className="input-flat w-full mt-1 h-20 resize-none"
               />
+            </div>
+
+            {/* Generated Revenue Checkbox in Edit Modal */}
+            <div className="p-3 border border-success/30 bg-success/5 rounded">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={editForm.generated_revenue}
+                  onChange={(e) => setEditForm({ ...editForm, generated_revenue: e.target.checked })}
+                  className="w-4 h-4 accent-success"
+                />
+                <div>
+                  <span className="text-sm font-medium text-foreground">Gerou Caixa</span>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Marque se esta assistência técnica gerou receita
+                  </p>
+                </div>
+              </label>
             </div>
           </div>
 

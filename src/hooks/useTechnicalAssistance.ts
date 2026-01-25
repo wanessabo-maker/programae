@@ -31,6 +31,7 @@ export interface TechnicalAssistance {
   solution_date: string | null;
   contract_number: string | null;
   action_type_id: string | null;
+  generated_revenue: boolean | null;
   created_at: string;
   updated_at: string;
   // Joined fields
@@ -226,10 +227,11 @@ export function useDeleteTechnicalAssistance() {
 export function useCloseTechnicalAssistance() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, solution_date, resolution_notes }: { 
+    mutationFn: async ({ id, solution_date, resolution_notes, generated_revenue }: { 
       id: string; 
       solution_date: string; 
       resolution_notes?: string;
+      generated_revenue?: boolean;
     }) => {
       const { data, error } = await supabase
         .from('technical_assistance')
@@ -238,6 +240,7 @@ export function useCloseTechnicalAssistance() {
           solution_date,
           completed_date: solution_date,
           resolution_notes,
+          generated_revenue: generated_revenue ?? false,
         })
         .eq('id', id)
         .select()
