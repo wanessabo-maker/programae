@@ -42,7 +42,7 @@ export function ATTab() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedCase, setSelectedCase] = useState<TechnicalAssistance | null>(null);
-  const [viewTab, setViewTab] = useState<'dashboard' | 'open' | 'closed'>('dashboard');
+  const [viewTab, setViewTab] = useState<'dashboard' | 'open' | 'closed'>('open');
 
   // New case form
   const [newCase, setNewCase] = useState({
@@ -74,6 +74,8 @@ export function ATTab() {
     action_type_id: '',
     resolution_notes: '',
     generated_revenue: false,
+    cost_value: '',
+    sale_value: '',
   });
 
   // Close case form
@@ -81,6 +83,8 @@ export function ATTab() {
     solution_date: format(new Date(), 'yyyy-MM-dd'),
     resolution_notes: '',
     generated_revenue: false,
+    cost_value: '',
+    sale_value: '',
   });
 
   // Update visit form
@@ -208,11 +212,16 @@ export function ATTab() {
     }
 
     try {
+      const costVal = closeForm.cost_value ? parseFloat(closeForm.cost_value) : null;
+      const saleVal = closeForm.sale_value ? parseFloat(closeForm.sale_value) : null;
+      
       await closeMutation.mutateAsync({
         id: selectedCase.id,
         solution_date: closeForm.solution_date,
         resolution_notes: closeForm.resolution_notes,
-        generated_revenue: closeForm.generated_revenue,
+        generated_revenue: closeForm.generated_revenue || (saleVal !== null && saleVal > 0),
+        cost_value: costVal,
+        sale_value: saleVal,
       });
 
       toast({ title: 'Chamado encerrado com sucesso' });
@@ -222,6 +231,8 @@ export function ATTab() {
         solution_date: format(new Date(), 'yyyy-MM-dd'),
         resolution_notes: '',
         generated_revenue: false,
+        cost_value: '',
+        sale_value: '',
       });
     } catch (error) {
       console.error(error);
@@ -248,6 +259,8 @@ export function ATTab() {
       solution_date: format(new Date(), 'yyyy-MM-dd'),
       resolution_notes: '',
       generated_revenue: false,
+      cost_value: '',
+      sale_value: '',
     });
     setShowCloseModal(true);
   };
@@ -269,6 +282,8 @@ export function ATTab() {
       action_type_id: atCase.action_type_id || '',
       resolution_notes: atCase.resolution_notes || '',
       generated_revenue: atCase.generated_revenue || false,
+      cost_value: atCase.cost_value?.toString() || '',
+      sale_value: atCase.sale_value?.toString() || '',
     });
     setShowEditModal(true);
   };
@@ -287,6 +302,10 @@ export function ATTab() {
     }
 
     try {
+      const costVal = editForm.cost_value ? parseFloat(editForm.cost_value) : null;
+      const saleVal = editForm.sale_value ? parseFloat(editForm.sale_value) : null;
+      const hasRevenue = (saleVal !== null && saleVal > 0) || editForm.generated_revenue;
+      
       await updateMutation.mutateAsync({
         id: selectedCase.id,
         title: editForm.title.trim(),
@@ -301,7 +320,9 @@ export function ATTab() {
         contract_number: editForm.contract_number.trim() || null,
         action_type_id: editForm.action_type_id || null,
         resolution_notes: editForm.resolution_notes.trim() || null,
-        generated_revenue: editForm.generated_revenue,
+        generated_revenue: hasRevenue,
+        cost_value: costVal,
+        sale_value: saleVal,
       });
 
       toast({ title: 'Chamado atualizado com sucesso' });
@@ -392,6 +413,8 @@ export function ATTab() {
         { key: 'contact_date', header: 'Data Contato', formatter: (v) => v ? format(parseISO(v as string), 'dd/MM/yyyy') : '' },
         { key: 'visit_date', header: 'Data Visita', formatter: (v) => v ? format(parseISO(v as string), 'dd/MM/yyyy') : '' },
         { key: 'solution_date', header: 'Data Solução', formatter: (v) => v ? format(parseISO(v as string), 'dd/MM/yyyy') : '' },
+        { key: 'cost_value', header: 'Custo (R$)', formatter: (v) => v ? Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '' },
+        { key: 'sale_value', header: 'Venda (R$)', formatter: (v) => v ? Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '' },
         { key: 'generated_revenue', header: 'Gerou Caixa', formatter: (v) => v === true ? 'Sim' : 'Não' },
         { key: 'resolution_notes', header: 'Resolução' },
       ];
@@ -412,15 +435,6 @@ export function ATTab() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-wrap gap-2">
           <button
-            onClick={() => setViewTab('dashboard')}
-            className={`px-4 py-2 text-xs uppercase tracking-widest border flex items-center gap-1.5 ${
-              viewTab === 'dashboard' ? 'bg-foreground text-background' : 'border-border'
-            }`}
-          >
-            <BarChart3 className="w-3.5 h-3.5" />
-            Dashboard
-          </button>
-          <button
             onClick={() => setViewTab('open')}
             className={`px-4 py-2 text-xs uppercase tracking-widest border ${
               viewTab === 'open' ? 'bg-foreground text-background' : 'border-border'
@@ -435,6 +449,15 @@ export function ATTab() {
             }`}
           >
             Encerrados ({closedCases.length})
+          </button>
+          <button
+            onClick={() => setViewTab('dashboard')}
+            className={`px-4 py-2 text-xs uppercase tracking-widest border flex items-center gap-1.5 ${
+              viewTab === 'dashboard' ? 'bg-foreground text-background' : 'border-border'
+            }`}
+          >
+            <BarChart3 className="w-3.5 h-3.5" />
+            Dashboard
           </button>
         </div>
         <div className="flex gap-2">
@@ -592,9 +615,11 @@ export function ATTab() {
                     <th className="text-left p-2 font-medium uppercase tracking-widest text-foreground">Título</th>
                     <th className="text-left p-2 font-medium uppercase tracking-widest text-foreground">Cliente</th>
                     <th className="text-left p-2 font-medium uppercase tracking-widest text-foreground">Contato</th>
-                    <th className="text-left p-2 font-medium uppercase tracking-widest text-foreground">Visita</th>
                     <th className="text-left p-2 font-medium uppercase tracking-widest text-foreground">Solução</th>
                     <th className="text-left p-2 font-medium uppercase tracking-widest text-foreground">Dias</th>
+                    <th className="text-right p-2 font-medium uppercase tracking-widest text-foreground">Custo</th>
+                    <th className="text-right p-2 font-medium uppercase tracking-widest text-foreground">Venda</th>
+                    <th className="text-right p-2 font-medium uppercase tracking-widest text-foreground">Lucro</th>
                     <th className="text-left p-2 font-medium uppercase tracking-widest text-foreground">Caixa</th>
                     <th className="text-left p-2 font-medium uppercase tracking-widest text-foreground">Ações</th>
                   </tr>
@@ -604,6 +629,10 @@ export function ATTab() {
                     const totalDays = atCase.contact_date && atCase.solution_date
                       ? differenceInDays(parseISO(atCase.solution_date), parseISO(atCase.contact_date))
                       : 0;
+                    const costVal = atCase.cost_value ?? 0;
+                    const saleVal = atCase.sale_value ?? 0;
+                    const profit = saleVal - costVal;
+                    
                     return (
                       <tr key={atCase.id} className="border-b border-border/50">
                         <td className="p-2 text-foreground">{atCase.title}</td>
@@ -611,12 +640,6 @@ export function ATTab() {
                         <td className="p-2 text-foreground">
                           {atCase.contact_date 
                             ? format(parseISO(atCase.contact_date), "dd/MM/yy", { locale: ptBR })
-                            : '-'
-                          }
-                        </td>
-                        <td className="p-2 text-foreground">
-                          {atCase.visit_date 
-                            ? format(parseISO(atCase.visit_date), "dd/MM/yy", { locale: ptBR })
                             : '-'
                           }
                         </td>
@@ -630,6 +653,15 @@ export function ATTab() {
                           <span className={totalDays > 30 ? 'text-destructive' : 'text-foreground'}>
                             {totalDays}d
                           </span>
+                        </td>
+                        <td className="p-2 text-right text-foreground">
+                          {costVal > 0 ? `R$ ${costVal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '-'}
+                        </td>
+                        <td className="p-2 text-right text-foreground">
+                          {saleVal > 0 ? `R$ ${saleVal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '-'}
+                        </td>
+                        <td className={`p-2 text-right font-medium ${profit >= 0 ? 'text-success' : 'text-destructive'}`}>
+                          {(saleVal > 0 || costVal > 0) ? `R$ ${profit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '-'}
                         </td>
                         <td className="p-2">
                           {atCase.generated_revenue ? (
@@ -1067,19 +1099,70 @@ export function ATTab() {
               />
             </div>
 
+            {/* Financial Fields */}
+            <div className="space-y-3 p-3 border border-border bg-muted/20 rounded">
+              <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium">
+                Dados Financeiros
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">Valor de Custo (R$)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={closeForm.cost_value}
+                    onChange={(e) => setCloseForm({ ...closeForm, cost_value: e.target.value })}
+                    placeholder="0,00"
+                    className="input-flat w-full mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Valor de Venda (R$)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={closeForm.sale_value}
+                    onChange={(e) => setCloseForm({ ...closeForm, sale_value: e.target.value })}
+                    placeholder="0,00"
+                    className="input-flat w-full mt-1"
+                  />
+                </div>
+              </div>
+              {/* Calculated Profit */}
+              {(closeForm.cost_value || closeForm.sale_value) && (
+                <div className="pt-2 border-t border-border">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground">Lucro Calculado:</span>
+                    <span className={`text-sm font-bold ${
+                      (parseFloat(closeForm.sale_value || '0') - parseFloat(closeForm.cost_value || '0')) >= 0 
+                        ? 'text-success' 
+                        : 'text-destructive'
+                    }`}>
+                      R$ {((parseFloat(closeForm.sale_value || '0') - parseFloat(closeForm.cost_value || '0'))).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Generated Revenue Checkbox */}
             <div className="p-3 border border-success/30 bg-success/5 rounded">
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={closeForm.generated_revenue}
+                  checked={closeForm.generated_revenue || (parseFloat(closeForm.sale_value || '0') > 0)}
                   onChange={(e) => setCloseForm({ ...closeForm, generated_revenue: e.target.checked })}
                   className="w-4 h-4 accent-success"
+                  disabled={parseFloat(closeForm.sale_value || '0') > 0}
                 />
                 <div>
                   <span className="text-sm font-medium text-foreground">Gerou Caixa</span>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Marque se esta assistência técnica gerou receita para a empresa
+                    {parseFloat(closeForm.sale_value || '0') > 0 
+                      ? 'Marcado automaticamente pois há valor de venda' 
+                      : 'Marque se esta assistência técnica gerou receita para a empresa'}
                   </p>
                 </div>
               </label>
@@ -1267,19 +1350,70 @@ export function ATTab() {
               />
             </div>
 
+            {/* Financial Fields in Edit Modal */}
+            <div className="space-y-3 p-3 border border-border bg-muted/20 rounded">
+              <p className="text-xs uppercase tracking-widest text-muted-foreground font-medium">
+                Dados Financeiros
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">Valor de Custo (R$)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={editForm.cost_value}
+                    onChange={(e) => setEditForm({ ...editForm, cost_value: e.target.value })}
+                    placeholder="0,00"
+                    className="input-flat w-full mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Valor de Venda (R$)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={editForm.sale_value}
+                    onChange={(e) => setEditForm({ ...editForm, sale_value: e.target.value })}
+                    placeholder="0,00"
+                    className="input-flat w-full mt-1"
+                  />
+                </div>
+              </div>
+              {/* Calculated Profit */}
+              {(editForm.cost_value || editForm.sale_value) && (
+                <div className="pt-2 border-t border-border">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground">Lucro Calculado:</span>
+                    <span className={`text-sm font-bold ${
+                      (parseFloat(editForm.sale_value || '0') - parseFloat(editForm.cost_value || '0')) >= 0 
+                        ? 'text-success' 
+                        : 'text-destructive'
+                    }`}>
+                      R$ {((parseFloat(editForm.sale_value || '0') - parseFloat(editForm.cost_value || '0'))).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Generated Revenue Checkbox in Edit Modal */}
             <div className="p-3 border border-success/30 bg-success/5 rounded">
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={editForm.generated_revenue}
+                  checked={editForm.generated_revenue || (parseFloat(editForm.sale_value || '0') > 0)}
                   onChange={(e) => setEditForm({ ...editForm, generated_revenue: e.target.checked })}
                   className="w-4 h-4 accent-success"
+                  disabled={parseFloat(editForm.sale_value || '0') > 0}
                 />
                 <div>
                   <span className="text-sm font-medium text-foreground">Gerou Caixa</span>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    Marque se esta assistência técnica gerou receita
+                    {parseFloat(editForm.sale_value || '0') > 0 
+                      ? 'Marcado automaticamente pois há valor de venda' 
+                      : 'Marque se esta assistência técnica gerou receita'}
                   </p>
                 </div>
               </label>
