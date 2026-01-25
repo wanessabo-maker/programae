@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Plus, Trash2, Pencil, ChevronDown, ChevronRight } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -9,6 +9,11 @@ import { EditActionModal } from '@/components/EditActionModal';
 import { YearlyResultsBoard } from '@/components/YearlyResultsBoard';
 import { DeleteActionConfirmDialog } from '@/components/DeleteActionConfirmDialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { 
+  DashboardSkeleton, 
+  LoadingTimeoutMessage,
+  MetricCardSkeleton 
+} from '@/components/dashboard/DashboardSkeletons';
 import { format, parseISO, isThisMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Action } from '@/types';
@@ -20,6 +25,7 @@ export default function Dashboard() {
   const [editingAction, setEditingAction] = useState<Action | null>(null);
   const [deletingActionId, setDeletingActionId] = useState<string | null>(null);
   const [actionsFilter, setActionsFilter] = useState<string>('all');
+  const [showTimeoutMessage, setShowTimeoutMessage] = useState(false);
   
   // Context hooks
   const { isAdmin } = useAuthContext();
@@ -31,11 +37,24 @@ export default function Dashboard() {
     actionTypes, 
     professionals,
     professionalCategories,
-    deleteAction 
+    deleteAction,
+    isLoading 
   } = useApp();
   
   // Query hooks (that depend on context)
-  const { data: currentTeamMember } = useCurrentTeamMember();
+  const { data: currentTeamMember, isLoading: isCurrentTeamMemberLoading } = useCurrentTeamMember();
+
+  // Show timeout message after 3 seconds if still loading
+  useEffect(() => {
+    if (isLoading) {
+      const timer = setTimeout(() => {
+        setShowTimeoutMessage(true);
+      }, 3000);
+      return () => clearTimeout(timer);
+    } else {
+      setShowTimeoutMessage(false);
+    }
+  }, [isLoading]);
 
   const activeMembers = teamMembers.filter(m => m.active);
 
@@ -319,6 +338,16 @@ export default function Dashboard() {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
   };
+
+  // Show skeleton while loading
+  if (isLoading || isCurrentTeamMemberLoading) {
+    return (
+      <>
+        <DashboardSkeleton />
+        {showTimeoutMessage && <LoadingTimeoutMessage />}
+      </>
+    );
+  }
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-fade-in">
