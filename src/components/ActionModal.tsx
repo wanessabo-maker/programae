@@ -381,6 +381,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 stage: 'em_negociacao',
                 start_date: form.date,
                 estimated_value: form.presentedValue ? Number(form.presentedValue) : null,
+                origin_type: 'standard', // Normal flow - Apresentação creates project
               })
               .select('id')
               .single();
@@ -498,6 +499,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   closed_date: form.date,
                   closed_value: form.value ? Number(form.value) : null,
                   estimated_value: form.value ? Number(form.value) : null,
+                  origin_type: 'venda_direta', // Exception: Sale without prior presentation
                 })
                 .select('id')
                 .single();
@@ -507,7 +509,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 toast.error('Erro ao criar contrato automaticamente');
               } else if (newProject) {
                 projectId = newProject.id;
-                toast.success(`Contrato criado com FOCCO ${foccoNumber}!`);
+                toast.success(`Contrato criado com FOCCO ${foccoNumber} (Venda Direta)!`);
               }
             }
           } else {
@@ -553,6 +555,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 closed_date: form.date,
                 closed_value: form.value ? Number(form.value) : null,
                 estimated_value: form.value ? Number(form.value) : null,
+                origin_type: 'venda_direta', // Exception: Direct sale without FOCCO
               })
               .select('id')
               .single();
@@ -562,7 +565,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
               toast.error('Erro ao criar contrato automaticamente');
             } else if (newProject) {
               projectId = newProject.id;
-              toast.success('Contrato criado com sucesso!');
+              toast.success('Contrato criado com sucesso (Venda Direta)!');
             }
           }
         } catch (err) {
@@ -639,15 +642,99 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             .maybeSingle();
 
           if (!existingCase) {
-            const clientId: string | null = loadedClientData?.clientId || null;
-            const projectIdForCS: string | null = loadedClientData?.projectId || projectId || null;
+            // Get the client and project IDs - either from loaded data or we need to create them
+            let csClientId: string | null = loadedClientData?.clientId || null;
+            let csProjectId: string | null = loadedClientData?.projectId || projectId || null;
+            
+            // EXCEPTION FLOW: If no project exists, create Client, Project and Contract automatically
+            // This handles "Certificado sem Venda" scenario
+            if (!csProjectId && form.contractNumber.trim()) {
+              // First, try to find project by contract number in clients
+              const { data: existingClientWithContract } = await supabase
+                .from('clients')
+                .select('id, name')
+                .eq('contract_number', form.contractNumber.trim())
+                .maybeSingle();
+              
+              if (existingClientWithContract) {
+                csClientId = existingClientWithContract.id;
+                
+                // Find project linked to this client
+                const { data: linkedProject } = await supabase
+                  .from('projects')
+                  .select('id')
+                  .eq('client_id', existingClientWithContract.id)
+                  .eq('stage', 'closed_won')
+                  .maybeSingle();
+                
+                if (linkedProject) {
+                  csProjectId = linkedProject.id;
+                }
+              }
+              
+              // If still no project, create everything (Certificado sem Venda)
+              if (!csProjectId) {
+                // Create client if we have a name
+                if (form.clientName.trim() && !csClientId) {
+                  csClientId = await createClientDirect({
+                    name: form.clientName.trim(),
+                    age: form.clientAge ? Number(form.clientAge) : null,
+                    profession: form.clientProfession || null,
+                    professional_id: professionalId || null,
+                    responsible_id: form.consultantId,
+                    status: 'closed',
+                  });
+                  
+                  if (csClientId) {
+                    await updateClientData(csClientId, {
+                      contract_number: form.contractNumber.trim(),
+                      cpf_cnpj: form.clientCpfCnpj.trim() || undefined,
+                      phone: form.clientPhone.trim() || undefined,
+                      email: form.clientEmail.trim() || undefined,
+                      address: form.clientAddress.trim() || undefined,
+                      city: form.clientCity.trim() || undefined,
+                      state: form.clientState.trim() || undefined,
+                    });
+                  }
+                }
+                
+                // Create project (as closed_won since we have a certificate)
+                const projectName = form.clientName.trim() 
+                  ? `Certificado - ${form.clientName.trim()}`
+                  : `Certificado - ${form.contractNumber.trim()}`;
+                
+                const { data: newProject, error: projectError } = await supabase
+                  .from('projects')
+                  .insert({
+                    name: projectName,
+                    focco_project_number: form.foccoProjectNumber.trim() || null,
+                    professional_id: professionalId || null,
+                    responsible_id: form.consultantId,
+                    client_id: csClientId,
+                    stage: 'closed_won',
+                    start_date: form.date,
+                    closed_date: form.date,
+                    origin_type: 'certificado_sem_venda', // Exception: Certificate without prior sale
+                  })
+                  .select('id')
+                  .single();
+                
+                if (projectError) {
+                  console.error('Error creating project for certificate:', projectError);
+                } else if (newProject) {
+                  csProjectId = newProject.id;
+                  projectId = newProject.id; // Update for action linking
+                  toast.info('Cliente/Projeto criado automaticamente (Certificado sem Venda registrada)');
+                }
+              }
+            }
             
             // Create new CS case
             const { data: newCSCase, error: csCaseError } = await supabase
               .from('cs_cases')
               .insert({
-                client_id: clientId,
-                project_id: projectIdForCS,
+                client_id: csClientId,
+                project_id: csProjectId,
                 contract_number: form.contractNumber.trim(),
                 signature_date: form.date,
                 responsible_id: form.consultantId,

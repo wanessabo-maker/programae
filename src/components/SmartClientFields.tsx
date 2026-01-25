@@ -59,8 +59,11 @@ export function SmartClientFields({
   const [filteredProfessions, setFilteredProfessions] = useState<string[]>([]);
   const professionInputRef = useRef<HTMLInputElement>(null);
 
-  // FOCCO autocomplete state
-  const { foccoProjects } = useFoccoProjects();
+  // FOCCO autocomplete state - filter by stage for Venda (only em_negociacao)
+  // For other actions, show all projects
+  const { foccoProjects } = useFoccoProjects({ 
+    filterByStage: isVenda ? 'em_negociacao' : null 
+  });
   const [showFoccoSuggestions, setShowFoccoSuggestions] = useState(false);
   const [filteredFoccoProjects, setFilteredFoccoProjects] = useState<typeof foccoProjects>([]);
 

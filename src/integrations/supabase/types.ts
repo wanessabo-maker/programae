@@ -875,6 +875,7 @@ export type Database = {
           id: string
           name: string
           notes: string | null
+          origin_type: string | null
           professional_id: string | null
           responsible_id: string | null
           stage: string | null
@@ -896,6 +897,7 @@ export type Database = {
           id?: string
           name: string
           notes?: string | null
+          origin_type?: string | null
           professional_id?: string | null
           responsible_id?: string | null
           stage?: string | null
@@ -917,6 +919,7 @@ export type Database = {
           id?: string
           name?: string
           notes?: string | null
+          origin_type?: string | null
           professional_id?: string | null
           responsible_id?: string | null
           stage?: string | null
