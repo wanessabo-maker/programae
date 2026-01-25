@@ -1,6 +1,8 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useApp } from '@/contexts/AppContext';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { useCurrentTeamMember } from '@/hooks/useCurrentTeamMember';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { getCategoryForAction, shouldUpdateProfessionalCategory } from '@/hooks/useProfessionalCategory';
@@ -72,6 +74,10 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     addReminder,
   } = useApp();
 
+  // Auth context and current team member for role-based consultant selection
+  const { isAdmin } = useAuthContext();
+  const { data: currentTeamMember } = useCurrentTeamMember();
+
   // CS schedules for automatic case creation
   const { data: csSchedules } = useCSContactSchedules();
 
@@ -91,6 +97,13 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [loadedClientData, setLoadedClientData] = useState<SmartClientData | null>(null);
+
+  // Auto-select consultant for non-admin users when modal opens
+  useEffect(() => {
+    if (open && !isAdmin && currentTeamMember?.id && form.consultantId === '') {
+      setForm(prev => ({ ...prev, consultantId: currentTeamMember.id }));
+    }
+  }, [open, isAdmin, currentTeamMember?.id, form.consultantId]);
 
   const selectedActionType = actionTypes.find(t => t.id === form.actionTypeId);
   const consultantProfessionals = professionals.filter(p => p.consultantId === form.consultantId);
@@ -654,24 +667,30 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           <DialogTitle>REGISTRAR AÇÃO</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
-          {/* Consultant Selection */}
+          {/* Consultant Selection - Only show dropdown for admins */}
           <div>
             <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.consultantId ? 'text-destructive' : 'text-muted-foreground'}`}>
               Consultor *
             </label>
-            <select
-              value={form.consultantId}
-              onChange={(e) => {
-                handleFieldChange('consultantId', e.target.value);
-                handleFieldChange('professionalId', '');
-              }}
-              className={`input-flat w-full text-card-foreground ${errors.consultantId ? 'border-destructive ring-1 ring-destructive' : ''}`}
-            >
-              <option value="">Selecione</option>
-              {activeMembers.map((m) => (
-                <option key={m.id} value={m.id}>{m.name}</option>
-              ))}
-            </select>
+            {isAdmin ? (
+              <select
+                value={form.consultantId}
+                onChange={(e) => {
+                  handleFieldChange('consultantId', e.target.value);
+                  handleFieldChange('professionalId', '');
+                }}
+                className={`input-flat w-full text-card-foreground ${errors.consultantId ? 'border-destructive ring-1 ring-destructive' : ''}`}
+              >
+                <option value="">Selecione</option>
+                {activeMembers.map((m) => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
+            ) : (
+              <div className="input-flat w-full text-card-foreground bg-muted/30 cursor-not-allowed">
+                {currentTeamMember?.name || 'Carregando...'}
+              </div>
+            )}
             {errors.consultantId && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
           </div>
 
