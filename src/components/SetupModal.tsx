@@ -702,8 +702,9 @@ const TiposAcaoTab = () => {
           })} />
               Exige valor
             </label>
-            <label className="flex items-center gap-2 text-sm">Campos obrigatorio
-          <input type="checkbox" checked={form.additionalFields} onChange={e => setForm({
+            <label className="flex items-center gap-2 text-sm">
+
+Campos obrigatorios<input type="checkbox" checked={form.additionalFields} onChange={e => setForm({
             ...form,
             additionalFields: e.target.checked
           })} />
