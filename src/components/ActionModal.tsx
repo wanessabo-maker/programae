@@ -133,19 +133,37 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     setLoadedClientData(data);
   }, []);
 
+  // Map of field keys to form field names
+  const fieldToFormKeyMap: Record<string, keyof FormState> = {
+    clientName: 'clientName',
+    clientAge: 'clientAge',
+    clientProfession: 'clientProfession',
+    presentationNumber: 'presentationNumber',
+    foccoProjectNumber: 'foccoProjectNumber',
+    contractNumber: 'contractNumber',
+    clientPhone: 'clientPhone',
+    clientEmail: 'clientEmail',
+    clientCpfCnpj: 'clientCpfCnpj',
+    clientAddress: 'clientAddress',
+    clientCity: 'clientCity',
+    clientState: 'clientState',
+    presentedValue: 'presentedValue',
+  };
+
   const validateForm = () => {
     const newErrors: Record<string, boolean> = {};
     
+    // Base required fields
     if (!form.consultantId) newErrors.consultantId = true;
     if (!form.actionTypeId) newErrors.actionTypeId = true;
     if (!form.date) newErrors.date = true;
     
-    // FOCCO number is required only for Apresentação de Projeto
+    // FOCCO number is required for Apresentação de Projeto
     if (isApresentacaoProjeto && !form.foccoProjectNumber.trim()) {
       newErrors.foccoProjectNumber = true;
     }
     
-    // Contract number is required only for Seletiva (e.g., Assinatura Certificado)
+    // Contract number is required for Seletiva (e.g., Assinatura Certificado)
     if (isSeletiva && !form.contractNumber.trim()) {
       newErrors.contractNumber = true;
     }
@@ -153,6 +171,20 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     // For Venda, require client name if no FOCCO project exists
     if (isVenda && !form.foccoProjectNumber.trim() && !form.clientName.trim()) {
       newErrors.clientName = true;
+    }
+    
+    // Validate all enabled fields (marked as required in action type configuration)
+    if (selectedActionType?.additionalFields && selectedActionType?.enabledFields) {
+      selectedActionType.enabledFields.forEach((fieldKey) => {
+        const formKey = fieldToFormKeyMap[fieldKey];
+        if (formKey) {
+          const value = form[formKey];
+          // Check if field is empty (string fields only)
+          if (typeof value === 'string' && !value.trim()) {
+            newErrors[fieldKey] = true;
+          }
+        }
+      });
     }
     
     if (isNewProfessional) {
