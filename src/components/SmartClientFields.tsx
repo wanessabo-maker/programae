@@ -385,20 +385,21 @@ export function SmartClientFields({
             <div className="grid grid-cols-2 gap-4">
               {isFieldEnabled('presentationNumber') && (
                 <div>
-                  <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
-                    Nº Apresentação
+                  <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.presentationNumber ? 'text-destructive' : 'text-muted-foreground'}`}>
+                    Nº Apresentação *
                   </label>
                   <input
                     value={formData.presentationNumber}
                     onChange={(e) => onFieldChange('presentationNumber', e.target.value)}
-                    className="input-flat w-full text-card-foreground"
+                    className={`input-flat w-full text-card-foreground ${errors.presentationNumber ? 'border-destructive ring-1 ring-destructive' : ''}`}
                   />
+                  {errors.presentationNumber && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
                 </div>
               )}
               {isFieldEnabled('presentedValue') && (
                 <div>
-                  <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
-                    Valor Apresentado
+                  <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.presentedValue ? 'text-destructive' : 'text-muted-foreground'}`}>
+                    Valor Apresentado *
                   </label>
                   <input
                     type="number"
@@ -406,8 +407,9 @@ export function SmartClientFields({
                     value={formData.presentedValue}
                     onChange={(e) => onFieldChange('presentedValue', e.target.value)}
                     placeholder="R$ 0,00"
-                    className="input-flat w-full text-card-foreground"
+                    className={`input-flat w-full text-card-foreground ${errors.presentedValue ? 'border-destructive ring-1 ring-destructive' : ''}`}
                   />
+                  {errors.presentedValue && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
                 </div>
               )}
             </div>
@@ -424,79 +426,84 @@ export function SmartClientFields({
 
               {isFieldEnabled('clientName') && (
                 <div>
-                  <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
-                    Nome do Cliente
+                  <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.clientName ? 'text-destructive' : 'text-muted-foreground'}`}>
+                    Nome do Cliente *
                   </label>
                   <input
                     value={formData.clientName}
                     onChange={(e) => onFieldChange('clientName', e.target.value)}
-                    className="input-flat w-full text-card-foreground"
+                    className={`input-flat w-full text-card-foreground ${errors.clientName ? 'border-destructive ring-1 ring-destructive' : ''}`}
                   />
+                  {errors.clientName && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
                 </div>
               )}
 
               <div className="grid grid-cols-2 gap-4">
                 {isFieldEnabled('clientCpfCnpj') && (
                   <div>
-                    <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
-                      CPF/CNPJ
+                    <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.clientCpfCnpj ? 'text-destructive' : 'text-muted-foreground'}`}>
+                      CPF/CNPJ *
                     </label>
                     <input
                       value={formData.clientCpfCnpj}
                       onChange={(e) => onFieldChange('clientCpfCnpj', e.target.value)}
                       placeholder="000.000.000-00"
-                      className="input-flat w-full text-card-foreground"
+                      className={`input-flat w-full text-card-foreground ${errors.clientCpfCnpj ? 'border-destructive ring-1 ring-destructive' : ''}`}
                     />
+                    {errors.clientCpfCnpj && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
                   </div>
                 )}
                 {isFieldEnabled('clientPhone') && (
                   <div>
-                    <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
-                      Telefone
+                    <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.clientPhone ? 'text-destructive' : 'text-muted-foreground'}`}>
+                      Telefone *
                     </label>
                     <input
                       value={formData.clientPhone}
                       onChange={(e) => onFieldChange('clientPhone', e.target.value)}
                       placeholder="(00) 00000-0000"
-                      className="input-flat w-full text-card-foreground"
+                      className={`input-flat w-full text-card-foreground ${errors.clientPhone ? 'border-destructive ring-1 ring-destructive' : ''}`}
                     />
+                    {errors.clientPhone && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
                   </div>
                 )}
               </div>
 
               {isFieldEnabled('clientEmail') && (
                 <div>
-                  <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
-                    Email
+                  <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.clientEmail ? 'text-destructive' : 'text-muted-foreground'}`}>
+                    Email *
                   </label>
                   <input
                     type="email"
                     value={formData.clientEmail}
                     onChange={(e) => onFieldChange('clientEmail', e.target.value)}
                     placeholder="cliente@email.com"
-                    className="input-flat w-full text-card-foreground"
+                    className={`input-flat w-full text-card-foreground ${errors.clientEmail ? 'border-destructive ring-1 ring-destructive' : ''}`}
                   />
+                  {errors.clientEmail && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
                 </div>
               )}
 
               <div className="grid grid-cols-2 gap-4">
                 {isFieldEnabled('clientAge') && (
                   <div>
-                    <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
-                      Idade
+                    <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.clientAge ? 'text-destructive' : 'text-muted-foreground'}`}>
+                      Idade *
                     </label>
                     <input
                       type="number"
                       value={formData.clientAge}
                       onChange={(e) => onFieldChange('clientAge', e.target.value)}
-                      className="input-flat w-full text-card-foreground"
+                      className={`input-flat w-full text-card-foreground ${errors.clientAge ? 'border-destructive ring-1 ring-destructive' : ''}`}
                     />
+                    {errors.clientAge && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
                   </div>
                 )}
                 {isFieldEnabled('clientProfession') && (
                   <div className="relative">
-                    <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
-                      Profissão
+                    <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.clientProfession ? 'text-destructive' : 'text-muted-foreground'}`}>
+                      Profissão *
                     </label>
                     <input
                       ref={professionInputRef}
@@ -535,9 +542,10 @@ export function SmartClientFields({
                         setTimeout(() => setShowProfessionSuggestions(false), 200);
                       }}
                       placeholder="Digite para buscar..."
-                      className="input-flat w-full text-card-foreground"
+                      className={`input-flat w-full text-card-foreground ${errors.clientProfession ? 'border-destructive ring-1 ring-destructive' : ''}`}
                       autoComplete="off"
                     />
+                    {errors.clientProfession && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
                     
                     {/* Profession Suggestions Dropdown */}
                     {showProfessionSuggestions && filteredProfessions.length > 0 && (
@@ -580,43 +588,46 @@ export function SmartClientFields({
 
               {isFieldEnabled('clientAddress') && (
                 <div>
-                  <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
-                    Endereço
+                  <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.clientAddress ? 'text-destructive' : 'text-muted-foreground'}`}>
+                    Endereço *
                   </label>
                   <input
                     value={formData.clientAddress}
                     onChange={(e) => onFieldChange('clientAddress', e.target.value)}
                     placeholder="Rua, número, complemento"
-                    className="input-flat w-full text-card-foreground"
+                    className={`input-flat w-full text-card-foreground ${errors.clientAddress ? 'border-destructive ring-1 ring-destructive' : ''}`}
                   />
+                  {errors.clientAddress && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
                 </div>
               )}
 
               <div className="grid grid-cols-2 gap-4">
                 {isFieldEnabled('clientCity') && (
                   <div>
-                    <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
-                      Cidade
+                    <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.clientCity ? 'text-destructive' : 'text-muted-foreground'}`}>
+                      Cidade *
                     </label>
                     <input
                       value={formData.clientCity}
                       onChange={(e) => onFieldChange('clientCity', e.target.value)}
-                      className="input-flat w-full text-card-foreground"
+                      className={`input-flat w-full text-card-foreground ${errors.clientCity ? 'border-destructive ring-1 ring-destructive' : ''}`}
                     />
+                    {errors.clientCity && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
                   </div>
                 )}
                 {isFieldEnabled('clientState') && (
                   <div>
-                    <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
-                      Estado
+                    <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.clientState ? 'text-destructive' : 'text-muted-foreground'}`}>
+                      Estado *
                     </label>
                     <input
                       value={formData.clientState}
                       onChange={(e) => onFieldChange('clientState', e.target.value)}
                       placeholder="UF"
                       maxLength={2}
-                      className="input-flat w-full text-card-foreground"
+                      className={`input-flat w-full text-card-foreground ${errors.clientState ? 'border-destructive ring-1 ring-destructive' : ''}`}
                     />
+                    {errors.clientState && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
                   </div>
                 )}
               </div>
