@@ -18,6 +18,7 @@ const ROUTE_AREA_MAP: Record<string, FunctionalArea | null> = {
   '/projetos': 'projetos',
   '/customer-success': 'customer_success',
   '/programa-e-mais': null, // Programa E+ - always accessible
+  '/minha-area': null, // Minha Área - always accessible to logged in users
   '/usuarios': null, // Admin only, handled separately
 };
 
@@ -47,6 +48,7 @@ export function Layout({ children }: LayoutProps) {
   const navItems = useMemo(() => {
     const allItems = [
       { path: '/', label: 'Dashboard', area: null },
+      { path: '/minha-area', label: 'Minha Área', area: null },
       { path: '/comercial', label: 'Comercial', area: 'comercial' as FunctionalArea },
       { path: '/projetos', label: 'Projetos', area: 'projetos' as FunctionalArea },
       { path: '/customer-success', label: 'CS & AT', area: 'customer_success' as FunctionalArea },
