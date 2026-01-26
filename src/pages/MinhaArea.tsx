@@ -67,7 +67,10 @@ export default function MinhaArea() {
     return Array.from(areas);
   }, [userFunctionalAreas, userAreaNames]);
 
-  const { data: activeItems = [], isLoading: isLoadingItems } = useMyActiveChecklistItems(allUserAreas);
+  const { data: activeItems = [], isLoading: isLoadingItems } = useMyActiveChecklistItems(
+    allUserAreas, 
+    currentTeamMember?.id
+  );
 
   const handleOpenCompleteModal = (item: ChecklistItemWithDetails) => {
     setSelectedItem(item);
