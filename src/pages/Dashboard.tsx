@@ -3,6 +3,7 @@ import { Plus, Trash2, Pencil, ChevronDown, ChevronRight } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useCurrentTeamMember } from '@/hooks/useCurrentTeamMember';
+import { usePositions } from '@/hooks/usePositions';
 import { MetricCard } from '@/components/MetricCard';
 import { ActionModal } from '@/components/ActionModal';
 import { EditActionModal } from '@/components/EditActionModal';
@@ -43,6 +44,7 @@ export default function Dashboard() {
   
   // Query hooks (that depend on context)
   const { data: currentTeamMember, isLoading: isCurrentTeamMemberLoading } = useCurrentTeamMember();
+  const { getMemberAreaIds, getAreaName } = usePositions();
 
   // Show timeout message after 3 seconds if still loading
   useEffect(() => {
@@ -115,7 +117,11 @@ export default function Dashboard() {
   // Metrics by consultant
   const consultantMetrics = useMemo(() => {
     return activeMembers.map(member => {
-      const memberArea = areas.find(a => a.id === member.areaId);
+      // Use position-based areas, fallback to legacy areaId
+      const memberAreaIds = getMemberAreaIds(member.id);
+      const primaryAreaId = memberAreaIds[0] || member.areaId;
+      const primaryAreaName = primaryAreaId ? getAreaName(primaryAreaId) : '';
+      
       const thisMonthActions = actions.filter(a => 
         a.consultantId === member.id && isThisMonth(parseISO(a.date))
       );
@@ -259,8 +265,8 @@ export default function Dashboard() {
 
       return {
         ...member,
-        areaId: member.areaId,
-        area: memberArea?.name || '',
+        areaId: primaryAreaId,
+        area: primaryAreaName,
         metricsForArea,
         categoryBreakdown,
         totalProfessionals: memberProfessionals.length,
@@ -270,7 +276,7 @@ export default function Dashboard() {
         shouldDisplay,
       };
     });
-  }, [activeMembers, actions, areas, metas, actionTypes, professionals, professionalCategories]);
+  }, [activeMembers, actions, metas, actionTypes, professionals, professionalCategories, getMemberAreaIds, getAreaName]);
 
   // Group consultants by area (only those that should be displayed)
   const consultantsByArea = useMemo(() => {
