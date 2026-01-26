@@ -168,18 +168,25 @@ function AppRoutes() {
   );
 }
 
+// Separate component that uses auth context - must be inside AuthProvider
+function AuthenticatedApp() {
+  return (
+    <AppProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </TooltipProvider>
+    </AppProvider>
+  );
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <AppProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
-        </TooltipProvider>
-      </AppProvider>
+      <AuthenticatedApp />
     </AuthProvider>
   </QueryClientProvider>
 );
