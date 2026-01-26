@@ -11,6 +11,7 @@ import { ATSetupTab } from '@/components/setup/ATSetupTab';
 import { PositionsSetupTab } from '@/components/setup/PositionsSetupTab';
 import { TeamMemberPositionsTab } from '@/components/setup/TeamMemberPositionsTab';
 import { AdditionalFieldKey } from '@/types';
+import { usePositions } from '@/hooks/usePositions';
 
 // Field definitions for additional fields configuration
 const ADDITIONAL_FIELDS_CONFIG: {
@@ -301,6 +302,7 @@ const MetasTab = () => {
     updateMeta,
     deleteMeta
   } = useApp();
+  const { getMemberAreaIds } = usePositions();
   const [newAreaId, setNewAreaId] = useState('');
   const [newTeamMemberId, setNewTeamMemberId] = useState('');
   const [newType, setNewType] = useState<'acoes' | 'vendas' | 'captacao' | 'projeto' | 'categoria'>('acoes');
@@ -317,11 +319,16 @@ const MetasTab = () => {
     endDate: ''
   });
 
-  // Filter active team members by selected area
+  // Filter active team members by selected area using position-based logic
   const filteredTeamMembers = useMemo(() => {
     if (!newAreaId) return [];
-    return teamMembers.filter(m => m.active && m.areaId === newAreaId);
-  }, [newAreaId, teamMembers]);
+    return teamMembers.filter(m => {
+      if (!m.active) return false;
+      // Check if member has any position in the selected area
+      const memberAreaIds = getMemberAreaIds(m.id);
+      return memberAreaIds.includes(newAreaId);
+    });
+  }, [newAreaId, teamMembers, getMemberAreaIds]);
   const calculateDates = (validityType: string, startDate?: string) => {
     const today = new Date();
     let start = startDate ? new Date(startDate) : today;
