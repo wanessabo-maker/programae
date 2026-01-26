@@ -20,10 +20,12 @@ import {
 } from '@/hooks/useTechnicalAssistance';
 import { useClients, useCreateClient } from '@/hooks/useClients';
 import { useProjects } from '@/hooks/useProjects';
+import { useCurrentTeamMember } from '@/hooks/useCurrentTeamMember';
 
 export function ATTab() {
   const { toast } = useToast();
   const { teamMembers } = useApp();
+  const { data: currentTeamMember } = useCurrentTeamMember();
   const { data: allCases = [], isLoading } = useTechnicalAssistances();
   const { data: openCases = [] } = useOpenTechnicalAssistances();
   const { data: actionTypes = [] } = useATActionTypes();
@@ -139,6 +141,7 @@ export function ATTab() {
           phone: newClient.phone.trim() || null,
           email: newClient.email.trim() || null,
           status: 'closed', // AT clients are typically post-sale
+          created_by: currentTeamMember?.id || null,
         });
         
         if (createdClient?.id) {
