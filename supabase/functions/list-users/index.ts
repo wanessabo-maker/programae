@@ -75,10 +75,16 @@ serve(async (req: Request) => {
       .from("team_members")
       .select("id, name, user_id, area_id, active, areas(name)");
 
-    // Get all user areas
-    const { data: allUserAreas } = await adminClient
-      .from("user_areas")
-      .select("user_id, area");
+    // Get all user area assignments (new dynamic system)
+    const { data: allUserAreaAssignments } = await adminClient
+      .from("user_area_assignments")
+      .select("user_id, area_id, areas(id, name)");
+
+    // Get all areas for reference
+    const { data: allAreas } = await adminClient
+      .from("areas")
+      .select("id, name")
+      .order("name");
 
     // Helper to get area name from areas relation
     const getAreaName = (areas: { name: string } | { name: string }[] | null): string | null => {
@@ -87,16 +93,25 @@ serve(async (req: Request) => {
       return areas.name || null;
     };
 
-    // Map users with their roles, team member links, and areas
+    // Map users with their roles, team member links, and area assignments
     const usersWithRoles = users.map((u) => {
       const linkedTeamMember = teamMembers?.find((tm) => tm.user_id === u.id);
-      const userAreas = allUserAreas?.filter((ua) => ua.user_id === u.id).map((ua) => ua.area) || [];
+      const userAreaAssignments = allUserAreaAssignments?.filter((ua) => ua.user_id === u.id) || [];
+      const areaIds = userAreaAssignments.map((ua) => ua.area_id);
+      const areaNames = userAreaAssignments.map((ua) => {
+        const areaData = ua.areas as { id: string; name: string } | { id: string; name: string }[] | null;
+        if (!areaData) return null;
+        if (Array.isArray(areaData)) return areaData[0]?.name || null;
+        return areaData.name || null;
+      }).filter(Boolean);
+      
       return {
         id: u.id,
         email: u.email,
         created_at: u.created_at,
         roles: allRoles?.filter((r) => r.user_id === u.id).map((r) => r.role) || [],
-        areas: userAreas,
+        areaIds: areaIds,
+        areaNames: areaNames,
         teamMember: linkedTeamMember ? {
           id: linkedTeamMember.id,
           name: linkedTeamMember.name,
@@ -118,7 +133,11 @@ serve(async (req: Request) => {
     })) || [];
 
     return new Response(
-      JSON.stringify({ users: usersWithRoles, teamMembers: availableTeamMembers }),
+      JSON.stringify({ 
+        users: usersWithRoles, 
+        teamMembers: availableTeamMembers,
+        areas: allAreas || []
+      }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: unknown) {

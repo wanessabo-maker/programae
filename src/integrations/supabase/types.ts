@@ -1318,6 +1318,35 @@ export type Database = {
           },
         ]
       }
+      user_area_assignments: {
+        Row: {
+          area_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          area_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          area_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_area_assignments_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "areas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_areas: {
         Row: {
           area: Database["public"]["Enums"]["functional_area"]

@@ -30,9 +30,6 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { UserAreasModal } from '@/components/UserAreasModal';
-import { Database } from '@/integrations/supabase/types';
-
-type FunctionalArea = Database['public']['Enums']['functional_area'];
 
 interface TeamMemberInfo {
   id: string;
@@ -48,19 +45,12 @@ interface UserWithRole {
   email: string;
   created_at: string;
   roles: string[];
-  areas: FunctionalArea[];
+  areaIds: string[];
+  areaNames: string[];
   teamMember: TeamMemberInfo | null;
 }
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
-
-// Area labels for display
-const AREA_LABELS: Record<FunctionalArea, string> = {
-  comercial: 'Comercial',
-  projetos: 'Projetos',
-  customer_success: 'CS & AT',
-  assistencia_tecnica: 'Assist. Téc.',
-};
 
 export default function Usuarios() {
   const { user: currentUser, isAdmin } = useAuthContext();
@@ -406,14 +396,14 @@ export default function Usuarios() {
                   <td className="px-4 py-3">
                     {isUserAdmin ? (
                       <span className="text-xs text-primary font-semibold">Todas (Admin)</span>
-                    ) : user.areas && user.areas.length > 0 ? (
+                    ) : user.areaNames && user.areaNames.length > 0 ? (
                       <div className="flex flex-wrap gap-1">
-                        {user.areas.map((area) => (
+                        {user.areaNames.map((areaName, idx) => (
                           <span
-                            key={area}
+                            key={user.areaIds[idx] || idx}
                             className="text-xs px-1.5 py-0.5 border border-black/30 bg-muted font-medium text-black"
                           >
-                            {AREA_LABELS[area]}
+                            {areaName}
                           </span>
                         ))}
                       </div>
