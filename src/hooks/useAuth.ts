@@ -34,23 +34,58 @@ export function useAuth() {
       const user = session?.user ?? null;
       
       if (user) {
-        // Fetch user roles and areas in parallel
-        const [rolesResult, areasResult] = await Promise.all([
-          supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', user.id),
-          supabase
-            .from('user_areas')
-            .select('area')
-            .eq('user_id', user.id),
-        ]);
+        // Fetch user roles
+        const rolesResult = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id);
         
         if (!isMounted) return;
         
         const roles = (rolesResult.data?.map(r => r.role) as AppRole[]) || [];
         const isAdmin = roles.includes('admin');
-        const userAreas = (areasResult.data?.map(a => a.area) as FunctionalArea[]) || [];
+
+        // Fetch user areas from the new position-based system
+        // First get team_member linked to this user
+        const teamMemberResult = await supabase
+          .from('team_members')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
+        
+        let userAreas: FunctionalArea[] = [];
+        
+        if (teamMemberResult.data) {
+          // Get positions assigned to this team member
+          const positionsResult = await supabase
+            .from('team_member_positions')
+            .select(`
+              position_id,
+              positions!inner(area, is_active)
+            `)
+            .eq('team_member_id', teamMemberResult.data.id);
+          
+          if (positionsResult.data) {
+            // Extract unique areas from active positions
+            const areas = positionsResult.data
+              .filter((p: any) => p.positions?.is_active)
+              .map((p: any) => p.positions?.area)
+              .filter(Boolean);
+            userAreas = [...new Set(areas)] as FunctionalArea[];
+          }
+        }
+
+        // Fallback: check old user_areas table for backwards compatibility
+        if (userAreas.length === 0) {
+          const areasResult = await supabase
+            .from('user_areas')
+            .select('area')
+            .eq('user_id', user.id);
+          
+          userAreas = (areasResult.data?.map(a => a.area) as FunctionalArea[]) || [];
+        }
+        
+        if (!isMounted) return;
         
         setAuthState({
           user,
@@ -126,12 +161,43 @@ export function useAuth() {
   const refreshAreas = async () => {
     if (!authState.user) return;
     
-    const { data } = await supabase
-      .from('user_areas')
-      .select('area')
-      .eq('user_id', authState.user.id);
+    // First get team_member linked to this user
+    const teamMemberResult = await supabase
+      .from('team_members')
+      .select('id')
+      .eq('user_id', authState.user.id)
+      .single();
     
-    const userAreas = (data?.map(a => a.area) as FunctionalArea[]) || [];
+    let userAreas: FunctionalArea[] = [];
+    
+    if (teamMemberResult.data) {
+      // Get positions assigned to this team member
+      const positionsResult = await supabase
+        .from('team_member_positions')
+        .select(`
+          position_id,
+          positions!inner(area, is_active)
+        `)
+        .eq('team_member_id', teamMemberResult.data.id);
+      
+      if (positionsResult.data) {
+        const areas = positionsResult.data
+          .filter((p: any) => p.positions?.is_active)
+          .map((p: any) => p.positions?.area)
+          .filter(Boolean);
+        userAreas = [...new Set(areas)] as FunctionalArea[];
+      }
+    }
+
+    // Fallback to old system
+    if (userAreas.length === 0) {
+      const areasResult = await supabase
+        .from('user_areas')
+        .select('area')
+        .eq('user_id', authState.user.id);
+      
+      userAreas = (areasResult.data?.map(a => a.area) as FunctionalArea[]) || [];
+    }
     
     setAuthState(prev => ({
       ...prev,
