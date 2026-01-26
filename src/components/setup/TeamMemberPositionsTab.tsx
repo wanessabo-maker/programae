@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, X, Briefcase } from 'lucide-react';
+import { Plus, X, Briefcase, Pencil } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { usePositions } from '@/hooks/usePositions';
 import { Badge } from '@/components/ui/badge';
@@ -10,20 +10,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { EditMemberPositionsModal } from './EditMemberPositionsModal';
 
 export function TeamMemberPositionsTab() {
   const { teamMembers, areas } = useApp();
   const {
     positions,
+    areas: positionAreas,
     isLoading,
     getMemberPositions,
     assignPositionToMember,
     removePositionFromMember,
+    updateMemberPositions,
     getAreaName,
   } = usePositions();
 
   const [selectedMemberId, setSelectedMemberId] = useState<string>('');
   const [selectedPositionId, setSelectedPositionId] = useState<string>('');
+  const [editingMember, setEditingMember] = useState<{ id: string; name: string } | null>(null);
 
   const handleAssignPosition = async () => {
     if (selectedMemberId && selectedPositionId) {
@@ -135,24 +139,27 @@ export function TeamMemberPositionsTab() {
                         <Badge
                           key={position.id}
                           variant="outline"
-                          className="flex items-center gap-1 pr-1"
+                          className="flex items-center gap-1"
                         >
                           <Briefcase className="w-3 h-3" />
                           <span>{position.name}</span>
                           <span className="text-[10px] text-muted-foreground ml-1">
                             ({getAreaName(position.area_id)})
                           </span>
-                          <button
-                            onClick={() => handleRemovePosition(member.id, position.id)}
-                            className="ml-1 p-0.5 hover:bg-destructive/20 rounded"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
                         </Badge>
                       ))
                     )}
                   </div>
                 </div>
+                
+                {/* Edit button */}
+                <button
+                  onClick={() => setEditingMember({ id: member.id, name: member.name })}
+                  className="btn-secondary p-2"
+                  title="Editar cargos"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
               </div>
             </div>
           );
@@ -188,6 +195,18 @@ export function TeamMemberPositionsTab() {
           })}
         </div>
       )}
+
+      {/* Edit Member Positions Modal */}
+      <EditMemberPositionsModal
+        isOpen={!!editingMember}
+        onClose={() => setEditingMember(null)}
+        member={editingMember}
+        memberPositions={editingMember ? getMemberPositions(editingMember.id) : []}
+        allPositions={positions}
+        areas={positionAreas}
+        onSave={updateMemberPositions}
+        getAreaName={getAreaName}
+      />
     </div>
   );
 }
