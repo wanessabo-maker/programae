@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Plus, X, Briefcase } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
-import { usePositions, AREA_LABELS } from '@/hooks/usePositions';
+import { usePositions } from '@/hooks/usePositions';
 import { Badge } from '@/components/ui/badge';
 import {
   Select,
@@ -19,6 +19,7 @@ export function TeamMemberPositionsTab() {
     getMemberPositions,
     assignPositionToMember,
     removePositionFromMember,
+    getAreaName,
   } = usePositions();
 
   const [selectedMemberId, setSelectedMemberId] = useState<string>('');
@@ -83,7 +84,7 @@ export function TeamMemberPositionsTab() {
               <SelectContent>
                 {selectedMemberId && getAvailablePositions(selectedMemberId).map((position) => (
                   <SelectItem key={position.id} value={position.id}>
-                    {position.name} ({AREA_LABELS[position.area]})
+                    {position.name} ({getAreaName(position.area_id)})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -139,7 +140,7 @@ export function TeamMemberPositionsTab() {
                           <Briefcase className="w-3 h-3" />
                           <span>{position.name}</span>
                           <span className="text-[10px] text-muted-foreground ml-1">
-                            ({AREA_LABELS[position.area]})
+                            ({getAreaName(position.area_id)})
                           </span>
                           <button
                             onClick={() => handleRemovePosition(member.id, position.id)}
