@@ -11,44 +11,63 @@ import {
 } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Database } from '@/integrations/supabase/types';
 
-type FunctionalArea = Database['public']['Enums']['functional_area'];
+interface Area {
+  id: string;
+  name: string;
+}
 
 interface UserAreasModalProps {
   user: {
     id: string;
     email: string;
-    areas: FunctionalArea[];
+    areaIds: string[];
   } | null;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-// All configurable areas with labels
-const CONFIGURABLE_AREAS: { value: FunctionalArea; label: string }[] = [
-  { value: 'comercial', label: 'Comercial' },
-  { value: 'projetos', label: 'Projetos' },
-  { value: 'customer_success', label: 'Customer Success & AT' },
-  { value: 'assistencia_tecnica', label: 'Assistência Técnica' },
-];
-
 export function UserAreasModal({ user, onClose, onSuccess }: UserAreasModalProps) {
-  const [selectedAreas, setSelectedAreas] = useState<FunctionalArea[]>([]);
+  const [selectedAreaIds, setSelectedAreaIds] = useState<string[]>([]);
+  const [areas, setAreas] = useState<Area[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoadingAreas, setIsLoadingAreas] = useState(true);
+
+  // Fetch areas from database
+  useEffect(() => {
+    const fetchAreas = async () => {
+      setIsLoadingAreas(true);
+      try {
+        const { data, error } = await supabase
+          .from('areas')
+          .select('id, name')
+          .order('name', { ascending: true });
+
+        if (error) throw error;
+        setAreas(data || []);
+      } catch (error) {
+        console.error('Error fetching areas:', error);
+        toast.error('Erro ao carregar áreas');
+      } finally {
+        setIsLoadingAreas(false);
+      }
+    };
+
+    fetchAreas();
+  }, []);
 
   // Initialize selected areas when user changes
   useEffect(() => {
     if (user) {
-      setSelectedAreas(user.areas || []);
+      setSelectedAreaIds(user.areaIds || []);
     }
   }, [user]);
 
-  const handleToggleArea = (area: FunctionalArea) => {
-    setSelectedAreas(prev => 
-      prev.includes(area) 
-        ? prev.filter(a => a !== area)
-        : [...prev, area]
+  const handleToggleArea = (areaId: string) => {
+    setSelectedAreaIds(prev => 
+      prev.includes(areaId) 
+        ? prev.filter(id => id !== areaId)
+        : [...prev, areaId]
     );
   };
 
@@ -58,32 +77,32 @@ export function UserAreasModal({ user, onClose, onSuccess }: UserAreasModalProps
     setIsProcessing(true);
 
     try {
-      const currentAreas = user.areas || [];
+      const currentAreaIds = user.areaIds || [];
       
       // Determine areas to add and remove
-      const areasToAdd = selectedAreas.filter(a => !currentAreas.includes(a));
-      const areasToRemove = currentAreas.filter(a => !selectedAreas.includes(a));
+      const areasToAdd = selectedAreaIds.filter(id => !currentAreaIds.includes(id));
+      const areasToRemove = currentAreaIds.filter(id => !selectedAreaIds.includes(id));
 
       // Remove areas
       if (areasToRemove.length > 0) {
         const { error: removeError } = await supabase
-          .from('user_areas')
+          .from('user_area_assignments')
           .delete()
           .eq('user_id', user.id)
-          .in('area', areasToRemove);
+          .in('area_id', areasToRemove);
 
         if (removeError) throw removeError;
       }
 
       // Add areas
       if (areasToAdd.length > 0) {
-        const insertData = areasToAdd.map(area => ({
+        const insertData = areasToAdd.map(areaId => ({
           user_id: user.id,
-          area,
+          area_id: areaId,
         }));
 
         const { error: insertError } = await supabase
-          .from('user_areas')
+          .from('user_area_assignments')
           .insert(insertData);
 
         if (insertError) throw insertError;
@@ -102,9 +121,9 @@ export function UserAreasModal({ user, onClose, onSuccess }: UserAreasModalProps
 
   const hasChanges = () => {
     if (!user) return false;
-    const currentAreas = user.areas || [];
-    if (currentAreas.length !== selectedAreas.length) return true;
-    return !currentAreas.every(a => selectedAreas.includes(a));
+    const currentAreaIds = user.areaIds || [];
+    if (currentAreaIds.length !== selectedAreaIds.length) return true;
+    return !currentAreaIds.every(id => selectedAreaIds.includes(id));
   };
 
   return (
@@ -129,24 +148,35 @@ export function UserAreasModal({ user, onClose, onSuccess }: UserAreasModalProps
               Selecione as áreas que o usuário pode acessar:
             </p>
             
-            <div className="space-y-3">
-              {CONFIGURABLE_AREAS.map((area) => (
-                <div key={area.value} className="flex items-center space-x-3">
-                  <Checkbox
-                    id={`area-${area.value}`}
-                    checked={selectedAreas.includes(area.value)}
-                    onCheckedChange={() => handleToggleArea(area.value)}
-                    disabled={isProcessing}
-                  />
-                  <Label 
-                    htmlFor={`area-${area.value}`}
-                    className="text-sm font-medium cursor-pointer"
-                  >
-                    {area.label}
-                  </Label>
-                </div>
-              ))}
-            </div>
+            {isLoadingAreas ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {areas.map((area) => (
+                  <div key={area.id} className="flex items-center space-x-3">
+                    <Checkbox
+                      id={`area-${area.id}`}
+                      checked={selectedAreaIds.includes(area.id)}
+                      onCheckedChange={() => handleToggleArea(area.id)}
+                      disabled={isProcessing}
+                    />
+                    <Label 
+                      htmlFor={`area-${area.id}`}
+                      className="text-sm font-medium cursor-pointer"
+                    >
+                      {area.name}
+                    </Label>
+                  </div>
+                ))}
+                {areas.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    Nenhuma área cadastrada. Adicione áreas em Setup.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="text-xs text-muted-foreground mt-4 space-y-1 border-t border-border pt-4">
