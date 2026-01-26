@@ -46,7 +46,7 @@ export function ContractChecklistView({ projectId }: ContractChecklistViewProps)
 
   if (isLoading) {
     return (
-      <div className="py-4 text-center text-foreground/70">
+      <div className="py-4 text-center text-neutral-300">
         Carregando checklist...
       </div>
     );
@@ -54,12 +54,12 @@ export function ContractChecklistView({ projectId }: ContractChecklistViewProps)
 
   if (!checklistData) {
     return (
-      <div className="py-4 text-center border border-dashed border-foreground/30 rounded-lg">
-        <AlertTriangle className="h-8 w-8 text-foreground/50 mx-auto mb-2" />
-        <p className="text-sm text-foreground/80">
+      <div className="py-4 text-center border border-dashed border-neutral-500 rounded-lg">
+        <AlertTriangle className="h-8 w-8 text-neutral-400 mx-auto mb-2" />
+        <p className="text-sm text-neutral-200">
           Checklist não encontrado para este contrato.
         </p>
-        <p className="text-xs text-foreground/60 mt-1">
+        <p className="text-xs text-neutral-400 mt-1">
           O checklist é criado automaticamente ao registrar uma venda.
         </p>
       </div>
@@ -71,39 +71,39 @@ export function ContractChecklistView({ projectId }: ContractChecklistViewProps)
   return (
     <div className="space-y-4">
       {/* Header with Progress */}
-      <div className="bg-foreground/5 p-4 rounded-lg space-y-3 border border-foreground/10">
+      <div className="bg-neutral-700 p-4 rounded-lg space-y-3 border border-neutral-600">
         <div className="flex items-center justify-between">
           <div>
-            <span className="text-xs tracking-widest uppercase text-foreground/60 font-medium">
+            <span className="text-xs tracking-widest uppercase text-neutral-400 font-medium">
               Status do Workflow
             </span>
-            <p className="font-semibold text-foreground">
+            <p className="font-semibold text-white">
               {getWorkflowStatusLabel(checklistData.workflow_status || 'formalizacao')}
             </p>
           </div>
           <Badge 
             variant={checklistData.is_completed ? 'default' : 'secondary'}
-            className="font-semibold"
+            className="font-semibold bg-neutral-600 text-white border-neutral-500"
           >
             {checklistData.is_completed ? 'Concluído' : `Etapa ${checklistData.current_step}/18`}
           </Badge>
         </div>
         
         <div className="space-y-1">
-          <div className="flex items-center justify-between text-xs text-foreground/70 font-medium">
+          <div className="flex items-center justify-between text-xs text-neutral-300 font-medium">
             <span>Progresso</span>
             <span className="font-bold">{progressPercentage}%</span>
           </div>
-          <Progress value={progressPercentage} className="h-2 bg-foreground/20" />
+          <Progress value={progressPercentage} className="h-2 bg-neutral-600" />
         </div>
 
         {currentStep && (
-          <div className="pt-2 border-t border-foreground/20">
-            <span className="text-xs tracking-widest uppercase text-foreground/60 font-medium">
+          <div className="pt-2 border-t border-neutral-500">
+            <span className="text-xs tracking-widest uppercase text-neutral-400 font-medium">
               Etapa Atual
             </span>
-            <p className="text-sm font-semibold mt-1 text-foreground">{currentStep.name}</p>
-            <p className="text-xs text-foreground/70 font-medium">
+            <p className="text-sm font-semibold mt-1 text-white">{currentStep.name}</p>
+            <p className="text-xs text-neutral-300 font-medium">
               Responsável: {getResponsibleAreaLabel(currentStep.responsible_area)}
             </p>
           </div>
@@ -112,11 +112,11 @@ export function ContractChecklistView({ projectId }: ContractChecklistViewProps)
 
       {/* Checklist Items */}
       <div className="space-y-1">
-        <span className="text-xs tracking-widest uppercase text-foreground/70 font-medium block mb-2">
+        <span className="text-xs tracking-widest uppercase text-neutral-400 font-medium block mb-2">
           Todas as Etapas
         </span>
         
-        <div className="border border-foreground/20 rounded-lg divide-y divide-foreground/10">
+        <div className="border border-neutral-600 rounded-lg divide-y divide-neutral-600">
           {items.map((item: any) => {
             const isCompleted = item.status === 'completed';
             const isActive = item.status === 'active';
@@ -127,17 +127,17 @@ export function ContractChecklistView({ projectId }: ContractChecklistViewProps)
               <div 
                 key={item.id}
                 className={`p-3 flex items-start gap-3 ${
-                  isActive ? 'bg-primary/10' : ''
+                  isActive ? 'bg-neutral-600' : ''
                 } ${isBlocked ? 'opacity-60' : ''}`}
               >
                 {/* Status Icon */}
                 <div className="pt-0.5">
                   {isCompleted ? (
-                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    <CheckCircle2 className="h-5 w-5 text-green-400" />
                   ) : isActive ? (
-                    <Circle className="h-5 w-5 text-foreground" />
+                    <Circle className="h-5 w-5 text-white" />
                   ) : (
-                    <Lock className="h-5 w-5 text-foreground/40" />
+                    <Lock className="h-5 w-5 text-neutral-500" />
                   )}
                 </div>
 
@@ -145,13 +145,13 @@ export function ContractChecklistView({ projectId }: ContractChecklistViewProps)
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <p className={`text-sm font-medium ${isCompleted ? 'line-through text-foreground/50' : 'text-foreground'}`}>
-                        <span className="text-xs text-foreground/60 mr-2 font-semibold">
+                      <p className={`text-sm font-medium ${isCompleted ? 'line-through text-neutral-500' : 'text-white'}`}>
+                        <span className="text-xs text-neutral-400 mr-2 font-semibold">
                           {item.step_order}.
                         </span>
                         {item.name}
                       </p>
-                      <p className="text-xs text-foreground/70 mt-0.5 font-medium">
+                      <p className="text-xs text-neutral-400 mt-0.5 font-medium">
                         {getResponsibleAreaLabel(item.responsible_area)}
                       </p>
                     </div>
@@ -160,8 +160,8 @@ export function ContractChecklistView({ projectId }: ContractChecklistViewProps)
                       variant={isCompleted ? 'default' : isActive ? 'secondary' : 'outline'}
                       className={`shrink-0 text-xs font-semibold ${
                         isCompleted ? 'bg-green-600 text-white' : 
-                        isActive ? 'bg-foreground text-background' : 
-                        'border-foreground/30 text-foreground/60'
+                        isActive ? 'bg-white text-neutral-900' : 
+                        'border-neutral-500 text-neutral-400'
                       }`}
                     >
                       {isCompleted ? 'Concluído' : isActive ? 'Ativo' : 'Bloqueado'}
@@ -170,7 +170,7 @@ export function ContractChecklistView({ projectId }: ContractChecklistViewProps)
 
                   {/* Completion Info */}
                   {isCompleted && item.completed_at && (
-                    <div className="mt-2 text-xs text-foreground/60 flex items-center gap-3 font-medium">
+                    <div className="mt-2 text-xs text-neutral-400 flex items-center gap-3 font-medium">
                       <span className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
                         {format(parseISO(item.completed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
@@ -186,14 +186,14 @@ export function ContractChecklistView({ projectId }: ContractChecklistViewProps)
 
                   {/* Notes */}
                   {item.notes && (
-                    <p className="mt-1 text-xs text-foreground/70 bg-foreground/5 p-2 rounded border border-foreground/10">
+                    <p className="mt-1 text-xs text-neutral-300 bg-neutral-700 p-2 rounded border border-neutral-600">
                       {item.notes}
                     </p>
                   )}
 
                   {/* Due Date for active item */}
                   {isActive && item.due_date && (
-                    <p className="mt-1 text-xs text-orange-600 font-semibold flex items-center gap-1">
+                    <p className="mt-1 text-xs text-orange-400 font-semibold flex items-center gap-1">
                       <Clock className="h-3 w-3" />
                       Prazo: {format(parseISO(item.due_date), 'dd/MM/yyyy', { locale: ptBR })}
                     </p>
