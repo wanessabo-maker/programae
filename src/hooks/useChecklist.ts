@@ -181,9 +181,10 @@ export function useContractChecklist(projectId: string | null) {
 }
 
 // Fetch active checklist items for a user's area
-export function useMyActiveChecklistItems(userAreas: string[]) {
+// For commercial items, filters by the project's responsible_id (the consultant who closed the sale)
+export function useMyActiveChecklistItems(userAreas: string[], currentTeamMemberId?: string) {
   return useQuery({
-    queryKey: ['my-active-checklist-items', userAreas],
+    queryKey: ['my-active-checklist-items', userAreas, currentTeamMemberId],
     queryFn: async () => {
       if (!userAreas.length) return [];
 
@@ -197,7 +198,7 @@ export function useMyActiveChecklistItems(userAreas: string[]) {
           case 'customer_success':
             return ['cs'];
           case 'assistencia_tecnica':
-            return ['logistica']; // Adjust mapping as needed
+            return ['logistica'];
           default:
             return [area.toLowerCase()];
         }
@@ -213,6 +214,7 @@ export function useMyActiveChecklistItems(userAreas: string[]) {
               id,
               name,
               focco_project_number,
+              responsible_id,
               clients (
                 id,
                 name
@@ -226,12 +228,26 @@ export function useMyActiveChecklistItems(userAreas: string[]) {
 
       if (error) throw error;
       
-      // Transform the data to flatten the structure
-      return (data || []).map(item => ({
+      // Transform the data and filter commercial items by responsible
+      const transformedData = (data || []).map(item => ({
         ...item,
         project: item.checklist?.project,
         checklist: item.checklist ? { ...item.checklist, project: undefined } : undefined,
       })) as ChecklistItemWithDetails[];
+
+      // Filter commercial items: only show if user is the project's responsible consultant
+      return transformedData.filter(item => {
+        // For commercial area, check if user is the responsible for this project
+        if (item.responsible_area === 'comercial' && currentTeamMemberId) {
+          const projectResponsibleId = (item as any).project?.responsible_id;
+          // If project has a responsible, only show to that person
+          if (projectResponsibleId) {
+            return projectResponsibleId === currentTeamMemberId;
+          }
+        }
+        // For non-commercial areas, show all items in their area
+        return true;
+      });
     },
     enabled: userAreas.length > 0,
   });
