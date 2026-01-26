@@ -8,6 +8,8 @@ import { format, parseISO, isValid } from 'date-fns';
 import { getCategoryForAction } from '@/hooks/useProfessionalCategory';
 import { CSSetupTab } from '@/components/setup/CSSetupTab';
 import { ATSetupTab } from '@/components/setup/ATSetupTab';
+import { PositionsSetupTab } from '@/components/setup/PositionsSetupTab';
+import { TeamMemberPositionsTab } from '@/components/setup/TeamMemberPositionsTab';
 import { AdditionalFieldKey } from '@/types';
 
 // Field definitions for additional fields configuration
@@ -62,6 +64,9 @@ const TAB_CONFIG = [{
   label: 'Áreas',
   value: 'areas'
 }, {
+  label: 'Cargos',
+  value: 'cargos'
+}, {
   label: 'Equipe',
   value: 'equipe'
 }, {
@@ -111,7 +116,8 @@ export function SetupModal({
           
           <div className="overflow-y-auto max-h-[60vh] py-4">
             <TabsContent value="areas"><AreasTab /></TabsContent>
-            <TabsContent value="equipe"><EquipeTab /></TabsContent>
+            <TabsContent value="cargos"><PositionsSetupTab /></TabsContent>
+            <TabsContent value="equipe"><TeamMemberPositionsTab /></TabsContent>
             <TabsContent value="metas"><MetasTab /></TabsContent>
             <TabsContent value="tipos-acao"><TiposAcaoTab /></TabsContent>
             <TabsContent value="programa"><ProgramaTab /></TabsContent>

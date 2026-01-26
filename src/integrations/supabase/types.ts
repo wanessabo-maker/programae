@@ -695,6 +695,65 @@ export type Database = {
           },
         ]
       }
+      position_permissions: {
+        Row: {
+          created_at: string | null
+          id: string
+          permission: Database["public"]["Enums"]["permission_type"]
+          position_id: string
+          resource: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          permission: Database["public"]["Enums"]["permission_type"]
+          position_id: string
+          resource: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          permission?: Database["public"]["Enums"]["permission_type"]
+          position_id?: string
+          resource?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "position_permissions_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "positions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      positions: {
+        Row: {
+          area: Database["public"]["Enums"]["functional_area"]
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+        }
+        Insert: {
+          area: Database["public"]["Enums"]["functional_area"]
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+        }
+        Update: {
+          area?: Database["public"]["Enums"]["functional_area"]
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+        }
+        Relationships: []
+      }
       professional_categories: {
         Row: {
           condition: string
@@ -1073,6 +1132,42 @@ export type Database = {
         }
         Relationships: []
       }
+      team_member_positions: {
+        Row: {
+          assigned_at: string | null
+          id: string
+          position_id: string
+          team_member_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          id?: string
+          position_id: string
+          team_member_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          id?: string
+          position_id?: string
+          team_member_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_member_positions_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "positions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_member_positions_team_member_id_fkey"
+            columns: ["team_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_members: {
         Row: {
           active: boolean | null
@@ -1275,6 +1370,21 @@ export type Database = {
         }
         Returns: boolean
       }
+      user_has_permission: {
+        Args: {
+          _permission: Database["public"]["Enums"]["permission_type"]
+          _resource: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      user_has_position_area: {
+        Args: {
+          _area: Database["public"]["Enums"]["functional_area"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "user"
@@ -1283,6 +1393,7 @@ export type Database = {
         | "projetos"
         | "customer_success"
         | "assistencia_tecnica"
+      permission_type: "view" | "create" | "edit" | "delete"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1417,6 +1528,7 @@ export const Constants = {
         "customer_success",
         "assistencia_tecnica",
       ],
+      permission_type: ["view", "create", "edit", "delete"],
     },
   },
 } as const
