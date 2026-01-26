@@ -730,6 +730,7 @@ export type Database = {
       positions: {
         Row: {
           area: Database["public"]["Enums"]["functional_area"]
+          area_id: string | null
           created_at: string | null
           description: string | null
           id: string
@@ -738,6 +739,7 @@ export type Database = {
         }
         Insert: {
           area: Database["public"]["Enums"]["functional_area"]
+          area_id?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -746,13 +748,22 @@ export type Database = {
         }
         Update: {
           area?: Database["public"]["Enums"]["functional_area"]
+          area_id?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
           is_active?: boolean | null
           name?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "positions_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "areas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       professional_categories: {
         Row: {

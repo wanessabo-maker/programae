@@ -5,10 +5,16 @@ import { toast } from 'sonner';
 export type FunctionalArea = 'comercial' | 'projetos' | 'customer_success' | 'assistencia_tecnica';
 export type PermissionType = 'view' | 'create' | 'edit' | 'delete';
 
+export interface Area {
+  id: string;
+  name: string;
+}
+
 export interface Position {
   id: string;
   name: string;
   area: FunctionalArea;
+  area_id: string | null;
   description: string | null;
   is_active: boolean;
   created_at: string;
@@ -45,35 +51,32 @@ export const PERMISSION_LABELS: Record<PermissionType, string> = {
   delete: 'Excluir',
 };
 
-export const AREA_LABELS: Record<FunctionalArea, string> = {
-  comercial: 'Comercial',
-  projetos: 'Projetos',
-  customer_success: 'Customer Success',
-  assistencia_tecnica: 'Assistência Técnica',
-};
-
 export function usePositions() {
   const [positions, setPositions] = useState<Position[]>([]);
   const [permissions, setPermissions] = useState<PositionPermission[]>([]);
   const [memberPositionsList, setMemberPositionsList] = useState<TeamMemberPosition[]>([]);
+  const [areas, setAreas] = useState<Area[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [positionsRes, permissionsRes, memberPositionsRes] = await Promise.all([
-        supabase.from('positions').select('*').order('area', { ascending: true }).order('name', { ascending: true }),
+      const [positionsRes, permissionsRes, memberPositionsRes, areasRes] = await Promise.all([
+        supabase.from('positions').select('*').order('name', { ascending: true }),
         supabase.from('position_permissions').select('*'),
         supabase.from('team_member_positions').select('*'),
+        supabase.from('areas').select('*').order('name', { ascending: true }),
       ]);
 
       if (positionsRes.error) throw positionsRes.error;
       if (permissionsRes.error) throw permissionsRes.error;
       if (memberPositionsRes.error) throw memberPositionsRes.error;
+      if (areasRes.error) throw areasRes.error;
 
       setPositions((positionsRes.data as Position[]) || []);
       setPermissions((permissionsRes.data as PositionPermission[]) || []);
       setMemberPositionsList((memberPositionsRes.data as TeamMemberPosition[]) || []);
+      setAreas((areasRes.data as Area[]) || []);
     } catch (error) {
       console.error('Error fetching positions data:', error);
       toast.error('Erro ao carregar dados de cargos');
@@ -87,13 +90,14 @@ export function usePositions() {
   }, []);
 
   // CRUD for Positions
-  const createPosition = async (data: { name: string; area: FunctionalArea; description?: string }) => {
+  const createPosition = async (data: { name: string; area_id: string; description?: string }) => {
     try {
       const { data: newPosition, error } = await supabase
         .from('positions')
         .insert({
           name: data.name,
-          area: data.area,
+          area_id: data.area_id,
+          area: 'comercial', // Default value for legacy column
           description: data.description || null,
         })
         .select()
@@ -243,8 +247,8 @@ export function usePositions() {
   };
 
   // Helper functions
-  const getPositionsByArea = (area: FunctionalArea) => {
-    return positions.filter(p => p.area === area && p.is_active);
+  const getPositionsByAreaId = (areaId: string) => {
+    return positions.filter(p => p.area_id === areaId && p.is_active);
   };
 
   const getPositionPermissions = (positionId: string) => {
@@ -258,15 +262,22 @@ export function usePositions() {
       .filter(Boolean) as Position[];
   };
 
-  const getMemberAreas = (teamMemberId: string): FunctionalArea[] => {
+  const getMemberAreaIds = (teamMemberId: string): string[] => {
     const memberPos = getMemberPositionsList(teamMemberId);
-    return [...new Set(memberPos.map(p => p.area))];
+    return [...new Set(memberPos.map(p => p.area_id).filter(Boolean))] as string[];
+  };
+
+  const getAreaName = (areaId: string | null): string => {
+    if (!areaId) return 'Sem área';
+    const area = areas.find(a => a.id === areaId);
+    return area?.name || 'Área desconhecida';
   };
 
   return {
     positions,
     permissions,
     memberPositions: memberPositionsList,
+    areas,
     isLoading,
     refetch: fetchData,
     // Position CRUD
@@ -280,9 +291,10 @@ export function usePositions() {
     removePositionFromMember,
     updateMemberPositions,
     // Helpers
-    getPositionsByArea,
+    getPositionsByAreaId,
     getPositionPermissions,
     getMemberPositions: getMemberPositionsList,
-    getMemberAreas,
+    getMemberAreaIds,
+    getAreaName,
   };
 }

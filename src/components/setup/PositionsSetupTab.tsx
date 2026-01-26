@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { Plus, Pencil, Trash2, X, Check, Shield, ChevronDown, ChevronRight } from 'lucide-react';
-import { usePositions, FunctionalArea, PermissionType, AREA_LABELS, RESOURCE_LABELS, PERMISSION_LABELS } from '@/hooks/usePositions';
+import { usePositions, PermissionType, RESOURCE_LABELS, PERMISSION_LABELS } from '@/hooks/usePositions';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Checkbox } from '@/components/ui/checkbox';
 
-const FUNCTIONAL_AREAS: FunctionalArea[] = ['comercial', 'projetos', 'customer_success', 'assistencia_tecnica'];
 const RESOURCES = ['clients', 'projects', 'actions', 'professionals', 'technical_assistance', 'customer_success'];
 const PERMISSIONS: PermissionType[] = ['view', 'create', 'edit', 'delete'];
 
@@ -12,6 +11,7 @@ export function PositionsSetupTab() {
   const {
     positions,
     permissions,
+    areas,
     isLoading,
     createPosition,
     updatePosition,
@@ -21,17 +21,17 @@ export function PositionsSetupTab() {
   } = usePositions();
 
   const [newName, setNewName] = useState('');
-  const [newArea, setNewArea] = useState<FunctionalArea>('comercial');
+  const [newAreaId, setNewAreaId] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: '', description: '' });
   const [expandedPositionId, setExpandedPositionId] = useState<string | null>(null);
 
   const handleAdd = async () => {
-    if (newName.trim()) {
+    if (newName.trim() && newAreaId) {
       await createPosition({
         name: newName.trim(),
-        area: newArea,
+        area_id: newAreaId,
         description: newDescription.trim() || undefined,
       });
       setNewName('');
@@ -80,10 +80,10 @@ export function PositionsSetupTab() {
   };
 
   // Group positions by area
-  const positionsByArea = FUNCTIONAL_AREAS.reduce((acc, area) => {
-    acc[area] = positions.filter(p => p.area === area);
+  const positionsByArea = areas.reduce((acc, area) => {
+    acc[area.id] = positions.filter(p => p.area_id === area.id);
     return acc;
-  }, {} as Record<FunctionalArea, typeof positions>);
+  }, {} as Record<string, typeof positions>);
 
   if (isLoading) {
     return <div className="text-xs text-muted-foreground">Carregando...</div>;
@@ -102,13 +102,14 @@ export function PositionsSetupTab() {
             className="input-flat flex-1 text-card-foreground min-w-[200px]"
           />
           <select
-            value={newArea}
-            onChange={(e) => setNewArea(e.target.value as FunctionalArea)}
+            value={newAreaId}
+            onChange={(e) => setNewAreaId(e.target.value)}
             className="input-flat text-card-foreground"
           >
-            {FUNCTIONAL_AREAS.map((area) => (
-              <option key={area} value={area}>
-                {AREA_LABELS[area]}
+            <option value="">Selecione a Área</option>
+            {areas.map((area) => (
+              <option key={area.id} value={area.id}>
+                {area.name}
               </option>
             ))}
           </select>
@@ -118,24 +119,24 @@ export function PositionsSetupTab() {
             placeholder="Descrição (opcional)"
             className="input-flat flex-1 text-card-foreground min-w-[150px]"
           />
-          <button onClick={handleAdd} className="btn-primary bg-card-foreground text-card">
+          <button onClick={handleAdd} disabled={!newAreaId} className="btn-primary bg-card-foreground text-card disabled:opacity-50">
             <Plus className="w-4 h-4" />
           </button>
         </div>
       </div>
 
       {/* List positions by area */}
-      {FUNCTIONAL_AREAS.map((area) => (
-        <div key={area} className="space-y-2">
+      {areas.map((area) => (
+        <div key={area.id} className="space-y-2">
           <h3 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground border-b border-muted pb-2">
-            {AREA_LABELS[area]}
+            {area.name}
           </h3>
           
-          {positionsByArea[area].length === 0 ? (
+          {(!positionsByArea[area.id] || positionsByArea[area.id].length === 0) ? (
             <p className="text-xs text-muted-foreground italic py-2">Nenhum cargo cadastrado</p>
           ) : (
             <div className="space-y-2">
-              {positionsByArea[area].map((position) => (
+              {positionsByArea[area.id].map((position) => (
                 <Collapsible
                   key={position.id}
                   open={expandedPositionId === position.id}
