@@ -283,9 +283,9 @@ export default function ContratosTab() {
 
       {/* View Project Modal */}
       <Dialog open={viewModalOpen} onOpenChange={setViewModalOpen}>
-        <DialogContent className="bg-card text-card-foreground border-border max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-white text-foreground border-foreground/20 max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2 text-foreground font-semibold">
               <FileText className="h-5 w-5" />
               Contrato: {selectedProject?.name}
             </DialogTitle>
@@ -293,16 +293,16 @@ export default function ContratosTab() {
           
           {selectedProject && (
             <Tabs defaultValue="info" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 bg-muted/50">
-                <TabsTrigger value="info" className="text-xs">
+              <TabsList className="grid w-full grid-cols-3 bg-foreground/10 border border-foreground/20">
+                <TabsTrigger value="info" className="text-xs font-semibold data-[state=active]:bg-foreground data-[state=active]:text-background">
                   <FileText className="h-4 w-4 mr-1" />
                   Informações
                 </TabsTrigger>
-                <TabsTrigger value="checklist" className="text-xs">
+                <TabsTrigger value="checklist" className="text-xs font-semibold data-[state=active]:bg-foreground data-[state=active]:text-background">
                   <ListChecks className="h-4 w-4 mr-1" />
                   Checklist
                 </TabsTrigger>
-                <TabsTrigger value="history" className="text-xs">
+                <TabsTrigger value="history" className="text-xs font-semibold data-[state=active]:bg-foreground data-[state=active]:text-background">
                   <Calendar className="h-4 w-4 mr-1" />
                   Histórico
                 </TabsTrigger>
@@ -317,12 +317,12 @@ export default function ContratosTab() {
                   const contractNumber = client?.contract_number || saleAction?.presentationNumber;
                   
                   return contractNumber ? (
-                    <div className="bg-green-500/10 border border-green-500/30 p-4 rounded-lg">
+                    <div className="bg-green-100 border border-green-300 p-4 rounded-lg">
                       <div className="flex items-center gap-2">
-                        <FileText className="h-5 w-5 text-green-600" />
-                        <span className="text-xs tracking-widest uppercase text-muted-foreground">Número do Contrato</span>
+                        <FileText className="h-5 w-5 text-green-700" />
+                        <span className="text-xs tracking-widest uppercase text-green-800 font-medium">Número do Contrato</span>
                       </div>
-                      <p className="text-2xl font-mono font-medium text-green-700 mt-1">{contractNumber}</p>
+                      <p className="text-2xl font-mono font-bold text-green-800 mt-1">{contractNumber}</p>
                     </div>
                   ) : null;
                 })()}
@@ -330,12 +330,12 @@ export default function ContratosTab() {
                 {/* Project Info */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <span className="text-xs tracking-widest uppercase text-muted-foreground block mb-1">Nº FOCCO</span>
-                    <p className="font-mono">{selectedProject.focco_project_number || '-'}</p>
+                    <span className="text-xs tracking-widest uppercase text-foreground/60 font-medium block mb-1">Nº FOCCO</span>
+                    <p className="font-mono text-foreground font-semibold">{selectedProject.focco_project_number || '-'}</p>
                   </div>
                   <div>
-                    <span className="text-xs tracking-widest uppercase text-muted-foreground block mb-1">Data Fechamento</span>
-                    <p>
+                    <span className="text-xs tracking-widest uppercase text-foreground/60 font-medium block mb-1">Data Fechamento</span>
+                    <p className="text-foreground font-medium">
                       {selectedProject.closed_date 
                         ? format(parseISO(selectedProject.closed_date), 'dd/MM/yyyy', { locale: ptBR })
                         : '-'
@@ -343,20 +343,20 @@ export default function ContratosTab() {
                     </p>
                   </div>
                   <div>
-                    <span className="text-xs tracking-widest uppercase text-muted-foreground block mb-1">Cliente</span>
-                    <p>{selectedProject.clients?.name || '-'}</p>
+                    <span className="text-xs tracking-widest uppercase text-foreground/60 font-medium block mb-1">Cliente</span>
+                    <p className="text-foreground font-medium">{selectedProject.clients?.name || '-'}</p>
                   </div>
                   <div>
-                    <span className="text-xs tracking-widest uppercase text-muted-foreground block mb-1">Profissional</span>
-                    <p>{selectedProject.professionals?.name || '-'}</p>
+                    <span className="text-xs tracking-widest uppercase text-foreground/60 font-medium block mb-1">Profissional</span>
+                    <p className="text-foreground font-medium">{selectedProject.professionals?.name || '-'}</p>
                   </div>
                   <div>
-                    <span className="text-xs tracking-widest uppercase text-muted-foreground block mb-1">Consultor Responsável</span>
-                    <p>{selectedProject.responsible?.name || '-'}</p>
+                    <span className="text-xs tracking-widest uppercase text-foreground/60 font-medium block mb-1">Consultor Responsável</span>
+                    <p className="text-foreground font-medium">{selectedProject.responsible?.name || '-'}</p>
                   </div>
                   <div>
-                    <span className="text-xs tracking-widest uppercase text-muted-foreground block mb-1">Valor Fechado</span>
-                    <p className="text-lg font-medium">
+                    <span className="text-xs tracking-widest uppercase text-foreground/60 font-medium block mb-1">Valor Fechado</span>
+                    <p className="text-lg font-bold text-foreground">
                       {formatCurrency(selectedProject.closed_value || selectedProject.estimated_value)}
                     </p>
                   </div>
@@ -364,8 +364,8 @@ export default function ContratosTab() {
 
                 {selectedProject.notes && (
                   <div>
-                    <span className="text-xs tracking-widest uppercase text-muted-foreground block mb-1">Observações</span>
-                    <p className="text-sm">{selectedProject.notes}</p>
+                    <span className="text-xs tracking-widest uppercase text-foreground/60 font-medium block mb-1">Observações</span>
+                    <p className="text-sm text-foreground/80">{selectedProject.notes}</p>
                   </div>
                 )}
               </TabsContent>
@@ -377,43 +377,43 @@ export default function ContratosTab() {
 
               {/* History Tab */}
               <TabsContent value="history" className="py-4">
-                <span className="text-xs tracking-widest uppercase text-muted-foreground block mb-3">
+                <span className="text-xs tracking-widest uppercase text-foreground/70 font-medium block mb-3">
                   Histórico de Ações Vinculadas
                 </span>
-                <div className="border border-border rounded-lg">
+                <div className="border border-foreground/20 rounded-lg">
                   {getProjectActions(selectedProject.id).length === 0 ? (
-                    <p className="p-4 text-sm text-muted-foreground text-center">
+                    <p className="p-4 text-sm text-foreground/60 text-center">
                       Nenhuma ação vinculada a este projeto
                     </p>
                   ) : (
                     <table className="w-full">
                       <thead>
-                        <tr className="border-b border-border bg-muted/30">
-                          <th className="text-left p-2 text-xs tracking-widest uppercase text-muted-foreground">Data</th>
-                          <th className="text-left p-2 text-xs tracking-widest uppercase text-muted-foreground">Tipo</th>
-                          <th className="text-left p-2 text-xs tracking-widest uppercase text-muted-foreground">Consultor</th>
-                          <th className="text-right p-2 text-xs tracking-widest uppercase text-muted-foreground">Valor</th>
+                        <tr className="border-b border-foreground/20 bg-foreground/5">
+                          <th className="text-left p-2 text-xs tracking-widest uppercase text-foreground/70 font-semibold">Data</th>
+                          <th className="text-left p-2 text-xs tracking-widest uppercase text-foreground/70 font-semibold">Tipo</th>
+                          <th className="text-left p-2 text-xs tracking-widest uppercase text-foreground/70 font-semibold">Consultor</th>
+                          <th className="text-right p-2 text-xs tracking-widest uppercase text-foreground/70 font-semibold">Valor</th>
                         </tr>
                       </thead>
                       <tbody>
                         {getProjectActions(selectedProject.id).map((action) => {
                           const actionType = actionTypes.find(t => t.id === action.actionTypeId);
                           return (
-                            <tr key={action.id} className="border-b border-border">
-                              <td className="p-2 text-sm">
+                            <tr key={action.id} className="border-b border-foreground/10">
+                              <td className="p-2 text-sm text-foreground font-medium">
                                 {format(parseISO(action.date), 'dd/MM/yyyy', { locale: ptBR })}
                               </td>
                               <td className="p-2 text-sm">
-                                <span className={`px-2 py-0.5 text-xs rounded ${
+                                <span className={`px-2 py-0.5 text-xs rounded font-semibold ${
                                   actionType?.classification === 'venda' 
-                                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
-                                    : 'bg-muted'
+                                    ? 'bg-green-200 text-green-900' 
+                                    : 'bg-foreground/10 text-foreground'
                                 }`}>
                                   {actionType?.name || '-'}
                                 </span>
                               </td>
-                              <td className="p-2 text-sm">{getResponsibleName(action.consultantId)}</td>
-                              <td className="p-2 text-sm text-right">
+                              <td className="p-2 text-sm text-foreground font-medium">{getResponsibleName(action.consultantId)}</td>
+                              <td className="p-2 text-sm text-right text-foreground font-semibold">
                                 {action.value ? formatCurrency(action.value) : '-'}
                               </td>
                             </tr>
