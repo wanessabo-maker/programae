@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { SmartClientFields } from '@/components/SmartClientFields';
 import { SmartClientData, updateClientData } from '@/hooks/useSmartClientData';
 import { useCSContactSchedules, generateCSActionsForCase } from '@/hooks/useCustomerSuccess';
+import { createChecklistForProject } from '@/hooks/useChecklist';
 interface ActionModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -459,6 +460,9 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                     .eq('id', existingProject.client_id);
                 }
                 
+                // Create checklist for the closed project
+                await createChecklistForProject(existingProject.id);
+                
                 toast.success(`Projeto FOCCO ${foccoNumber} fechado com sucesso!`);
               }
             } else {
@@ -509,6 +513,10 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 toast.error('Erro ao criar contrato automaticamente');
               } else if (newProject) {
                 projectId = newProject.id;
+                
+                // Create checklist for the new project
+                await createChecklistForProject(newProject.id);
+                
                 toast.success(`Contrato criado com FOCCO ${foccoNumber} (Venda Direta)!`);
               }
             }
@@ -565,6 +573,10 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
               toast.error('Erro ao criar contrato automaticamente');
             } else if (newProject) {
               projectId = newProject.id;
+              
+              // Create checklist for the new project
+              await createChecklistForProject(newProject.id);
+              
               toast.success('Contrato criado com sucesso (Venda Direta)!');
             }
           }

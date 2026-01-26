@@ -13,6 +13,7 @@ import Usuarios from "./pages/Usuarios";
 import Comercial from "./pages/Comercial";
 import CustomerSuccess from "./pages/CustomerSuccess";
 import Projetos from "./pages/Projetos";
+import MinhaArea from "./pages/MinhaArea";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -143,19 +144,27 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
-      <Route
-        path="/programa-e-mais"
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <ProgramaEMais />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/usuarios"
-        element={
+        <Route
+          path="/programa-e-mais"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <ProgramaEMais />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/minha-area"
+          element={
+            <ProtectedRoute>
+              <MinhaArea />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/usuarios"
+          element={
           <AdminRoute>
             <Layout>
               <Usuarios />

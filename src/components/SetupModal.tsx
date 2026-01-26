@@ -10,6 +10,7 @@ import { CSSetupTab } from '@/components/setup/CSSetupTab';
 import { ATSetupTab } from '@/components/setup/ATSetupTab';
 import { PositionsSetupTab } from '@/components/setup/PositionsSetupTab';
 import { TeamMemberPositionsTab } from '@/components/setup/TeamMemberPositionsTab';
+import { ChecklistSetupTab } from '@/components/setup/ChecklistSetupTab';
 import { AdditionalFieldKey } from '@/types';
 import { usePositions } from '@/hooks/usePositions';
 
@@ -77,6 +78,9 @@ const TAB_CONFIG = [{
   label: 'Tipos de Ação',
   value: 'tipos-acao'
 }, {
+  label: 'Checklist',
+  value: 'checklist'
+}, {
   label: 'Programa E+',
   value: 'programa'
 }, {
@@ -121,6 +125,7 @@ export function SetupModal({
             <TabsContent value="equipe"><TeamMemberPositionsTab /></TabsContent>
             <TabsContent value="metas"><MetasTab /></TabsContent>
             <TabsContent value="tipos-acao"><TiposAcaoTab /></TabsContent>
+            <TabsContent value="checklist"><ChecklistSetupTab /></TabsContent>
             <TabsContent value="programa"><ProgramaTab /></TabsContent>
             <TabsContent value="tipos-prof"><TiposProfTab /></TabsContent>
             <TabsContent value="categorias"><CategoriasTab /></TabsContent>

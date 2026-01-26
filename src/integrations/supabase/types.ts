@@ -178,6 +178,196 @@ export type Database = {
         }
         Relationships: []
       }
+      checklist_attachments: {
+        Row: {
+          checklist_item_id: string
+          created_at: string | null
+          file_name: string
+          file_type: string | null
+          file_url: string
+          id: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          checklist_item_id: string
+          created_at?: string | null
+          file_name: string
+          file_type?: string | null
+          file_url: string
+          id?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          checklist_item_id?: string
+          created_at?: string | null
+          file_name?: string
+          file_type?: string | null
+          file_url?: string
+          id?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_attachments_checklist_item_id_fkey"
+            columns: ["checklist_item_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_attachments_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checklist_history: {
+        Row: {
+          action: string
+          checklist_item_id: string
+          created_at: string | null
+          id: string
+          notes: string | null
+          performed_by: string | null
+        }
+        Insert: {
+          action: string
+          checklist_item_id: string
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          performed_by?: string | null
+        }
+        Update: {
+          action?: string
+          checklist_item_id?: string
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          performed_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_history_checklist_item_id_fkey"
+            columns: ["checklist_item_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_history_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checklist_items: {
+        Row: {
+          checklist_id: string
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string | null
+          due_date: string | null
+          id: string
+          name: string
+          notes: string | null
+          responsible_area: string
+          status: string | null
+          step_order: number
+          template_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          checklist_id: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string | null
+          due_date?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          responsible_area: string
+          status?: string | null
+          step_order: number
+          template_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          checklist_id?: string
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string | null
+          due_date?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          responsible_area?: string
+          status?: string | null
+          step_order?: number
+          template_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_items_checklist_id_fkey"
+            columns: ["checklist_id"]
+            isOneToOne: false
+            referencedRelation: "contract_checklists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_items_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_items_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checklist_templates: {
+        Row: {
+          created_at: string | null
+          default_sla_days: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          responsible_area: string
+          step_order: number
+          workflow_status: Database["public"]["Enums"]["contract_workflow_status"]
+        }
+        Insert: {
+          created_at?: string | null
+          default_sla_days?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          responsible_area: string
+          step_order: number
+          workflow_status: Database["public"]["Enums"]["contract_workflow_status"]
+        }
+        Update: {
+          created_at?: string | null
+          default_sla_days?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          responsible_area?: string
+          step_order?: number
+          workflow_status?: Database["public"]["Enums"]["contract_workflow_status"]
+        }
+        Relationships: []
+      }
       client_interactions: {
         Row: {
           client_id: string
@@ -316,6 +506,53 @@ export type Database = {
             columns: ["responsible_id"]
             isOneToOne: false
             referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contract_checklists: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          current_step: number | null
+          id: string
+          is_completed: boolean | null
+          project_id: string
+          updated_at: string | null
+          workflow_status:
+            | Database["public"]["Enums"]["contract_workflow_status"]
+            | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          current_step?: number | null
+          id?: string
+          is_completed?: boolean | null
+          project_id: string
+          updated_at?: string | null
+          workflow_status?:
+            | Database["public"]["Enums"]["contract_workflow_status"]
+            | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          current_step?: number | null
+          id?: string
+          is_completed?: boolean | null
+          project_id?: string
+          updated_at?: string | null
+          workflow_status?:
+            | Database["public"]["Enums"]["contract_workflow_status"]
+            | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_checklists_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -1428,6 +1665,14 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      contract_workflow_status:
+        | "formalizacao"
+        | "desenvolvimento_tecnico"
+        | "aprovacao_comercial"
+        | "implantacao_tecnica"
+        | "logistica_entrega"
+        | "encerramento_cs"
+        | "encerrado"
       functional_area:
         | "comercial"
         | "projetos"
@@ -1562,6 +1807,15 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      contract_workflow_status: [
+        "formalizacao",
+        "desenvolvimento_tecnico",
+        "aprovacao_comercial",
+        "implantacao_tecnica",
+        "logistica_entrega",
+        "encerramento_cs",
+        "encerrado",
+      ],
       functional_area: [
         "comercial",
         "projetos",
