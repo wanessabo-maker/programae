@@ -381,13 +381,13 @@ export default function MinhaArea() {
                               {group.clientName}
                             </p>
                           )}
-                          <p className="text-sm font-medium text-black/70 truncate flex items-center gap-2 mt-1">
-                            <Building2 className="h-3.5 w-3.5 shrink-0" />
+                          <p className="text-sm font-semibold text-black truncate flex items-center gap-2 mt-1">
+                            <Building2 className="h-3.5 w-3.5 shrink-0 text-black" />
                             {group.projectName}
                           </p>
                           {group.foccoNumber && (
-                            <p className="text-xs font-semibold text-black/60 flex items-center gap-2 mt-1">
-                              <FileText className="h-3 w-3 shrink-0" />
+                            <p className="text-xs font-bold text-black flex items-center gap-2 mt-1">
+                              <FileText className="h-3 w-3 shrink-0 text-black" />
                               FOCCO {group.foccoNumber}
                             </p>
                           )}
@@ -434,7 +434,7 @@ export default function MinhaArea() {
 
                         {/* Show blocked items count */}
                         {group.blockedCount > 0 && (
-                          <div className="flex items-center gap-2 text-xs font-medium text-black/60 mt-2">
+                          <div className="flex items-center gap-2 text-xs font-bold text-black mt-2">
                             <Clock className="h-4 w-4 text-amber-600" />
                             <span>{group.blockedCount} {group.blockedCount === 1 ? 'etapa aguardando' : 'etapas aguardando'}</span>
                           </div>
@@ -456,8 +456,8 @@ export default function MinhaArea() {
                                 className="flex items-center gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg"
                               >
                                 <Clock className="h-4 w-4 text-amber-600 shrink-0" />
-                                <span className="text-xs font-medium text-black/70 truncate">{item.name}</span>
-                                <Badge variant="outline" className="text-[10px] font-semibold ml-auto shrink-0 border-amber-300 text-amber-700">
+                                <span className="text-xs font-bold text-black truncate">{item.name}</span>
+                                <Badge variant="outline" className="text-[10px] font-bold ml-auto shrink-0 border-amber-400 text-black bg-amber-100">
                                   Etapa {item.step_order}
                                 </Badge>
                               </div>
@@ -468,7 +468,7 @@ export default function MinhaArea() {
 
                       {/* Show remaining active items if more than 2 */}
                       {group.items.filter(i => i.status === 'active').length > 2 && (
-                        <p className="text-xs font-semibold text-black/60 mt-3">
+                        <p className="text-xs font-bold text-black mt-3">
                           +{group.items.filter(i => i.status === 'active').length - 2} mais atividades ativas
                         </p>
                       )}
