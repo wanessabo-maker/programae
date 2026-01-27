@@ -522,6 +522,7 @@ export type Database = {
       }
       contract_checklists: {
         Row: {
+          assigned_cs_id: string | null
           assigned_logistica_id: string | null
           assigned_projetista_id: string | null
           completed_at: string | null
@@ -536,6 +537,7 @@ export type Database = {
             | null
         }
         Insert: {
+          assigned_cs_id?: string | null
           assigned_logistica_id?: string | null
           assigned_projetista_id?: string | null
           completed_at?: string | null
@@ -550,6 +552,7 @@ export type Database = {
             | null
         }
         Update: {
+          assigned_cs_id?: string | null
           assigned_logistica_id?: string | null
           assigned_projetista_id?: string | null
           completed_at?: string | null
@@ -564,6 +567,13 @@ export type Database = {
             | null
         }
         Relationships: [
+          {
+            foreignKeyName: "contract_checklists_assigned_cs_id_fkey"
+            columns: ["assigned_cs_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "contract_checklists_assigned_logistica_id_fkey"
             columns: ["assigned_logistica_id"]
