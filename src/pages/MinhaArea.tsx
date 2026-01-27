@@ -365,71 +365,68 @@ export default function MinhaArea() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {contractGroups.map((group) => {
                 const isExpanded = expandedContracts.has(group.projectId);
-                const progressPercentage = group.items.length > 0 
-                  ? Math.round((group.items.filter(i => i.status === 'completed').length / 18) * 100)
-                  : 0;
 
                 return (
                   <Card 
                     key={group.projectId} 
-                    className={`border-border ${group.hasOverdue ? 'border-l-4 border-l-destructive' : ''}`}
+                    className={`border-2 border-black/10 shadow-md ${group.hasOverdue ? 'border-l-4 border-l-destructive' : ''}`}
                   >
-                    <CardContent className="p-4">
+                    <CardContent className="p-5">
                       {/* Contract Header */}
-                      <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-start justify-between mb-4 pb-3 border-b border-black/10">
                         <div className="flex-1 min-w-0">
                           {group.clientName && (
-                            <p className="text-sm font-semibold text-foreground truncate flex items-center gap-1">
-                              <User className="h-3.5 w-3.5 shrink-0" />
+                            <p className="text-base font-bold text-black truncate flex items-center gap-2">
+                              <User className="h-4 w-4 shrink-0 text-black/70" />
                               {group.clientName}
                             </p>
                           )}
-                          <p className="text-xs text-muted-foreground truncate flex items-center gap-1 mt-0.5">
-                            <Building2 className="h-3 w-3 shrink-0" />
+                          <p className="text-sm font-medium text-black/70 truncate flex items-center gap-2 mt-1">
+                            <Building2 className="h-3.5 w-3.5 shrink-0" />
                             {group.projectName}
                           </p>
                           {group.foccoNumber && (
-                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                            <p className="text-xs font-semibold text-black/60 flex items-center gap-2 mt-1">
                               <FileText className="h-3 w-3 shrink-0" />
                               FOCCO {group.foccoNumber}
                             </p>
                           )}
                         </div>
                         <Badge 
-                          variant={group.hasOverdue ? 'destructive' : 'secondary'} 
-                          className="text-xs shrink-0"
+                          variant={group.hasOverdue ? 'destructive' : 'default'} 
+                          className={`text-xs font-bold shrink-0 ${!group.hasOverdue ? 'bg-black text-white' : ''}`}
                         >
                           {group.activeCount} {group.activeCount === 1 ? 'ativa' : 'ativas'}
                         </Badge>
                       </div>
 
                       {/* Workflow Status */}
-                      <div className="mb-3">
-                        <Badge variant="outline" className="text-xs bg-primary/5">
+                      <div className="mb-4">
+                        <Badge variant="outline" className="text-xs font-semibold bg-primary/10 border-primary/30 text-primary">
                           {getWorkflowStatusLabel(group.workflowStatus)}
                         </Badge>
                       </div>
 
                       {/* Activity Summary */}
-                      <div className="space-y-2 mb-3">
+                      <div className="space-y-2 mb-4">
                         {/* Active items preview */}
                         {group.items.filter(i => i.status === 'active').slice(0, 2).map((item) => {
                           const dueDateStatus = getDueDateStatus(item.due_date);
                           return (
                             <div 
                               key={item.id}
-                              className="flex items-center justify-between p-2 bg-muted/50 rounded cursor-pointer hover:bg-muted transition-colors"
+                              className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg cursor-pointer hover:bg-green-100 transition-colors"
                               onClick={() => handleOpenCompleteModal(item)}
                             >
                               <div className="flex items-center gap-2 min-w-0 flex-1">
-                                <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
-                                <span className="text-sm truncate">{item.name}</span>
+                                <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
+                                <span className="text-sm font-semibold text-black truncate">{item.name}</span>
                               </div>
                               <div className="flex items-center gap-2 shrink-0">
-                                <span className={`text-xs ${dueDateStatus.color}`}>
+                                <span className={`text-xs font-bold ${dueDateStatus.color}`}>
                                   {dueDateStatus.label}
                                 </span>
-                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                <ChevronRight className="h-4 w-4 text-black/50" />
                               </div>
                             </div>
                           );
@@ -437,8 +434,8 @@ export default function MinhaArea() {
 
                         {/* Show blocked items count */}
                         {group.blockedCount > 0 && (
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Clock className="h-3.5 w-3.5" />
+                          <div className="flex items-center gap-2 text-xs font-medium text-black/60 mt-2">
+                            <Clock className="h-4 w-4 text-amber-600" />
                             <span>{group.blockedCount} {group.blockedCount === 1 ? 'etapa aguardando' : 'etapas aguardando'}</span>
                           </div>
                         )}
@@ -447,20 +444,20 @@ export default function MinhaArea() {
                       {/* Expand/Collapse for blocked items */}
                       {group.blockedCount > 0 && (
                         <Collapsible open={isExpanded} onOpenChange={() => toggleContract(group.projectId)}>
-                          <CollapsibleTrigger className="w-full text-left text-xs text-primary hover:underline flex items-center gap-1">
-                            <ChevronDown className={`h-3 w-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                          <CollapsibleTrigger className="w-full text-left text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                             {isExpanded ? 'Ocultar próximas etapas' : 'Ver próximas etapas'}
                           </CollapsibleTrigger>
                           
-                          <CollapsibleContent className="mt-2 space-y-1">
+                          <CollapsibleContent className="mt-3 space-y-2">
                             {group.items.filter(i => i.status === 'blocked').map((item) => (
                               <div 
                                 key={item.id}
-                                className="flex items-center gap-2 p-2 bg-muted/30 rounded opacity-60"
+                                className="flex items-center gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg"
                               >
-                                <Clock className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                                <span className="text-xs truncate">{item.name}</span>
-                                <Badge variant="outline" className="text-[10px] ml-auto shrink-0">
+                                <Clock className="h-4 w-4 text-amber-600 shrink-0" />
+                                <span className="text-xs font-medium text-black/70 truncate">{item.name}</span>
+                                <Badge variant="outline" className="text-[10px] font-semibold ml-auto shrink-0 border-amber-300 text-amber-700">
                                   Etapa {item.step_order}
                                 </Badge>
                               </div>
@@ -471,7 +468,7 @@ export default function MinhaArea() {
 
                       {/* Show remaining active items if more than 2 */}
                       {group.items.filter(i => i.status === 'active').length > 2 && (
-                        <p className="text-xs text-muted-foreground mt-2">
+                        <p className="text-xs font-semibold text-black/60 mt-3">
                           +{group.items.filter(i => i.status === 'active').length - 2} mais atividades ativas
                         </p>
                       )}
