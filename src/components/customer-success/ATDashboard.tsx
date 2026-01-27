@@ -147,19 +147,19 @@ export function ATDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-neutral-800 p-6 rounded-lg">
       {/* Header with Year Selector */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <BarChart3 className="w-5 h-5 text-foreground" />
-          <h3 className="text-sm font-medium uppercase tracking-widest">Dashboard Analítico AT</h3>
+          <BarChart3 className="w-5 h-5 text-white" />
+          <h3 className="text-sm font-bold uppercase tracking-widest text-white">Dashboard Analítico AT</h3>
         </div>
         <div className="flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-muted-foreground" />
+          <Calendar className="w-4 h-4 text-neutral-300" />
           <select
             value={selectedYear}
             onChange={(e) => setSelectedYear(Number(e.target.value))}
-            className="input-flat text-xs px-3 py-1.5"
+            className="bg-neutral-700 border border-neutral-600 text-white text-xs px-3 py-1.5 rounded focus:border-white focus:outline-none"
           >
             {availableYears.map(year => (
               <option key={year} value={year}>{year}</option>
@@ -170,46 +170,46 @@ export function ATDashboard() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="card-flat">
+        <div className="bg-neutral-700 border border-neutral-600 p-4 rounded">
           <div className="flex items-center gap-2 mb-2">
-            <Users className="w-4 h-4 text-foreground" />
-            <span className="text-xs uppercase tracking-widest text-muted-foreground">Clientes Atendidos</span>
+            <Users className="w-4 h-4 text-white" />
+            <span className="text-xs uppercase tracking-widest text-neutral-300 font-semibold">Clientes Atendidos</span>
           </div>
-          <div className="text-2xl font-bold text-foreground">{annualSummary.totalClients}</div>
-          <div className="text-xs text-muted-foreground mt-1">
+          <div className="text-2xl font-bold text-white">{annualSummary.totalClients}</div>
+          <div className="text-xs text-neutral-400 mt-1">
             em {selectedYear}
           </div>
         </div>
 
-        <div className="card-flat">
+        <div className="bg-neutral-700 border border-neutral-600 p-4 rounded">
           <div className="flex items-center gap-2 mb-2">
-            <DollarSign className="w-4 h-4 text-success" />
-            <span className="text-xs uppercase tracking-widest text-muted-foreground">Gerou Caixa</span>
+            <DollarSign className="w-4 h-4 text-green-400" />
+            <span className="text-xs uppercase tracking-widest text-neutral-300 font-semibold">Gerou Caixa</span>
           </div>
-          <div className="text-2xl font-bold text-success">{annualSummary.revenueCases}</div>
-          <div className="text-xs text-muted-foreground mt-1">
+          <div className="text-2xl font-bold text-green-400">{annualSummary.revenueCases}</div>
+          <div className="text-xs text-neutral-400 mt-1">
             {annualSummary.revenuePercent.toFixed(1)}% do total
           </div>
         </div>
 
-        <div className="card-flat">
+        <div className="bg-neutral-700 border border-neutral-600 p-4 rounded">
           <div className="flex items-center gap-2 mb-2">
-            <TrendingUp className="w-4 h-4 text-foreground" />
-            <span className="text-xs uppercase tracking-widest text-muted-foreground">Mês Atual</span>
+            <TrendingUp className="w-4 h-4 text-white" />
+            <span className="text-xs uppercase tracking-widest text-neutral-300 font-semibold">Mês Atual</span>
           </div>
-          <div className="text-2xl font-bold text-foreground">{currentMonthData.total}</div>
-          <div className="text-xs text-muted-foreground mt-1">
+          <div className="text-2xl font-bold text-white">{currentMonthData.total}</div>
+          <div className="text-xs text-neutral-400 mt-1">
             {currentMonthData.revenue} geraram caixa
           </div>
         </div>
 
-        <div className="card-flat">
+        <div className="bg-neutral-700 border border-neutral-600 p-4 rounded">
           <div className="flex items-center gap-2 mb-2">
-            <Calendar className="w-4 h-4 text-warning" />
-            <span className="text-xs uppercase tracking-widest text-muted-foreground">Em Aberto</span>
+            <Calendar className="w-4 h-4 text-orange-400" />
+            <span className="text-xs uppercase tracking-widest text-neutral-300 font-semibold">Em Aberto</span>
           </div>
-          <div className="text-2xl font-bold text-warning">{openCasesCount}</div>
-          <div className="text-xs text-muted-foreground mt-1">
+          <div className="text-2xl font-bold text-orange-400">{openCasesCount}</div>
+          <div className="text-xs text-neutral-400 mt-1">
             chamados pendentes
           </div>
         </div>
@@ -218,27 +218,27 @@ export function ATDashboard() {
       {/* Financial Summary */}
       {(annualSummary.totalSale > 0 || annualSummary.totalCost > 0) && (
         <div className="grid grid-cols-3 gap-4">
-          <div className="card-flat">
-            <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2">
+          <div className="bg-neutral-700 border border-neutral-600 p-4 rounded">
+            <div className="text-xs uppercase tracking-widest text-neutral-300 font-semibold mb-2">
               Total Custo
             </div>
-            <div className="text-xl font-bold text-foreground">
+            <div className="text-xl font-bold text-white">
               R$ {annualSummary.totalCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
           </div>
-          <div className="card-flat">
-            <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2">
+          <div className="bg-neutral-700 border border-neutral-600 p-4 rounded">
+            <div className="text-xs uppercase tracking-widest text-neutral-300 font-semibold mb-2">
               Total Venda
             </div>
-            <div className="text-xl font-bold text-foreground">
+            <div className="text-xl font-bold text-white">
               R$ {annualSummary.totalSale.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
           </div>
-          <div className="card-flat">
-            <div className="text-xs uppercase tracking-widest text-muted-foreground mb-2">
+          <div className="bg-neutral-700 border border-neutral-600 p-4 rounded">
+            <div className="text-xs uppercase tracking-widest text-neutral-300 font-semibold mb-2">
               Lucro Total
             </div>
-            <div className={`text-xl font-bold ${annualSummary.totalProfit >= 0 ? 'text-success' : 'text-destructive'}`}>
+            <div className={`text-xl font-bold ${annualSummary.totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
               R$ {annualSummary.totalProfit.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
           </div>
@@ -247,61 +247,61 @@ export function ATDashboard() {
 
       {/* Year Comparison */}
       {annualSummary.prevYearCount > 0 && (
-        <div className="card-flat">
+        <div className="bg-neutral-700 border border-neutral-600 p-4 rounded">
           <div className="flex items-center justify-between">
-            <span className="text-xs uppercase tracking-widest text-muted-foreground">
+            <span className="text-xs uppercase tracking-widest text-neutral-300 font-semibold">
               Comparativo com {selectedYear - 1}
             </span>
-            <span className={`text-sm font-bold ${annualSummary.growth >= 0 ? 'text-success' : 'text-destructive'}`}>
+            <span className={`text-sm font-bold ${annualSummary.growth >= 0 ? 'text-green-400' : 'text-red-400'}`}>
               {annualSummary.growth >= 0 ? '+' : ''}{annualSummary.growth.toFixed(1)}%
             </span>
           </div>
           <div className="mt-2 flex items-center gap-4 text-xs">
-            <span className="text-muted-foreground">
-              {selectedYear - 1}: <span className="font-medium text-foreground">{annualSummary.prevYearCount}</span>
+            <span className="text-neutral-400">
+              {selectedYear - 1}: <span className="font-bold text-white">{annualSummary.prevYearCount}</span>
             </span>
-            <span className="text-muted-foreground">→</span>
-            <span className="text-muted-foreground">
-              {selectedYear}: <span className="font-medium text-foreground">{annualSummary.totalClients}</span>
+            <span className="text-neutral-400">→</span>
+            <span className="text-neutral-400">
+              {selectedYear}: <span className="font-bold text-white">{annualSummary.totalClients}</span>
             </span>
           </div>
         </div>
       )}
 
       {/* Monthly Chart */}
-      <div className="card-flat">
-        <h4 className="text-xs uppercase tracking-widest text-muted-foreground mb-4">
+      <div className="bg-neutral-700 border border-neutral-600 p-4 rounded">
+        <h4 className="text-xs uppercase tracking-widest text-neutral-300 font-semibold mb-4">
           Evolução Mensal - {selectedYear}
         </h4>
         <ChartContainer config={chartConfig} className="h-[250px] w-full">
           <BarChart data={monthlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#525252" />
             <XAxis 
               dataKey="month" 
-              tick={{ fontSize: 10 }}
+              tick={{ fontSize: 10, fill: '#d4d4d4' }}
               tickLine={false}
               axisLine={false}
             />
             <YAxis 
-              tick={{ fontSize: 10 }}
+              tick={{ fontSize: 10, fill: '#d4d4d4' }}
               tickLine={false}
               axisLine={false}
               allowDecimals={false}
             />
             <ChartTooltip 
               content={<ChartTooltipContent />}
-              cursor={{ fill: 'hsl(var(--muted))' }}
+              cursor={{ fill: 'rgba(82, 82, 82, 0.5)' }}
             />
             <Bar 
               dataKey="count" 
               name="Atendimentos" 
-              fill="hsl(var(--foreground))" 
+              fill="#ffffff" 
               radius={[4, 4, 0, 0]}
             />
             <Bar 
               dataKey="revenue" 
               name="Gerou Caixa" 
-              fill="hsl(var(--success))" 
+              fill="#4ade80" 
               radius={[4, 4, 0, 0]}
             />
           </BarChart>
@@ -309,29 +309,29 @@ export function ATDashboard() {
       </div>
 
       {/* Monthly Breakdown Table */}
-      <div className="card-flat">
-        <h4 className="text-xs uppercase tracking-widest text-muted-foreground mb-4">
+      <div className="bg-neutral-700 border border-neutral-600 p-4 rounded">
+        <h4 className="text-xs uppercase tracking-widest text-neutral-300 font-semibold mb-4">
           Detalhamento Mensal
         </h4>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-border">
-                <th className="text-left p-2 font-medium uppercase tracking-widest text-foreground">Mês</th>
-                <th className="text-right p-2 font-medium uppercase tracking-widest text-foreground">Atendimentos</th>
-                <th className="text-right p-2 font-medium uppercase tracking-widest text-foreground">Gerou Caixa</th>
-                <th className="text-right p-2 font-medium uppercase tracking-widest text-foreground">%</th>
+              <tr className="border-b border-neutral-500">
+                <th className="text-left p-2 font-bold uppercase tracking-widest text-white">Mês</th>
+                <th className="text-right p-2 font-bold uppercase tracking-widest text-white">Atendimentos</th>
+                <th className="text-right p-2 font-bold uppercase tracking-widest text-white">Gerou Caixa</th>
+                <th className="text-right p-2 font-bold uppercase tracking-widest text-white">%</th>
               </tr>
             </thead>
             <tbody>
               {monthlyData.map((month, idx) => {
                 const percent = month.count > 0 ? (month.revenue / month.count) * 100 : 0;
                 return (
-                  <tr key={idx} className="border-b border-border/50">
-                    <td className="p-2 capitalize text-foreground">{month.monthFull}</td>
-                    <td className="p-2 text-right font-medium text-foreground">{month.count}</td>
-                    <td className="p-2 text-right font-medium text-success">{month.revenue}</td>
-                    <td className="p-2 text-right text-muted-foreground">
+                  <tr key={idx} className="border-b border-neutral-600">
+                    <td className="p-2 capitalize text-white font-medium">{month.monthFull}</td>
+                    <td className="p-2 text-right font-bold text-white">{month.count}</td>
+                    <td className="p-2 text-right font-bold text-green-400">{month.revenue}</td>
+                    <td className="p-2 text-right text-neutral-300 font-medium">
                       {percent.toFixed(0)}%
                     </td>
                   </tr>
@@ -339,11 +339,11 @@ export function ATDashboard() {
               })}
             </tbody>
             <tfoot>
-              <tr className="border-t-2 border-border font-bold">
-                <td className="p-2 text-foreground">TOTAL</td>
-                <td className="p-2 text-right text-foreground">{annualSummary.totalClients}</td>
-                <td className="p-2 text-right text-success">{annualSummary.revenueCases}</td>
-                <td className="p-2 text-right text-muted-foreground">
+              <tr className="border-t-2 border-neutral-500 font-bold">
+                <td className="p-2 text-white">TOTAL</td>
+                <td className="p-2 text-right text-white">{annualSummary.totalClients}</td>
+                <td className="p-2 text-right text-green-400">{annualSummary.revenueCases}</td>
+                <td className="p-2 text-right text-neutral-300">
                   {annualSummary.revenuePercent.toFixed(0)}%
                 </td>
               </tr>
