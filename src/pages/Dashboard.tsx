@@ -87,14 +87,27 @@ export default function Dashboard() {
       return type?.impactsMetas.includes('captacao');
     }).length;
 
-    // Get areas that have active 'acoes' goals
+    // Get members who have individual 'acoes' goals
+    const membersWithIndividualAcoesMeta = activeMetas
+      .filter(m => m.type === 'acoes' && m.teamMemberId)
+      .map(m => m.teamMemberId);
+
+    // Get areas that have area-level 'acoes' goals (for fallback)
     const areasWithAcoesMeta = activeMetas
-      .filter(m => m.type === 'acoes')
+      .filter(m => m.type === 'acoes' && !m.teamMemberId)
       .map(m => m.areaId);
 
-    // Get active members whose areas have 'acoes' goals
+    // Get active members whose areas have 'acoes' goals (checking position-based areas too)
     const membersWithAcoesMeta = activeMembers
-      .filter(m => areasWithAcoesMeta.includes(m.areaId))
+      .filter(m => {
+        // First check if member has individual goal
+        if (membersWithIndividualAcoesMeta.includes(m.id)) return true;
+        // Then check area-level goals using position-based areas
+        const memberAreaIds = getMemberAreaIds(m.id);
+        const hasPositionAreaWithMeta = memberAreaIds.some(areaId => areasWithAcoesMeta.includes(areaId));
+        // Also check legacy areaId as fallback
+        return hasPositionAreaWithMeta || areasWithAcoesMeta.includes(m.areaId);
+      })
       .map(m => m.id);
 
     // Count only actions from consultants with 'acoes' goals
