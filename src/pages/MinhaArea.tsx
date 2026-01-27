@@ -72,9 +72,50 @@ export default function MinhaArea() {
     currentTeamMember?.id
   );
 
+  // Safety filter: enforce ownership rules client-side (prevents legacy items without assignment leaking into Minha Área)
+  const visibleItems = useMemo(() => {
+    const currentTeamMemberId = currentTeamMember?.id;
+
+    return allItems.filter((item) => {
+      const assignedTo = (item as any).assigned_to as string | null | undefined;
+      const projectResponsibleId = (item as any).project?.responsible_id as string | null | undefined;
+      const assignedProjetistaId = (item as any).checklist?.assigned_projetista_id as string | null | undefined;
+      const assignedLogisticaId = (item as any).checklist?.assigned_logistica_id as string | null | undefined;
+
+      // If item is specifically assigned, only the assignee sees it
+      if (assignedTo) {
+        return !!currentTeamMemberId && assignedTo === currentTeamMemberId;
+      }
+
+      // Commercial tasks must always belong to the project's responsible consultant
+      if (item.responsible_area === 'comercial') {
+        return !!currentTeamMemberId && !!projectResponsibleId && projectResponsibleId === currentTeamMemberId;
+      }
+
+      // Projetista Técnico: if checklist has an assigned projetista, enforce it; otherwise allow legacy area-based visibility
+      if (item.responsible_area === 'projetista_tecnico') {
+        if (assignedProjetistaId) {
+          return !!currentTeamMemberId && assignedProjetistaId === currentTeamMemberId;
+        }
+        return true;
+      }
+
+      // Logística: if checklist has an assigned logistics, enforce it; otherwise allow legacy area-based visibility
+      if (item.responsible_area === 'logistica') {
+        if (assignedLogisticaId) {
+          return !!currentTeamMemberId && assignedLogisticaId === currentTeamMemberId;
+        }
+        return true;
+      }
+
+      // CS: no specific assignment, shared visibility
+      return true;
+    });
+  }, [allItems, currentTeamMember?.id]);
+
   // Separate active and blocked items for counting
-  const activeItems = allItems.filter(item => item.status === 'active');
-  const blockedItems = allItems.filter(item => item.status === 'blocked');
+  const activeItems = visibleItems.filter(item => item.status === 'active');
+  const blockedItems = visibleItems.filter(item => item.status === 'blocked');
 
   const handleOpenCompleteModal = (item: ChecklistItemWithDetails) => {
     setSelectedItem(item);
@@ -217,7 +258,7 @@ export default function MinhaArea() {
             Minhas Atividades
           </h2>
 
-          {allItems.length === 0 ? (
+          {visibleItems.length === 0 ? (
             <Card className="border-border">
               <CardContent className="p-8 text-center">
                 <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-4" />
@@ -229,7 +270,7 @@ export default function MinhaArea() {
             </Card>
           ) : (
             <div className="space-y-3">
-              {allItems.map((item) => {
+              {visibleItems.map((item) => {
                 const dueDateStatus = getDueDateStatus(item.due_date);
                 const isBlocked = item.status === 'blocked';
                 
