@@ -402,7 +402,7 @@ export default function MinhaArea() {
 
                       {/* Workflow Status */}
                       <div className="mb-4">
-                         <Badge variant="outline" className="text-xs font-bold bg-muted border-border text-card-foreground">
+                        <Badge className="text-xs font-bold bg-neutral-700 text-white border-none">
                           {getWorkflowStatusLabel(group.workflowStatus)}
                         </Badge>
                       </div>
