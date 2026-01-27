@@ -265,11 +265,30 @@ export function useMyActiveChecklistItems(userAreas: string[], currentTeamMember
         }
         
         // For commercial area without specific assignment, check project's responsible
-        if (item.responsible_area === 'comercial' && currentTeamMemberId) {
+        if (item.responsible_area === 'comercial') {
           const projectResponsibleId = (item as any).project?.responsible_id;
-          if (projectResponsibleId) {
-            return projectResponsibleId === currentTeamMemberId;
+          // Commercial items always require matching the project's responsible
+          return projectResponsibleId === currentTeamMemberId;
+        }
+        
+        // For projetista_tecnico without specific assignment, check checklist's assigned_projetista_id
+        if (item.responsible_area === 'projetista_tecnico') {
+          const assignedProjetistaId = (item as any).checklist?.assigned_projetista_id;
+          if (assignedProjetistaId) {
+            return assignedProjetistaId === currentTeamMemberId;
           }
+          // Legacy checklists without assignment: show to all projetistas
+          return true;
+        }
+        
+        // For logistica without specific assignment, check checklist's assigned_logistica_id
+        if (item.responsible_area === 'logistica') {
+          const assignedLogisticaId = (item as any).checklist?.assigned_logistica_id;
+          if (assignedLogisticaId) {
+            return assignedLogisticaId === currentTeamMemberId;
+          }
+          // Legacy checklists without assignment: show to all logistica
+          return true;
         }
         
         // For CS items (no specific assignment), show to all CS team members
@@ -343,15 +362,35 @@ export function useMyAllChecklistItems(userAreas: string[], currentTeamMemberId?
         }
         
         // For commercial area without specific assignment, check project's responsible
-        if (item.responsible_area === 'comercial' && currentTeamMemberId) {
+        if (item.responsible_area === 'comercial') {
           const projectResponsibleId = (item as any).project?.responsible_id;
-          if (projectResponsibleId) {
-            return projectResponsibleId === currentTeamMemberId;
+          // Commercial items always require matching the project's responsible
+          return projectResponsibleId === currentTeamMemberId;
+        }
+        
+        // For projetista_tecnico without specific assignment, check checklist's assigned_projetista_id
+        if (item.responsible_area === 'projetista_tecnico') {
+          const assignedProjetistaId = (item as any).checklist?.assigned_projetista_id;
+          // If there's an assigned projetista, only show to them
+          if (assignedProjetistaId) {
+            return assignedProjetistaId === currentTeamMemberId;
           }
+          // Legacy checklists without assignment: show to all projetistas (area-based)
+          return true;
+        }
+        
+        // For logistica without specific assignment, check checklist's assigned_logistica_id
+        if (item.responsible_area === 'logistica') {
+          const assignedLogisticaId = (item as any).checklist?.assigned_logistica_id;
+          // If there's an assigned logistica, only show to them
+          if (assignedLogisticaId) {
+            return assignedLogisticaId === currentTeamMemberId;
+          }
+          // Legacy checklists without assignment: show to all logistica (area-based)
+          return true;
         }
         
         // For CS items (no specific assignment), show to all CS team members
-        // This is the default area-based behavior
         return true;
       });
     },
