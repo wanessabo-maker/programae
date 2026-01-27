@@ -253,6 +253,79 @@ export function useMyActiveChecklistItems(userAreas: string[], currentTeamMember
   });
 }
 
+// Fetch ALL checklist items (active + blocked) for a user's area
+// Shows future tasks but they cannot be completed
+export function useMyAllChecklistItems(userAreas: string[], currentTeamMemberId?: string) {
+  return useQuery({
+    queryKey: ['my-all-checklist-items', userAreas, currentTeamMemberId],
+    queryFn: async () => {
+      if (!userAreas.length) return [];
+
+      // Map functional areas to checklist responsible areas
+      const checklistAreas = userAreas.flatMap(area => {
+        switch (area.toLowerCase()) {
+          case 'comercial':
+            return ['comercial'];
+          case 'projetos':
+            return ['projetista_tecnico'];
+          case 'customer_success':
+            return ['cs'];
+          case 'assistencia_tecnica':
+            return ['logistica'];
+          default:
+            return [area.toLowerCase()];
+        }
+      });
+
+      const { data, error } = await supabase
+        .from('checklist_items')
+        .select(`
+          *,
+          checklist:contract_checklists (
+            *,
+            project:projects (
+              id,
+              name,
+              focco_project_number,
+              responsible_id,
+              clients (
+                id,
+                name
+              )
+            )
+          )
+        `)
+        .in('status', ['active', 'blocked'])
+        .in('responsible_area', checklistAreas)
+        .order('step_order', { ascending: true });
+
+      if (error) throw error;
+      
+      // Transform the data and filter commercial items by responsible
+      const transformedData = (data || []).map(item => ({
+        ...item,
+        project: item.checklist?.project,
+        checklist: item.checklist ? { ...item.checklist, project: undefined } : undefined,
+      })) as ChecklistItemWithDetails[];
+
+      // Filter commercial items: only show if user is the project's responsible consultant
+      return transformedData.filter(item => {
+        // For commercial area, check if user is the responsible for this project
+        if (item.responsible_area === 'comercial' && currentTeamMemberId) {
+          const projectResponsibleId = (item as any).project?.responsible_id;
+          // If project has a responsible, only show to that person
+          if (projectResponsibleId) {
+            return projectResponsibleId === currentTeamMemberId;
+          }
+        }
+        // For non-commercial areas, show all items in their area
+        return true;
+      });
+    },
+    enabled: userAreas.length > 0,
+  });
+}
+
 // Create checklist for a project (called when sale is registered)
 export function useCreateChecklist() {
   const queryClient = useQueryClient();
