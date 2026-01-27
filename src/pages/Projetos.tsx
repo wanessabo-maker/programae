@@ -78,7 +78,7 @@ export default function Projetos() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Ambientes de Apresentação
+              Projetos de Apresentação
             </CardTitle>
             <PenTool className="h-4 w-4 text-blue-500" />
           </CardHeader>
@@ -89,7 +89,7 @@ export default function Projetos() {
               <div className="text-3xl font-bold">{stats?.totalApresentacao || 0}</div>
             )}
             <p className="text-xs text-muted-foreground mt-1">
-              Projetistas de Apresentação
+              {stats?.actionsCount ? `${stats.actionsCount} ações registradas` : 'Ações de Projeto de Apresentação'}
             </p>
           </CardContent>
         </Card>
@@ -98,7 +98,7 @@ export default function Projetos() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Ambientes Técnicos
+              Projetos Técnicos
             </CardTitle>
             <Ruler className="h-4 w-4 text-green-500" />
           </CardHeader>
@@ -109,7 +109,7 @@ export default function Projetos() {
               <div className="text-3xl font-bold">{stats?.totalTecnico || 0}</div>
             )}
             <p className="text-xs text-muted-foreground mt-1">
-              Projetistas Técnicos
+              Ambientes técnicos executados
             </p>
           </CardContent>
         </Card>
@@ -140,7 +140,7 @@ export default function Projetos() {
             )}
             <p className="text-xs text-muted-foreground mt-1">
               {difference > 0 
-                ? 'Ambientes aguardando execução técnica' 
+                ? 'Aguardando execução técnica' 
                 : difference < 0 
                   ? 'Mais técnicos que apresentações'
                   : 'Produção equilibrada'}
@@ -150,16 +150,68 @@ export default function Projetos() {
       </div>
 
       {/* Rankings */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-3">
+        {/* Ranking Consultores Atendidos */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base">Consultores Atendidos</CardTitle>
+            </div>
+            <CardDescription>
+              Apresentações recebidas no mês
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {rankingLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-12 w-full" />
+                ))}
+              </div>
+            ) : ranking?.consultants && ranking.consultants.length > 0 ? (
+              <div className="space-y-3">
+                {ranking.consultants.slice(0, 5).map((item, index) => (
+                  <div 
+                    key={item.consultantId}
+                    className={`flex items-center justify-between p-3 rounded-lg ${
+                      index === 0 ? 'bg-primary/10 border border-primary/20' :
+                      'bg-muted/30'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                        index === 0 ? 'bg-primary text-primary-foreground' :
+                        'bg-muted text-muted-foreground'
+                      }`}>
+                        {index + 1}º
+                      </div>
+                      <span className="font-medium text-sm">{item.consultantName}</span>
+                    </div>
+                    <Badge variant="secondary" className="text-base font-bold">
+                      {item.count}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Users className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                <p className="text-sm">Nenhuma apresentação registrada</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Ranking Projetistas de Apresentação */}
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
               <Trophy className="h-5 w-5 text-blue-500" />
-              <CardTitle className="text-base">Ranking - Projetistas de Apresentação</CardTitle>
+              <CardTitle className="text-base">Projetistas de Apresentação</CardTitle>
             </div>
             <CardDescription>
-              Produção de ambientes de apresentação no mês
+              Ambientes produzidos no mês
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -190,9 +242,9 @@ export default function Projetos() {
                       }`}>
                         {index + 1}º
                       </div>
-                      <span className="font-medium">{item.projetistaName}</span>
+                      <span className="font-medium text-sm">{item.projetistaName}</span>
                     </div>
-                    <Badge variant="secondary" className="text-lg font-bold">
+                    <Badge variant="secondary" className="text-base font-bold">
                       {item.count} <span className="text-xs font-normal ml-1">amb.</span>
                     </Badge>
                   </div>
@@ -201,8 +253,8 @@ export default function Projetos() {
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 <LayoutGrid className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                <p className="text-sm">Nenhum registro de ambiente de apresentação</p>
-                <p className="text-xs mt-1">Registre ações de Projeto de Apresentação para ver o ranking</p>
+                <p className="text-sm">Nenhum ambiente registrado</p>
+                <p className="text-xs mt-1">Registre ações com quantidade de ambientes</p>
               </div>
             )}
           </CardContent>
@@ -213,10 +265,10 @@ export default function Projetos() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Trophy className="h-5 w-5 text-green-500" />
-              <CardTitle className="text-base">Ranking - Projetistas Técnicos</CardTitle>
+              <CardTitle className="text-base">Projetistas Técnicos</CardTitle>
             </div>
             <CardDescription>
-              Produção de ambientes técnicos no mês
+              Ambientes executados no mês
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -247,9 +299,9 @@ export default function Projetos() {
                       }`}>
                         {index + 1}º
                       </div>
-                      <span className="font-medium">{item.projetistaName}</span>
+                      <span className="font-medium text-sm">{item.projetistaName}</span>
                     </div>
-                    <Badge variant="secondary" className="text-lg font-bold">
+                    <Badge variant="secondary" className="text-base font-bold">
                       {item.count} <span className="text-xs font-normal ml-1">amb.</span>
                     </Badge>
                   </div>
@@ -258,8 +310,8 @@ export default function Projetos() {
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 <LayoutGrid className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                <p className="text-sm">Nenhum registro de ambiente técnico</p>
-                <p className="text-xs mt-1">Complete etapas do checklist para ver o ranking</p>
+                <p className="text-sm">Nenhum ambiente técnico registrado</p>
+                <p className="text-xs mt-1">Complete etapas do checklist</p>
               </div>
             )}
           </CardContent>

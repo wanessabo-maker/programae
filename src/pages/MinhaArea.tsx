@@ -30,6 +30,7 @@ import {
   ChecklistItemWithDetails
 } from '@/hooks/useChecklist';
 import { CompleteActivityModal } from '@/components/minha-area/CompleteActivityModal';
+import { ProjetistaSection } from '@/components/minha-area/ProjetistaSection';
 
 interface ContractGroup {
   projectId: string;
@@ -344,6 +345,14 @@ export default function MinhaArea() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Projetista Section - shows project production stats if applicable */}
+        {currentTeamMember?.id && (
+          <ProjetistaSection 
+            teamMemberId={currentTeamMember.id} 
+            teamMemberName={currentTeamMember.name} 
+          />
+        )}
 
         {/* Contract Groups */}
         <div className="space-y-4">
