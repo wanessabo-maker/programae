@@ -14,7 +14,14 @@ export interface ChecklistTemplate {
 }
 
 // Non-hook function to create checklist (for use in callbacks)
-export async function createChecklistForProject(projectId: string): Promise<boolean> {
+export async function createChecklistForProject(
+  projectId: string,
+  options?: {
+    assignedProjetistaId?: string;
+    assignedLogisticaId?: string;
+    commercialResponsibleId?: string;
+  }
+): Promise<boolean> {
   try {
     // First, check if checklist already exists
     const { data: existingChecklist } = await supabase
@@ -41,20 +48,22 @@ export async function createChecklistForProject(projectId: string): Promise<bool
       return false;
     }
 
-    // Create the main checklist
+    // Create the main checklist with assigned professionals
     const { data: checklist, error: checklistError } = await supabase
       .from('contract_checklists')
       .insert({
         project_id: projectId,
         workflow_status: 'formalizacao',
         current_step: 1,
+        assigned_projetista_id: options?.assignedProjetistaId || null,
+        assigned_logistica_id: options?.assignedLogisticaId || null,
       })
       .select()
       .single();
 
     if (checklistError) throw checklistError;
 
-    // Create all checklist items
+    // Create all checklist items with assigned_to based on responsible_area
     const today = new Date();
     const items = templates.map((template: ChecklistTemplate, index: number) => {
       let dueDate = null;
@@ -64,6 +73,17 @@ export async function createChecklistForProject(projectId: string): Promise<bool
         dueDate = date.toISOString().split('T')[0];
       }
 
+      // Determine the assigned_to based on area
+      let assignedTo: string | null = null;
+      if (template.responsible_area === 'comercial' && options?.commercialResponsibleId) {
+        assignedTo = options.commercialResponsibleId;
+      } else if (template.responsible_area === 'projetista_tecnico' && options?.assignedProjetistaId) {
+        assignedTo = options.assignedProjetistaId;
+      } else if (template.responsible_area === 'logistica' && options?.assignedLogisticaId) {
+        assignedTo = options.assignedLogisticaId;
+      }
+      // CS items don't get specific assignment - all CS team sees them
+
       return {
         checklist_id: checklist.id,
         template_id: template.id,
@@ -72,6 +92,7 @@ export async function createChecklistForProject(projectId: string): Promise<bool
         responsible_area: template.responsible_area,
         status: index === 0 ? 'active' : 'blocked',
         due_date: dueDate,
+        assigned_to: assignedTo,
       };
     });
 
@@ -112,6 +133,7 @@ export interface ChecklistItem {
   completed_at: string | null;
   completed_by: string | null;
   notes: string | null;
+  assigned_to: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -228,24 +250,29 @@ export function useMyActiveChecklistItems(userAreas: string[], currentTeamMember
 
       if (error) throw error;
       
-      // Transform the data and filter commercial items by responsible
+      // Transform the data and filter by assigned_to or area
       const transformedData = (data || []).map(item => ({
         ...item,
         project: item.checklist?.project,
         checklist: item.checklist ? { ...item.checklist, project: undefined } : undefined,
       })) as ChecklistItemWithDetails[];
 
-      // Filter commercial items: only show if user is the project's responsible consultant
+      // Filter items based on assignment logic
       return transformedData.filter(item => {
-        // For commercial area, check if user is the responsible for this project
+        // If item has a specific assigned_to, only show to that person
+        if ((item as any).assigned_to) {
+          return (item as any).assigned_to === currentTeamMemberId;
+        }
+        
+        // For commercial area without specific assignment, check project's responsible
         if (item.responsible_area === 'comercial' && currentTeamMemberId) {
           const projectResponsibleId = (item as any).project?.responsible_id;
-          // If project has a responsible, only show to that person
           if (projectResponsibleId) {
             return projectResponsibleId === currentTeamMemberId;
           }
         }
-        // For non-commercial areas, show all items in their area
+        
+        // For CS items (no specific assignment), show to all CS team members
         return true;
       });
     },
@@ -301,24 +328,30 @@ export function useMyAllChecklistItems(userAreas: string[], currentTeamMemberId?
 
       if (error) throw error;
       
-      // Transform the data and filter commercial items by responsible
+      // Transform the data and filter by assigned_to or area
       const transformedData = (data || []).map(item => ({
         ...item,
         project: item.checklist?.project,
         checklist: item.checklist ? { ...item.checklist, project: undefined } : undefined,
       })) as ChecklistItemWithDetails[];
 
-      // Filter commercial items: only show if user is the project's responsible consultant
+      // Filter items based on assignment logic
       return transformedData.filter(item => {
-        // For commercial area, check if user is the responsible for this project
+        // If item has a specific assigned_to, only show to that person
+        if ((item as any).assigned_to) {
+          return (item as any).assigned_to === currentTeamMemberId;
+        }
+        
+        // For commercial area without specific assignment, check project's responsible
         if (item.responsible_area === 'comercial' && currentTeamMemberId) {
           const projectResponsibleId = (item as any).project?.responsible_id;
-          // If project has a responsible, only show to that person
           if (projectResponsibleId) {
             return projectResponsibleId === currentTeamMemberId;
           }
         }
-        // For non-commercial areas, show all items in their area
+        
+        // For CS items (no specific assignment), show to all CS team members
+        // This is the default area-based behavior
         return true;
       });
     },

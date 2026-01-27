@@ -38,6 +38,9 @@ interface FormState {
   clientCity: string;
   clientState: string;
   presentedValue: string;
+  // Assigned professionals for checklist
+  assignedProjetistaId: string;
+  assignedLogisticaId: string;
 }
 
 const initialFormState: FormState = {
@@ -59,6 +62,8 @@ const initialFormState: FormState = {
   clientCity: '',
   clientState: '',
   presentedValue: '',
+  assignedProjetistaId: '',
+  assignedLogisticaId: '',
 };
 
 export function ActionModal({ open, onOpenChange }: ActionModalProps) {
@@ -83,6 +88,68 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
   const { data: csSchedules } = useCSContactSchedules();
 
   const activeMembers = teamMembers.filter(m => m.active);
+
+  // Fetch team members with specific positions for assignment
+  const [projetistaMembers, setProjetistaMembers] = useState<{ id: string; name: string }[]>([]);
+  const [logisticaMembers, setLogisticaMembers] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    const fetchPositionMembers = async () => {
+      try {
+        // Get positions by name pattern
+        const { data: positions } = await supabase
+          .from('positions')
+          .select('id, name')
+          .eq('is_active', true)
+          .or('name.ilike.%projetista técnico%,name.ilike.%logistica%,name.ilike.%logística%');
+
+        if (!positions || positions.length === 0) return;
+
+        // Get member assignments for these positions
+        const projetistaPos = positions.find(p => p.name.toLowerCase().includes('projetista técnico'));
+        const logisticaPos = positions.find(p => p.name.toLowerCase().includes('logistica') || p.name.toLowerCase().includes('logística'));
+
+        const positionIds = [projetistaPos?.id, logisticaPos?.id].filter(Boolean);
+        
+        if (positionIds.length === 0) return;
+
+        const { data: memberPositions } = await supabase
+          .from('team_member_positions')
+          .select('team_member_id, position_id')
+          .in('position_id', positionIds);
+
+        if (!memberPositions) return;
+
+        // Map to team members
+        const projetistaIds = memberPositions
+          .filter(mp => mp.position_id === projetistaPos?.id)
+          .map(mp => mp.team_member_id);
+        
+        const logisticaIds = memberPositions
+          .filter(mp => mp.position_id === logisticaPos?.id)
+          .map(mp => mp.team_member_id);
+
+        // Get member names
+        const allMemberIds = [...new Set([...projetistaIds, ...logisticaIds])];
+        if (allMemberIds.length === 0) return;
+
+        const { data: members } = await supabase
+          .from('team_members')
+          .select('id, name')
+          .in('id', allMemberIds)
+          .eq('active', true);
+
+        if (!members) return;
+
+        setProjetistaMembers(members.filter(m => projetistaIds.includes(m.id)));
+        setLogisticaMembers(members.filter(m => logisticaIds.includes(m.id)));
+      } catch (error) {
+        console.error('Error fetching position members:', error);
+      }
+    };
+
+    fetchPositionMembers();
+  }, []);
 
   const [form, setForm] = useState<FormState>(initialFormState);
   const [isNewProfessional, setIsNewProfessional] = useState(false);
@@ -460,8 +527,12 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                     .eq('id', existingProject.client_id);
                 }
                 
-                // Create checklist for the closed project
-                await createChecklistForProject(existingProject.id);
+                // Create checklist for the closed project with assigned professionals
+                await createChecklistForProject(existingProject.id, {
+                  assignedProjetistaId: form.assignedProjetistaId || undefined,
+                  assignedLogisticaId: form.assignedLogisticaId || undefined,
+                  commercialResponsibleId: form.consultantId,
+                });
                 
                 toast.success(`Projeto FOCCO ${foccoNumber} fechado com sucesso!`);
               }
@@ -514,8 +585,12 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
               } else if (newProject) {
                 projectId = newProject.id;
                 
-                // Create checklist for the new project
-                await createChecklistForProject(newProject.id);
+                // Create checklist for the new project with assigned professionals
+                await createChecklistForProject(newProject.id, {
+                  assignedProjetistaId: form.assignedProjetistaId || undefined,
+                  assignedLogisticaId: form.assignedLogisticaId || undefined,
+                  commercialResponsibleId: form.consultantId,
+                });
                 
                 toast.success(`Contrato criado com FOCCO ${foccoNumber} (Venda Direta)!`);
               }
@@ -574,8 +649,12 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             } else if (newProject) {
               projectId = newProject.id;
               
-              // Create checklist for the new project
-              await createChecklistForProject(newProject.id);
+              // Create checklist for the new project with assigned professionals
+              await createChecklistForProject(newProject.id, {
+                assignedProjetistaId: form.assignedProjetistaId || undefined,
+                assignedLogisticaId: form.assignedLogisticaId || undefined,
+                commercialResponsibleId: form.consultantId,
+              });
               
               toast.success('Contrato criado com sucesso (Venda Direta)!');
             }
@@ -987,6 +1066,64 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 className={`input-flat w-full text-card-foreground ${errors.value ? 'border-destructive ring-1 ring-destructive' : ''}`}
               />
               {errors.value && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
+            </div>
+          )}
+
+          {/* Assigned Professionals for Checklist - Only for Venda */}
+          {isVenda && (
+            <div className="border border-border rounded-md p-3 space-y-3 bg-muted/30">
+              <label className="text-xs tracking-widest uppercase text-muted-foreground block">
+                Atribuir Responsáveis do Checklist
+              </label>
+              <p className="text-xs text-muted-foreground mb-2">
+                Selecione os profissionais que serão responsáveis pelas etapas técnicas e de logística deste contrato.
+              </p>
+              
+              {/* Projetista Técnico */}
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">
+                  Projetista Técnico
+                </label>
+                {projetistaMembers.length > 0 ? (
+                  <select
+                    value={form.assignedProjetistaId}
+                    onChange={(e) => handleFieldChange('assignedProjetistaId', e.target.value)}
+                    className="input-flat w-full text-card-foreground"
+                  >
+                    <option value="">Selecione (opcional)</option>
+                    {projetistaMembers.map((m) => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <p className="text-xs text-orange-500 italic">
+                    Nenhum membro com cargo "Projetista Técnico" encontrado
+                  </p>
+                )}
+              </div>
+
+              {/* Analista de Logística */}
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">
+                  Analista de Logística
+                </label>
+                {logisticaMembers.length > 0 ? (
+                  <select
+                    value={form.assignedLogisticaId}
+                    onChange={(e) => handleFieldChange('assignedLogisticaId', e.target.value)}
+                    className="input-flat w-full text-card-foreground"
+                  >
+                    <option value="">Selecione (opcional)</option>
+                    {logisticaMembers.map((m) => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <p className="text-xs text-orange-500 italic">
+                    Nenhum membro com cargo "Analista de Logística" encontrado
+                  </p>
+                )}
+              </div>
             </div>
           )}
 
