@@ -65,6 +65,7 @@ export type Database = {
           client_profession: string | null
           consultant_id: string | null
           created_at: string | null
+          environment_count: number | null
           focco_project_number: string | null
           id: string
           notes: string | null
@@ -81,6 +82,7 @@ export type Database = {
           client_profession?: string | null
           consultant_id?: string | null
           created_at?: string | null
+          environment_count?: number | null
           focco_project_number?: string | null
           id?: string
           notes?: string | null
@@ -97,6 +99,7 @@ export type Database = {
           client_profession?: string | null
           consultant_id?: string | null
           created_at?: string | null
+          environment_count?: number | null
           focco_project_number?: string | null
           id?: string
           notes?: string | null
@@ -273,6 +276,7 @@ export type Database = {
           completed_by: string | null
           created_at: string | null
           due_date: string | null
+          environment_count: number | null
           id: string
           name: string
           notes: string | null
@@ -289,6 +293,7 @@ export type Database = {
           completed_by?: string | null
           created_at?: string | null
           due_date?: string | null
+          environment_count?: number | null
           id?: string
           name: string
           notes?: string | null
@@ -305,6 +310,7 @@ export type Database = {
           completed_by?: string | null
           created_at?: string | null
           due_date?: string | null
+          environment_count?: number | null
           id?: string
           name?: string
           notes?: string | null
@@ -1151,6 +1157,87 @@ export type Database = {
             columns: ["type_id"]
             isOneToOne: false
             referencedRelation: "professional_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_environments: {
+        Row: {
+          action_id: string | null
+          checklist_item_id: string | null
+          competence_month: string
+          consultant_id: string | null
+          created_at: string
+          environment_count: number
+          environment_type: string
+          id: string
+          notes: string | null
+          project_id: string | null
+          projetista_id: string
+          updated_at: string
+        }
+        Insert: {
+          action_id?: string | null
+          checklist_item_id?: string | null
+          competence_month: string
+          consultant_id?: string | null
+          created_at?: string
+          environment_count?: number
+          environment_type: string
+          id?: string
+          notes?: string | null
+          project_id?: string | null
+          projetista_id: string
+          updated_at?: string
+        }
+        Update: {
+          action_id?: string | null
+          checklist_item_id?: string | null
+          competence_month?: string
+          consultant_id?: string | null
+          created_at?: string
+          environment_count?: number
+          environment_type?: string
+          id?: string
+          notes?: string | null
+          project_id?: string | null
+          projetista_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_environments_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_environments_checklist_item_id_fkey"
+            columns: ["checklist_item_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_environments_consultant_id_fkey"
+            columns: ["consultant_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_environments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_environments_projetista_id_fkey"
+            columns: ["projetista_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
             referencedColumns: ["id"]
           },
         ]
