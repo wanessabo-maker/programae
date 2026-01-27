@@ -29,6 +29,7 @@ interface ReassignChecklistProfessionalsModalProps {
   checklistId: string;
   currentProjetistaId: string | null;
   currentLogisticaId: string | null;
+  currentCsId: string | null;
 }
 
 export function ReassignChecklistProfessionalsModal({
@@ -37,6 +38,7 @@ export function ReassignChecklistProfessionalsModal({
   checklistId,
   currentProjetistaId,
   currentLogisticaId,
+  currentCsId,
 }: ReassignChecklistProfessionalsModalProps) {
   const queryClient = useQueryClient();
   const { positions, memberPositions } = usePositions();
@@ -44,14 +46,16 @@ export function ReassignChecklistProfessionalsModal({
 
   const [projetistaId, setProjetistaId] = useState<string | null>(currentProjetistaId);
   const [logisticaId, setLogisticaId] = useState<string | null>(currentLogisticaId);
+  const [csId, setCsId] = useState<string | null>(currentCsId);
 
   // Reset state when modal opens with new values
   useEffect(() => {
     if (open) {
       setProjetistaId(currentProjetistaId);
       setLogisticaId(currentLogisticaId);
+      setCsId(currentCsId);
     }
-  }, [open, currentProjetistaId, currentLogisticaId]);
+  }, [open, currentProjetistaId, currentLogisticaId, currentCsId]);
 
   // Get projetistas (members with Projetista Técnico position)
   const projetistas = useMemo(() => {
@@ -84,6 +88,24 @@ export function ReassignChecklistProfessionalsModal({
     return teamMembers.filter(m => uniqueMemberIds.includes(m.id) && m.active);
   }, [positions, memberPositions, teamMembers]);
 
+  // Get CS members (members with CS/Customer Success position)
+  const csMembers = useMemo(() => {
+    const csPositionIds = positions
+      .filter(p => 
+        p.name.toLowerCase().includes('cs') || 
+        p.name.toLowerCase().includes('customer success') ||
+        p.area === 'customer_success'
+      )
+      .map(p => p.id);
+    
+    const memberIds = memberPositions
+      .filter(tmp => csPositionIds.includes(tmp.position_id))
+      .map(tmp => tmp.team_member_id);
+    
+    const uniqueMemberIds = [...new Set(memberIds)];
+    return teamMembers.filter(m => uniqueMemberIds.includes(m.id) && m.active);
+  }, [positions, memberPositions, teamMembers]);
+
   const updateMutation = useMutation({
     mutationFn: async () => {
       // Update the contract_checklists table
@@ -92,6 +114,7 @@ export function ReassignChecklistProfessionalsModal({
         .update({
           assigned_projetista_id: projetistaId,
           assigned_logistica_id: logisticaId,
+          assigned_cs_id: csId,
         })
         .eq('id', checklistId);
 
@@ -118,6 +141,17 @@ export function ReassignChecklistProfessionalsModal({
 
         if (logisticaItemsError) throw logisticaItemsError;
       }
+
+      // Update checklist_items for cs area
+      if (csId !== currentCsId) {
+        const { error: csItemsError } = await supabase
+          .from('checklist_items')
+          .update({ assigned_to: csId })
+          .eq('checklist_id', checklistId)
+          .eq('responsible_area', 'cs');
+
+        if (csItemsError) throw csItemsError;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contract-checklist'] });
@@ -136,7 +170,7 @@ export function ReassignChecklistProfessionalsModal({
     updateMutation.mutate();
   };
 
-  const hasChanges = projetistaId !== currentProjetistaId || logisticaId !== currentLogisticaId;
+  const hasChanges = projetistaId !== currentProjetistaId || logisticaId !== currentLogisticaId || csId !== currentCsId;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -201,6 +235,34 @@ export function ReassignChecklistProfessionalsModal({
             {logisticaMembers.length === 0 && (
               <p className="text-xs text-muted-foreground">
                 Nenhum membro com cargo de Analista de Logística encontrado.
+              </p>
+            )}
+          </div>
+
+          {/* Analista de CS */}
+          <div className="space-y-2">
+            <Label htmlFor="cs">Analista de CS</Label>
+            <Select
+              value={csId || 'none'}
+              onValueChange={(value) => setCsId(value === 'none' ? null : value)}
+            >
+              <SelectTrigger id="cs">
+                <SelectValue placeholder="Selecione um analista" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">
+                  <span className="text-muted-foreground">Nenhum (visível para toda a área)</span>
+                </SelectItem>
+                {csMembers.map((member) => (
+                  <SelectItem key={member.id} value={member.id}>
+                    {member.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {csMembers.length === 0 && (
+              <p className="text-xs text-muted-foreground">
+                Nenhum membro com cargo de Analista de CS encontrado.
               </p>
             )}
           </div>

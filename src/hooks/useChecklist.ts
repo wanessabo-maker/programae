@@ -19,6 +19,7 @@ export async function createChecklistForProject(
   options?: {
     assignedProjetistaId?: string;
     assignedLogisticaId?: string;
+    assignedCsId?: string;
     commercialResponsibleId?: string;
   }
 ): Promise<boolean> {
@@ -57,6 +58,7 @@ export async function createChecklistForProject(
         current_step: 1,
         assigned_projetista_id: options?.assignedProjetistaId || null,
         assigned_logistica_id: options?.assignedLogisticaId || null,
+        assigned_cs_id: options?.assignedCsId || null,
       })
       .select()
       .single();
@@ -81,8 +83,9 @@ export async function createChecklistForProject(
         assignedTo = options.assignedProjetistaId;
       } else if (template.responsible_area === 'logistica' && options?.assignedLogisticaId) {
         assignedTo = options.assignedLogisticaId;
+      } else if (template.responsible_area === 'cs' && options?.assignedCsId) {
+        assignedTo = options.assignedCsId;
       }
-      // CS items don't get specific assignment - all CS team sees them
 
       return {
         checklist_id: checklist.id,
@@ -291,7 +294,17 @@ export function useMyActiveChecklistItems(userAreas: string[], currentTeamMember
           return true;
         }
         
-        // For CS items (no specific assignment), show to all CS team members
+        // For CS without specific assignment, check checklist's assigned_cs_id
+        if (item.responsible_area === 'cs') {
+          const assignedCsId = (item as any).checklist?.assigned_cs_id;
+          if (assignedCsId) {
+            return assignedCsId === currentTeamMemberId;
+          }
+          // Legacy checklists without assignment: show to all CS
+          return true;
+        }
+        
+        // For other areas, show to all team members in that area
         return true;
       });
     },
@@ -390,7 +403,17 @@ export function useMyAllChecklistItems(userAreas: string[], currentTeamMemberId?
           return true;
         }
         
-        // For CS items (no specific assignment), show to all CS team members
+        // For CS without specific assignment, check checklist's assigned_cs_id
+        if (item.responsible_area === 'cs') {
+          const assignedCsId = (item as any).checklist?.assigned_cs_id;
+          if (assignedCsId) {
+            return assignedCsId === currentTeamMemberId;
+          }
+          // Legacy checklists without assignment: show to all CS
+          return true;
+        }
+        
+        // For other areas, show to all team members in that area
         return true;
       });
     },

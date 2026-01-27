@@ -37,6 +37,7 @@ export function ContractChecklistView({ projectId }: ContractChecklistViewProps)
 
   const assignedProjetistaName = getTeamMemberName(checklistData?.assigned_projetista_id);
   const assignedLogisticaName = getTeamMemberName(checklistData?.assigned_logistica_id);
+  const assignedCsName = getTeamMemberName((checklistData as any)?.assigned_cs_id);
 
   const progressPercentage = useMemo(() => {
     if (!checklistData?.checklist_items?.length) return 0;
@@ -134,7 +135,7 @@ export function ContractChecklistView({ projectId }: ContractChecklistViewProps)
           </Button>
         </div>
         
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <div>
             <p className="text-xs text-neutral-400 mb-1">Projetista Técnico</p>
             <p className="text-sm font-medium text-white">
@@ -151,6 +152,14 @@ export function ContractChecklistView({ projectId }: ContractChecklistViewProps)
               )}
             </p>
           </div>
+          <div>
+            <p className="text-xs text-neutral-400 mb-1">Analista de CS</p>
+            <p className="text-sm font-medium text-white">
+              {assignedCsName || (
+                <span className="text-neutral-500 italic">Não atribuído</span>
+              )}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -162,6 +171,7 @@ export function ContractChecklistView({ projectId }: ContractChecklistViewProps)
           checklistId={checklistData.id}
           currentProjetistaId={checklistData.assigned_projetista_id}
           currentLogisticaId={checklistData.assigned_logistica_id}
+          currentCsId={(checklistData as any).assigned_cs_id}
         />
       )}
 
