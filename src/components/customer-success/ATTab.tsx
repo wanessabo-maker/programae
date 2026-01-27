@@ -92,6 +92,7 @@ export function ATTab() {
   // Update visit form
   const [updateForm, setUpdateForm] = useState({
     visit_date: '',
+    attended_by: '',
   });
 
   // New client form
@@ -197,6 +198,7 @@ export function ATTab() {
       await updateMutation.mutateAsync({
         id: selectedCase.id,
         visit_date: updateForm.visit_date,
+        attended_by: updateForm.attended_by || null,
       });
 
       toast({ title: 'Data da visita registrada' });
@@ -245,7 +247,10 @@ export function ATTab() {
 
   const openViewModal = (atCase: TechnicalAssistance) => {
     setSelectedCase(atCase);
-    setUpdateForm({ visit_date: atCase.visit_date || '' });
+    setUpdateForm({ 
+      visit_date: atCase.visit_date || '',
+      attended_by: atCase.attended_by || '',
+    });
     setShowViewModal(true);
   };
 
@@ -1000,24 +1005,41 @@ export function ATTab() {
               </div>
 
               {!selectedCase.visit_date && (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <label className="text-xs uppercase tracking-widest text-muted-foreground">
-                    Registrar Data da Visita Técnica
+                    Registrar Visita Técnica
                   </label>
-                  <div className="flex gap-2">
+                  
+                  <div>
+                    <label className="text-xs text-muted-foreground">Data da Visita *</label>
                     <input
                       type="date"
                       value={updateForm.visit_date}
-                      onChange={(e) => setUpdateForm({ visit_date: e.target.value })}
-                      className="input-flat flex-1"
+                      onChange={(e) => setUpdateForm({ ...updateForm, visit_date: e.target.value })}
+                      className="input-flat w-full mt-1"
                     />
-                    <button
-                      onClick={handleUpdateVisitDate}
-                      className="btn-primary bg-foreground text-background"
-                    >
-                      Registrar
-                    </button>
                   </div>
+                  
+                  <div>
+                    <label className="text-xs text-muted-foreground">Profissional que Atendeu</label>
+                    <select
+                      value={updateForm.attended_by}
+                      onChange={(e) => setUpdateForm({ ...updateForm, attended_by: e.target.value })}
+                      className="input-flat w-full mt-1"
+                    >
+                      <option value="">Selecione</option>
+                      {activeTeamMembers.map((m) => (
+                        <option key={m.id} value={m.id}>{m.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <button
+                    onClick={handleUpdateVisitDate}
+                    className="btn-primary bg-foreground text-background w-full"
+                  >
+                    Registrar Visita
+                  </button>
                 </div>
               )}
 

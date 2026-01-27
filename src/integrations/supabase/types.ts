@@ -1454,6 +1454,7 @@ export type Database = {
       technical_assistance: {
         Row: {
           action_type_id: string | null
+          attended_by: string | null
           client_id: string | null
           completed_date: string | null
           contact_date: string | null
@@ -1478,6 +1479,7 @@ export type Database = {
         }
         Insert: {
           action_type_id?: string | null
+          attended_by?: string | null
           client_id?: string | null
           completed_date?: string | null
           contact_date?: string | null
@@ -1502,6 +1504,7 @@ export type Database = {
         }
         Update: {
           action_type_id?: string | null
+          attended_by?: string | null
           client_id?: string | null
           completed_date?: string | null
           contact_date?: string | null
@@ -1530,6 +1533,13 @@ export type Database = {
             columns: ["action_type_id"]
             isOneToOne: false
             referencedRelation: "at_action_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "technical_assistance_attended_by_fkey"
+            columns: ["attended_by"]
+            isOneToOne: false
+            referencedRelation: "team_members"
             referencedColumns: ["id"]
           },
           {

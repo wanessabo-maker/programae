@@ -22,6 +22,7 @@ export interface TechnicalAssistance {
   client_id: string | null;
   project_id: string | null;
   responsible_id: string | null;
+  attended_by: string | null;
   opened_date: string | null;
   scheduled_date: string | null;
   completed_date: string | null;
@@ -41,6 +42,7 @@ export interface TechnicalAssistance {
   project_name?: string;
   responsible_name?: string;
   action_type_name?: string;
+  attended_by_name?: string;
 }
 
 // =============================================
@@ -129,6 +131,7 @@ export function useTechnicalAssistances(status?: string) {
           clients:client_id(name),
           projects:project_id(name),
           team_members:responsible_id(name),
+          attended_member:attended_by(name),
           at_action_types:action_type_id(name)
         `)
         .order('opened_date', { ascending: false });
@@ -144,6 +147,7 @@ export function useTechnicalAssistances(status?: string) {
         client_name: row.clients?.name,
         project_name: row.projects?.name,
         responsible_name: row.team_members?.name,
+        attended_by_name: row.attended_member?.name,
         action_type_name: row.at_action_types?.name,
       })) as TechnicalAssistance[];
     },
