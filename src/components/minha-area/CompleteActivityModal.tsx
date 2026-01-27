@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
@@ -8,7 +8,8 @@ import {
   Building2,
   Calendar,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  LayoutGrid
 } from 'lucide-react';
 import {
   Dialog,
@@ -22,6 +23,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
 import { useCurrentTeamMember } from '@/hooks/useCurrentTeamMember';
 import { 
   useCompleteChecklistItem, 
@@ -29,6 +31,8 @@ import {
   getWorkflowStatusLabel,
   ChecklistItemWithDetails 
 } from '@/hooks/useChecklist';
+import { useCreateProjectEnvironment } from '@/hooks/useProjectEnvironments';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CompleteActivityModalProps {
   open: boolean;
@@ -37,6 +41,12 @@ interface CompleteActivityModalProps {
   onClose: () => void;
 }
 
+// Steps that require environment count input (Projeto Técnico steps)
+const ENVIRONMENT_REQUIRED_STEPS = [
+  'Projeto Técnico Finalizado',
+  'Liberação do Projeto Técnico',
+];
+
 export function CompleteActivityModal({ 
   open, 
   onOpenChange, 
@@ -44,24 +54,82 @@ export function CompleteActivityModal({
   onClose 
 }: CompleteActivityModalProps) {
   const [notes, setNotes] = useState('');
+  const [environmentCount, setEnvironmentCount] = useState('');
+  const [error, setError] = useState('');
   const { data: currentTeamMember } = useCurrentTeamMember();
   const completeItem = useCompleteChecklistItem();
+  const createEnvironment = useCreateProjectEnvironment();
+
+  // Check if this step requires environment count
+  const requiresEnvironmentCount = item 
+    ? ENVIRONMENT_REQUIRED_STEPS.some(step => 
+        item.name.toLowerCase().includes(step.toLowerCase())
+      )
+    : false;
+
+  // Reset form when modal opens/closes
+  useEffect(() => {
+    if (open) {
+      setNotes('');
+      setEnvironmentCount('');
+      setError('');
+    }
+  }, [open]);
 
   const handleComplete = async () => {
     if (!item || !currentTeamMember?.id) return;
 
-    await completeItem.mutateAsync({
-      itemId: item.id,
-      notes: notes || undefined,
-      completedBy: currentTeamMember.id,
-    });
+    // Validate environment count if required
+    if (requiresEnvironmentCount) {
+      const count = Number(environmentCount);
+      if (!environmentCount || count < 1) {
+        setError('Informe a quantidade de ambientes técnicos produzidos');
+        return;
+      }
+    }
 
-    setNotes('');
-    onClose();
+    try {
+      // Complete the checklist item
+      await completeItem.mutateAsync({
+        itemId: item.id,
+        notes: notes || undefined,
+        completedBy: currentTeamMember.id,
+      });
+
+      // Create environment record if required
+      if (requiresEnvironmentCount && environmentCount) {
+        const projectId = item.project?.id || (item as any).checklist?.project_id;
+        
+        await createEnvironment.mutateAsync({
+          environment_type: 'tecnico',
+          environment_count: Number(environmentCount),
+          projetista_id: currentTeamMember.id,
+          project_id: projectId || undefined,
+          checklist_item_id: item.id,
+          competence_date: new Date().toISOString(),
+          notes: notes || undefined,
+        });
+
+        // Also update the checklist item with environment_count
+        await supabase
+          .from('checklist_items')
+          .update({ environment_count: Number(environmentCount) })
+          .eq('id', item.id);
+      }
+
+      setNotes('');
+      setEnvironmentCount('');
+      setError('');
+      onClose();
+    } catch (err) {
+      console.error('Error completing activity:', err);
+    }
   };
 
   const handleCancel = () => {
     setNotes('');
+    setEnvironmentCount('');
+    setError('');
     onClose();
   };
 
@@ -135,6 +203,32 @@ export function CompleteActivityModal({
             )}
           </div>
 
+          {/* Environment Count - Only for technical project steps */}
+          {requiresEnvironmentCount && (
+            <div className="space-y-2">
+              <Label htmlFor="environmentCount" className="flex items-center gap-2">
+                <LayoutGrid className="h-4 w-4" />
+                Quantidade de Ambientes Técnicos *
+              </Label>
+              <Input
+                id="environmentCount"
+                type="number"
+                min="1"
+                placeholder="Ex: 5"
+                value={environmentCount}
+                onChange={(e) => {
+                  setEnvironmentCount(e.target.value);
+                  setError('');
+                }}
+                className={error ? 'border-destructive' : ''}
+              />
+              {error && <p className="text-xs text-destructive">{error}</p>}
+              <p className="text-xs text-muted-foreground">
+                Informe o número de ambientes produzidos neste projeto técnico
+              </p>
+            </div>
+          )}
+
           {/* Notes */}
           <div className="space-y-2">
             <Label htmlFor="notes">Observações (opcional)</Label>
@@ -161,16 +255,16 @@ export function CompleteActivityModal({
           <Button 
             variant="outline" 
             onClick={handleCancel}
-            disabled={completeItem.isPending}
+            disabled={completeItem.isPending || createEnvironment.isPending}
           >
             Cancelar
           </Button>
           <Button 
             onClick={handleComplete}
-            disabled={completeItem.isPending}
+            disabled={completeItem.isPending || createEnvironment.isPending}
             className="gap-2"
           >
-            {completeItem.isPending ? (
+            {(completeItem.isPending || createEnvironment.isPending) ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Salvando...

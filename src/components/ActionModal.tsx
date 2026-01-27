@@ -13,6 +13,7 @@ import { SmartClientFields } from '@/components/SmartClientFields';
 import { SmartClientData, updateClientData } from '@/hooks/useSmartClientData';
 import { useCSContactSchedules, generateCSActionsForCase } from '@/hooks/useCustomerSuccess';
 import { createChecklistForProject } from '@/hooks/useChecklist';
+import { useCreateProjectEnvironment } from '@/hooks/useProjectEnvironments';
 interface ActionModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -41,6 +42,8 @@ interface FormState {
   // Assigned professionals for checklist
   assignedProjetistaId: string;
   assignedLogisticaId: string;
+  // Project environments (for Projeto de Apresentação)
+  environmentCount: string;
 }
 
 const initialFormState: FormState = {
@@ -64,6 +67,7 @@ const initialFormState: FormState = {
   presentedValue: '',
   assignedProjetistaId: '',
   assignedLogisticaId: '',
+  environmentCount: '',
 };
 
 export function ActionModal({ open, onOpenChange }: ActionModalProps) {
@@ -86,6 +90,9 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
 
   // CS schedules for automatic case creation
   const { data: csSchedules } = useCSContactSchedules();
+  
+  // Project environments creation
+  const createEnvironment = useCreateProjectEnvironment();
 
   const activeMembers = teamMembers.filter(m => m.active);
 
@@ -229,6 +236,11 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     // FOCCO number is required for Apresentação de Projeto
     if (isApresentacaoProjeto && !form.foccoProjectNumber.trim()) {
       newErrors.foccoProjectNumber = true;
+    }
+    
+    // Environment count is required for Apresentação de Projeto
+    if (isApresentacaoProjeto && (!form.environmentCount || Number(form.environmentCount) < 1)) {
+      newErrors.environmentCount = true;
     }
     
     // Contract number is required for Seletiva (e.g., Assinatura Certificado)
@@ -722,6 +734,31 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
         });
       }
 
+      // AUTOMATION: Create project environment record for Apresentação de Projeto
+      if (isApresentacaoProjeto && form.environmentCount && currentTeamMember?.id) {
+        try {
+          await createEnvironment.mutateAsync({
+            environment_type: 'apresentacao',
+            environment_count: Number(form.environmentCount),
+            projetista_id: currentTeamMember.id,
+            consultant_id: form.consultantId,
+            project_id: projectId,
+            action_id: actionId,
+            competence_date: form.date,
+          });
+          
+          // Also update the action with environment_count
+          await supabase
+            .from('actions')
+            .update({ environment_count: Number(form.environmentCount) })
+            .eq('id', actionId);
+            
+        } catch (envError) {
+          console.error('Error creating environment record:', envError);
+          // Don't fail the whole action, just log the error
+        }
+      }
+
       // AUTOMATION: Create CS case ONLY when Assinatura de Certificado de Garantia (seletiva) is registered
       if (isSeletiva && form.contractNumber.trim()) {
         try {
@@ -1051,6 +1088,27 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             />
             {errors.date && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
           </div>
+
+          {/* Environment Count - Only for Apresentação de Projeto */}
+          {isApresentacaoProjeto && (
+            <div>
+              <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.environmentCount ? 'text-destructive' : 'text-muted-foreground'}`}>
+                Quantidade de Ambientes *
+              </label>
+              <input
+                type="number"
+                min="1"
+                value={form.environmentCount}
+                onChange={(e) => handleFieldChange('environmentCount', e.target.value)}
+                placeholder="Ex: 3"
+                className={`input-flat w-full text-card-foreground ${errors.environmentCount ? 'border-destructive ring-1 ring-destructive' : ''}`}
+              />
+              {errors.environmentCount && <span className="text-xs text-destructive mt-1">Campo obrigatório (mínimo 1)</span>}
+              <p className="text-xs text-muted-foreground mt-1">
+                Informe o número de ambientes projetados nesta apresentação
+              </p>
+            </div>
+          )}
 
           {/* Value (for sales) */}
           {selectedActionType?.requiresValue && (
