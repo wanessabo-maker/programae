@@ -75,32 +75,56 @@ export function useProjetistaEnvironments(projetistaId: string | undefined, year
   });
 }
 
-// Get monthly summary stats
+// Get monthly summary stats - combining project_environments AND actions data
 export function useMonthlyEnvironmentStats(year: number, month: number) {
   const competenceMonth = format(new Date(year, month - 1, 1), 'yyyy-MM-dd');
+  const startDate = format(new Date(year, month - 1, 1), 'yyyy-MM-dd');
+  const endDate = format(new Date(year, month, 0), 'yyyy-MM-dd'); // Last day of month
   
   return useQuery({
     queryKey: ['project-environments', 'stats', year, month],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Fetch from project_environments table
+      const { data: envData, error: envError } = await supabase
         .from('project_environments')
         .select('environment_type, environment_count, projetista_id')
         .eq('competence_month', competenceMonth);
 
-      if (error) throw error;
+      if (envError) throw envError;
 
-      // Calculate totals
-      const apresentacao = data
+      // Also fetch actions of type "Projeto de Apresentação" for this month
+      // These are actions that may not have project_environments records yet
+      const { data: actionsData, error: actionsError } = await supabase
+        .from('actions')
+        .select(`
+          id,
+          action_date,
+          environment_count,
+          consultant_id,
+          action_type:action_types!inner(id, name)
+        `)
+        .gte('action_date', startDate)
+        .lte('action_date', endDate)
+        .ilike('action_types.name', '%projeto de apresentação%');
+
+      if (actionsError) throw actionsError;
+
+      // Calculate totals from project_environments
+      let apresentacao = envData
         .filter(e => e.environment_type === 'apresentacao')
         .reduce((sum, e) => sum + (e.environment_count || 0), 0);
 
-      const tecnico = data
+      const tecnico = envData
         .filter(e => e.environment_type === 'tecnico')
         .reduce((sum, e) => sum + (e.environment_count || 0), 0);
 
+      // Count actions (each action = 1 presentation if no environment_count)
+      // For legacy data without environment_count, count as 1
+      const actionsApresentacao = actionsData.length;
+
       // Group by projetista
       const byProjetista: Record<string, { apresentacao: number; tecnico: number }> = {};
-      data.forEach(env => {
+      envData.forEach(env => {
         if (!byProjetista[env.projetista_id]) {
           byProjetista[env.projetista_id] = { apresentacao: 0, tecnico: 0 };
         }
@@ -109,8 +133,9 @@ export function useMonthlyEnvironmentStats(year: number, month: number) {
       });
 
       return {
-        totalApresentacao: apresentacao,
+        totalApresentacao: apresentacao > 0 ? apresentacao : actionsApresentacao,
         totalTecnico: tecnico,
+        actionsCount: actionsApresentacao,
         byProjetista,
       };
     },
@@ -165,13 +190,16 @@ export function useCreateProjectEnvironment() {
   });
 }
 
-// Get ranking of projetistas for a month
+// Get ranking of projetistas for a month - uses actions data as fallback
 export function useProjetistaRanking(year: number, month: number) {
   const competenceMonth = format(new Date(year, month - 1, 1), 'yyyy-MM-dd');
+  const startDate = format(new Date(year, month - 1, 1), 'yyyy-MM-dd');
+  const endDate = format(new Date(year, month, 0), 'yyyy-MM-dd');
   
   return useQuery({
     queryKey: ['project-environments', 'ranking', year, month],
     queryFn: async () => {
+      // Fetch from project_environments table
       const { data: environments, error } = await supabase
         .from('project_environments')
         .select('environment_type, environment_count, projetista_id')
@@ -179,22 +207,36 @@ export function useProjetistaRanking(year: number, month: number) {
 
       if (error) throw error;
 
+      // Also fetch actions for consultant ranking (who received the most presentations)
+      const { data: actionsData } = await supabase
+        .from('actions')
+        .select(`
+          id,
+          action_date,
+          environment_count,
+          consultant_id,
+          action_type:action_types!inner(id, name)
+        `)
+        .gte('action_date', startDate)
+        .lte('action_date', endDate)
+        .ilike('action_types.name', '%projeto de apresentação%');
+
       // Get unique projetista IDs
       const projetistaIds = [...new Set(environments.map(e => e.projetista_id))];
       
-      if (projetistaIds.length === 0) {
-        return { apresentacao: [], tecnico: [] };
-      }
+      // Get consultant IDs from actions
+      const consultantIds = [...new Set((actionsData || []).map(a => a.consultant_id).filter(Boolean))];
+      const allMemberIds = [...new Set([...projetistaIds, ...consultantIds])];
 
-      // Fetch projetista names
-      const { data: projetistas } = await supabase
+      // Fetch all team member names
+      const { data: members } = await supabase
         .from('team_members')
         .select('id, name')
-        .in('id', projetistaIds);
+        .in('id', allMemberIds);
 
-      const projetistaMap = new Map(projetistas?.map(p => [p.id, p.name]) || []);
+      const memberMap = new Map(members?.map(p => [p.id, p.name]) || []);
 
-      // Calculate totals per projetista per type
+      // Calculate totals per projetista per type from project_environments
       const totals: Record<string, { apresentacao: number; tecnico: number }> = {};
       environments.forEach(env => {
         if (!totals[env.projetista_id]) {
@@ -204,12 +246,23 @@ export function useProjetistaRanking(year: number, month: number) {
           env.environment_count || 0;
       });
 
+      // Calculate consultant ranking from actions (presentations received)
+      const consultantTotals: Record<string, number> = {};
+      (actionsData || []).forEach(action => {
+        if (action.consultant_id) {
+          if (!consultantTotals[action.consultant_id]) {
+            consultantTotals[action.consultant_id] = 0;
+          }
+          consultantTotals[action.consultant_id] += action.environment_count || 1;
+        }
+      });
+
       // Create rankings
       const apresentacaoRanking = Object.entries(totals)
         .filter(([_, t]) => t.apresentacao > 0)
         .map(([id, t]) => ({
           projetistaId: id,
-          projetistaName: projetistaMap.get(id) || 'Desconhecido',
+          projetistaName: memberMap.get(id) || 'Desconhecido',
           count: t.apresentacao,
         }))
         .sort((a, b) => b.count - a.count);
@@ -218,15 +271,87 @@ export function useProjetistaRanking(year: number, month: number) {
         .filter(([_, t]) => t.tecnico > 0)
         .map(([id, t]) => ({
           projetistaId: id,
-          projetistaName: projetistaMap.get(id) || 'Desconhecido',
+          projetistaName: memberMap.get(id) || 'Desconhecido',
           count: t.tecnico,
+        }))
+        .sort((a, b) => b.count - a.count);
+
+      // Consultant ranking (who received the most presentations)
+      const consultantRanking = Object.entries(consultantTotals)
+        .map(([id, count]) => ({
+          consultantId: id,
+          consultantName: memberMap.get(id) || 'Desconhecido',
+          count,
         }))
         .sort((a, b) => b.count - a.count);
 
       return {
         apresentacao: apresentacaoRanking,
         tecnico: tecnicoRanking,
+        consultants: consultantRanking,
       };
     },
+  });
+}
+
+// Hook to get projetista's own stats (for Minha Área)
+export function useMyProjectStats(teamMemberId: string | undefined, year: number, month: number) {
+  const competenceMonth = format(new Date(year, month - 1, 1), 'yyyy-MM-dd');
+  const startDate = format(new Date(year, month - 1, 1), 'yyyy-MM-dd');
+  const endDate = format(new Date(year, month, 0), 'yyyy-MM-dd');
+  
+  return useQuery({
+    queryKey: ['project-environments', 'my-stats', teamMemberId, year, month],
+    queryFn: async () => {
+      if (!teamMemberId) return null;
+
+      // Fetch from project_environments where I'm the projetista
+      const { data: myEnvironments } = await supabase
+        .from('project_environments')
+        .select(`
+          *,
+          consultant:team_members!project_environments_consultant_id_fkey(id, name),
+          project:projects(id, name, focco_project_number)
+        `)
+        .eq('projetista_id', teamMemberId)
+        .eq('competence_month', competenceMonth)
+        .order('created_at', { ascending: false });
+
+      // Fetch actions where I'm the consultant (presentations I received)
+      const { data: actionsReceived } = await supabase
+        .from('actions')
+        .select(`
+          id,
+          action_date,
+          environment_count,
+          action_type:action_types!inner(id, name),
+          professional:professionals(id, name)
+        `)
+        .eq('consultant_id', teamMemberId)
+        .gte('action_date', startDate)
+        .lte('action_date', endDate)
+        .ilike('action_types.name', '%projeto de apresentação%');
+
+      const apresentacao = (myEnvironments || [])
+        .filter(e => e.environment_type === 'apresentacao')
+        .reduce((sum, e) => sum + (e.environment_count || 0), 0);
+
+      const tecnico = (myEnvironments || [])
+        .filter(e => e.environment_type === 'tecnico')
+        .reduce((sum, e) => sum + (e.environment_count || 0), 0);
+
+      const receivedCount = (actionsReceived || []).reduce(
+        (sum, a) => sum + (a.environment_count || 1), 0
+      );
+
+      return {
+        apresentacao,
+        tecnico,
+        received: receivedCount,
+        receivedActions: actionsReceived || [],
+        environments: myEnvironments || [],
+      };
+    },
+    enabled: !!teamMemberId,
   });
 }
