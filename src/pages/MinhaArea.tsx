@@ -81,6 +81,7 @@ export default function MinhaArea() {
       const projectResponsibleId = (item as any).project?.responsible_id as string | null | undefined;
       const assignedProjetistaId = (item as any).checklist?.assigned_projetista_id as string | null | undefined;
       const assignedLogisticaId = (item as any).checklist?.assigned_logistica_id as string | null | undefined;
+      const assignedCsId = (item as any).checklist?.assigned_cs_id as string | null | undefined;
 
       // If item is specifically assigned, only the assignee sees it
       if (assignedTo) {
@@ -108,10 +109,38 @@ export default function MinhaArea() {
         return true;
       }
 
-      // CS: no specific assignment, shared visibility
+      // CS: if checklist has an assigned CS, enforce it; otherwise allow legacy area-based visibility
+      if (item.responsible_area === 'cs') {
+        if (assignedCsId) {
+          return !!currentTeamMemberId && assignedCsId === currentTeamMemberId;
+        }
+        return true;
+      }
+
+      // For other areas, shared visibility
       return true;
     });
   }, [allItems, currentTeamMember?.id]);
+
+  // Sort items: active first (sorted by due date), then blocked (sorted by step order)
+  const sortedItems = useMemo(() => {
+    return [...visibleItems].sort((a, b) => {
+      // Active items come first
+      if (a.status === 'active' && b.status !== 'active') return -1;
+      if (a.status !== 'active' && b.status === 'active') return 1;
+      
+      // Within active items, sort by due date
+      if (a.status === 'active' && b.status === 'active') {
+        if (!a.due_date && !b.due_date) return 0;
+        if (!a.due_date) return 1;
+        if (!b.due_date) return -1;
+        return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+      }
+      
+      // Within blocked items, sort by step order
+      return a.step_order - b.step_order;
+    });
+  }, [visibleItems]);
 
   // Separate active and blocked items for counting
   const activeItems = visibleItems.filter(item => item.status === 'active');
@@ -258,7 +287,7 @@ export default function MinhaArea() {
             Minhas Atividades
           </h2>
 
-          {visibleItems.length === 0 ? (
+          {sortedItems.length === 0 ? (
             <Card className="border-border">
               <CardContent className="p-8 text-center">
                 <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-4" />
@@ -270,7 +299,7 @@ export default function MinhaArea() {
             </Card>
           ) : (
             <div className="space-y-3">
-              {visibleItems.map((item) => {
+              {sortedItems.map((item) => {
                 const dueDateStatus = getDueDateStatus(item.due_date);
                 const isBlocked = item.status === 'blocked';
                 
@@ -325,10 +354,17 @@ export default function MinhaArea() {
                               Etapa {item.step_order}/18
                             </Badge>
                             {isBlocked ? (
-                              <Badge variant="secondary" className="text-xs bg-muted">
-                                Aguardando Etapa Anterior
+                              <Badge variant="secondary" className="text-xs bg-amber-500/10 text-amber-600 border-amber-200">
+                                <Clock className="h-3 w-3 mr-1" />
+                                Aguardando
                               </Badge>
-                            ) : item.checklist?.workflow_status && (
+                            ) : (
+                              <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-600 border-green-200">
+                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                Ativa
+                              </Badge>
+                            )}
+                            {item.checklist?.workflow_status && (
                               <Badge variant="secondary" className="text-xs bg-primary/10">
                                 {getWorkflowStatusLabel(item.checklist.workflow_status)}
                               </Badge>
@@ -344,9 +380,9 @@ export default function MinhaArea() {
                             </span>
                           )}
                           {isBlocked ? (
-                            <Badge variant="outline" className="text-xs text-muted-foreground">
-                              Bloqueada
-                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              Depende da etapa {item.step_order - 1}
+                            </span>
                           ) : (
                             <Button size="sm" className="gap-1">
                               Registrar Ação
