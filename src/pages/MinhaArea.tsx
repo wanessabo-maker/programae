@@ -21,7 +21,7 @@ import { useCurrentTeamMember } from '@/hooks/useCurrentTeamMember';
 import { useUserAreas } from '@/hooks/useUserAreas';
 import { usePositions } from '@/hooks/usePositions';
 import { 
-  useMyActiveChecklistItems, 
+  useMyAllChecklistItems, 
   getResponsibleAreaLabel,
   getWorkflowStatusLabel,
   ChecklistItemWithDetails
@@ -67,10 +67,14 @@ export default function MinhaArea() {
     return Array.from(areas);
   }, [userFunctionalAreas, userAreaNames]);
 
-  const { data: activeItems = [], isLoading: isLoadingItems } = useMyActiveChecklistItems(
+  const { data: allItems = [], isLoading: isLoadingItems } = useMyAllChecklistItems(
     allUserAreas, 
     currentTeamMember?.id
   );
+
+  // Separate active and blocked items for counting
+  const activeItems = allItems.filter(item => item.status === 'active');
+  const blockedItems = allItems.filter(item => item.status === 'blocked');
 
   const handleOpenCompleteModal = (item: ChecklistItemWithDetails) => {
     setSelectedItem(item);
@@ -137,7 +141,7 @@ export default function MinhaArea() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="border-border">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -147,7 +151,23 @@ export default function MinhaArea() {
                 <div>
                   <p className="text-2xl font-semibold">{activeItems.length}</p>
                   <p className="text-xs text-muted-foreground uppercase tracking-widest">
-                    Atividades Pendentes
+                    Ativas
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-muted rounded">
+                  <Clock className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-2xl font-semibold">{blockedItems.length}</p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-widest">
+                    Aguardando
                   </p>
                 </div>
               </div>
@@ -176,7 +196,7 @@ export default function MinhaArea() {
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-orange-500/10 rounded">
-                  <Clock className="h-5 w-5 text-orange-500" />
+                  <AlertTriangle className="h-5 w-5 text-orange-500" />
                 </div>
                 <div>
                   <p className="text-2xl font-semibold">
@@ -197,7 +217,7 @@ export default function MinhaArea() {
             Minhas Atividades
           </h2>
 
-          {activeItems.length === 0 ? (
+          {allItems.length === 0 ? (
             <Card className="border-border">
               <CardContent className="p-8 text-center">
                 <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-4" />
@@ -209,22 +229,29 @@ export default function MinhaArea() {
             </Card>
           ) : (
             <div className="space-y-3">
-              {activeItems.map((item) => {
+              {allItems.map((item) => {
                 const dueDateStatus = getDueDateStatus(item.due_date);
+                const isBlocked = item.status === 'blocked';
                 
                 return (
                   <Card 
                     key={item.id} 
-                    className={`border-border hover:border-primary/50 transition-colors cursor-pointer ${
-                      dueDateStatus.status === 'overdue' ? 'border-l-4 border-l-destructive' : ''
+                    className={`border-border transition-colors ${
+                      isBlocked 
+                        ? 'opacity-60 bg-muted/30' 
+                        : 'hover:border-primary/50 cursor-pointer'
+                    } ${
+                      !isBlocked && dueDateStatus.status === 'overdue' ? 'border-l-4 border-l-destructive' : ''
                     }`}
-                    onClick={() => handleOpenCompleteModal(item)}
+                    onClick={() => !isBlocked && handleOpenCompleteModal(item)}
                   >
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
                           {/* Activity Name */}
-                          <h3 className="font-medium mb-1 truncate">{item.name}</h3>
+                          <h3 className={`font-medium mb-1 truncate ${isBlocked ? 'text-muted-foreground' : ''}`}>
+                            {item.name}
+                          </h3>
                           
                           {/* Contract / Client Info */}
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground mb-2">
@@ -256,7 +283,11 @@ export default function MinhaArea() {
                             <Badge variant="secondary" className="text-xs">
                               Etapa {item.step_order}/18
                             </Badge>
-                            {item.checklist?.workflow_status && (
+                            {isBlocked ? (
+                              <Badge variant="secondary" className="text-xs bg-muted">
+                                Aguardando Etapa Anterior
+                              </Badge>
+                            ) : item.checklist?.workflow_status && (
                               <Badge variant="secondary" className="text-xs bg-primary/10">
                                 {getWorkflowStatusLabel(item.checklist.workflow_status)}
                               </Badge>
@@ -266,13 +297,21 @@ export default function MinhaArea() {
 
                         {/* Right Side - Due Date & Action */}
                         <div className="flex flex-col items-end gap-2 shrink-0">
-                          <span className={`text-xs ${dueDateStatus.color}`}>
-                            {dueDateStatus.label}
-                          </span>
-                          <Button size="sm" className="gap-1">
-                            Registrar Ação
-                            <ChevronRight className="h-4 w-4" />
-                          </Button>
+                          {!isBlocked && (
+                            <span className={`text-xs ${dueDateStatus.color}`}>
+                              {dueDateStatus.label}
+                            </span>
+                          )}
+                          {isBlocked ? (
+                            <Badge variant="outline" className="text-xs text-muted-foreground">
+                              Bloqueada
+                            </Badge>
+                          ) : (
+                            <Button size="sm" className="gap-1">
+                              Registrar Ação
+                              <ChevronRight className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </CardContent>
