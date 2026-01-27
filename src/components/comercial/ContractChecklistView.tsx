@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
@@ -7,9 +7,11 @@ import {
   Lock, 
   Clock,
   User,
-  AlertTriangle
+  AlertTriangle,
+  UserCog
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { 
   useContractChecklist, 
@@ -17,6 +19,7 @@ import {
   getResponsibleAreaLabel 
 } from '@/hooks/useChecklist';
 import { useApp } from '@/contexts/AppContext';
+import { ReassignChecklistProfessionalsModal } from './ReassignChecklistProfessionalsModal';
 
 interface ContractChecklistViewProps {
   projectId: string;
@@ -25,11 +28,15 @@ interface ContractChecklistViewProps {
 export function ContractChecklistView({ projectId }: ContractChecklistViewProps) {
   const { data: checklistData, isLoading } = useContractChecklist(projectId);
   const { teamMembers } = useApp();
+  const [reassignModalOpen, setReassignModalOpen] = useState(false);
 
   const getTeamMemberName = (id: string | null) => {
     if (!id) return null;
     return teamMembers.find(m => m.id === id)?.name || null;
   };
+
+  const assignedProjetistaName = getTeamMemberName(checklistData?.assigned_projetista_id);
+  const assignedLogisticaName = getTeamMemberName(checklistData?.assigned_logistica_id);
 
   const progressPercentage = useMemo(() => {
     if (!checklistData?.checklist_items?.length) return 0;
@@ -109,6 +116,54 @@ export function ContractChecklistView({ projectId }: ContractChecklistViewProps)
           </div>
         )}
       </div>
+
+      {/* Assigned Professionals */}
+      <div className="bg-neutral-700 p-4 rounded-lg border border-neutral-600">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-xs tracking-widest uppercase text-neutral-400 font-medium">
+            Responsáveis Atribuídos
+          </span>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-7 text-xs text-neutral-300 hover:text-white hover:bg-neutral-600"
+            onClick={() => setReassignModalOpen(true)}
+          >
+            <UserCog className="h-3.5 w-3.5 mr-1" />
+            Reatribuir
+          </Button>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-xs text-neutral-400 mb-1">Projetista Técnico</p>
+            <p className="text-sm font-medium text-white">
+              {assignedProjetistaName || (
+                <span className="text-neutral-500 italic">Não atribuído</span>
+              )}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-neutral-400 mb-1">Analista de Logística</p>
+            <p className="text-sm font-medium text-white">
+              {assignedLogisticaName || (
+                <span className="text-neutral-500 italic">Não atribuído</span>
+              )}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Reassign Modal */}
+      {checklistData && (
+        <ReassignChecklistProfessionalsModal
+          open={reassignModalOpen}
+          onOpenChange={setReassignModalOpen}
+          checklistId={checklistData.id}
+          currentProjetistaId={checklistData.assigned_projetista_id}
+          currentLogisticaId={checklistData.assigned_logistica_id}
+        />
+      )}
 
       {/* Checklist Items */}
       <div className="space-y-1">
