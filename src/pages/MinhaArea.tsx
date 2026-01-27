@@ -402,7 +402,7 @@ export default function MinhaArea() {
 
                       {/* Workflow Status */}
                       <div className="mb-4">
-                        <Badge variant="outline" className="text-xs font-semibold bg-primary/10 border-primary/30 text-primary">
+                         <Badge variant="outline" className="text-xs font-bold bg-muted border-border text-card-foreground">
                           {getWorkflowStatusLabel(group.workflowStatus)}
                         </Badge>
                       </div>
@@ -444,7 +444,7 @@ export default function MinhaArea() {
                       {/* Expand/Collapse for blocked items */}
                       {group.blockedCount > 0 && (
                         <Collapsible open={isExpanded} onOpenChange={() => toggleContract(group.projectId)}>
-                          <CollapsibleTrigger className="w-full text-left text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                           <CollapsibleTrigger className="w-full text-left text-xs font-bold text-card-foreground hover:underline flex items-center gap-1">
                             <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                             {isExpanded ? 'Ocultar próximas etapas' : 'Ver próximas etapas'}
                           </CollapsibleTrigger>
