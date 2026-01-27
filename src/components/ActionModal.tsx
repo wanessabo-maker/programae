@@ -96,6 +96,9 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
 
   const activeMembers = teamMembers.filter(m => m.active);
 
+  // Check if current user is a Projetista de Apresentação (should hide specifier field)
+  const [isProjetistaApresentacao, setIsProjetistaApresentacao] = useState(false);
+
   // Fetch team members with specific positions for assignment
   const [projetistaMembers, setProjetistaMembers] = useState<{ id: string; name: string }[]>([]);
   const [logisticaMembers, setLogisticaMembers] = useState<{ id: string; name: string }[]>([]);
@@ -157,6 +160,38 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
 
     fetchPositionMembers();
   }, []);
+
+  // Check if current user has the "Projetista de Apresentação" position
+  useEffect(() => {
+    const checkProjetistaApresentacao = async () => {
+      if (!currentTeamMember?.id) {
+        setIsProjetistaApresentacao(false);
+        return;
+      }
+
+      try {
+        // Get positions for this team member
+        const { data: memberPositions } = await supabase
+          .from('team_member_positions')
+          .select(`
+            position_id,
+            positions!inner(name)
+          `)
+          .eq('team_member_id', currentTeamMember.id);
+
+        if (memberPositions) {
+          const hasProjetistaApresentacao = memberPositions.some(
+            (mp: any) => mp.positions?.name?.toLowerCase().includes('projetista de apresentação')
+          );
+          setIsProjetistaApresentacao(hasProjetistaApresentacao);
+        }
+      } catch (error) {
+        console.error('Error checking Projetista de Apresentação position:', error);
+      }
+    };
+
+    checkProjetistaApresentacao();
+  }, [currentTeamMember?.id]);
 
   const [form, setForm] = useState<FormState>(initialFormState);
   const [isNewProfessional, setIsNewProfessional] = useState(false);
@@ -941,8 +976,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             {errors.consultantId && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
           </div>
 
-          {/* Professional/Specifier Selection */}
-          {form.consultantId && (
+          {/* Professional/Specifier Selection - Hide for Projetista de Apresentação */}
+          {form.consultantId && !isProjetistaApresentacao && (
             <div>
               <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Especificador</label>
               <div className="flex items-center gap-4 mb-2 flex-wrap">
