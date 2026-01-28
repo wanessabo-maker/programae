@@ -33,6 +33,7 @@ interface SmartClientFieldsProps {
   isSeletiva?: boolean;
   enabledFields?: AdditionalFieldKey[];
   showAllFields?: boolean;
+  restrictToFoccoOnly?: boolean; // For Projetista de Apresentação - only show FOCCO field
 }
 
 export function SmartClientFields({
@@ -46,6 +47,7 @@ export function SmartClientFields({
   isSeletiva = false,
   enabledFields = [],
   showAllFields = false,
+  restrictToFoccoOnly = false,
 }: SmartClientFieldsProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -207,18 +209,21 @@ export function SmartClientFields({
   );
 
   // If no fields are enabled and not a special action type, don't render anything
-  if (!hasAnyEnabledFields && !isVenda && !isApresentacao && !isSeletiva) {
+  if (!hasAnyEnabledFields && !isVenda && !isApresentacao && !isSeletiva && !restrictToFoccoOnly) {
     return null;
   }
 
+  // For restrictToFoccoOnly mode (Projetista de Apresentação), hide other fields
+  const showOtherFields = !restrictToFoccoOnly;
+
   // Check if any personal data fields are enabled
-  const hasPersonalFields = isFieldEnabled('clientName') || isFieldEnabled('clientAge') || 
+  const hasPersonalFields = showOtherFields && (isFieldEnabled('clientName') || isFieldEnabled('clientAge') || 
     isFieldEnabled('clientProfession') || isFieldEnabled('clientPhone') || 
-    isFieldEnabled('clientEmail') || isFieldEnabled('clientCpfCnpj');
+    isFieldEnabled('clientEmail') || isFieldEnabled('clientCpfCnpj'));
 
   // Check if any address fields are enabled
-  const hasAddressFields = isFieldEnabled('clientAddress') || isFieldEnabled('clientCity') || 
-    isFieldEnabled('clientState');
+  const hasAddressFields = showOtherFields && (isFieldEnabled('clientAddress') || isFieldEnabled('clientCity') || 
+    isFieldEnabled('clientState'));
 
   return (
     <div className="border border-border rounded-lg overflow-hidden">
@@ -254,12 +259,12 @@ export function SmartClientFields({
       {isExpanded && (
         <div className="p-4 space-y-4 border-t border-border">
           {/* Identification Fields */}
-          <div className="grid grid-cols-2 gap-4">
-            {/* FOCCO Project Number - show if enabled or if special action type */}
-            {(isFieldEnabled('foccoProjectNumber') || isApresentacao || isVenda) && (
+          <div className={restrictToFoccoOnly ? '' : 'grid grid-cols-2 gap-4'}>
+            {/* FOCCO Project Number - show if enabled, special action type, or restrictToFoccoOnly */}
+            {(isFieldEnabled('foccoProjectNumber') || isApresentacao || isVenda || restrictToFoccoOnly) && (
               <div className="relative">
                 <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.foccoProjectNumber ? 'text-destructive' : 'text-muted-foreground'}`}>
-                  Nº Projeto FOCCO {(isApresentacao || isVenda) && '*'}
+                  Nº Projeto FOCCO {(isApresentacao || isVenda || restrictToFoccoOnly) && '*'}
                 </label>
                 <input
                   value={formData.foccoProjectNumber}
@@ -301,7 +306,7 @@ export function SmartClientFields({
                       handleFoccoBlur();
                     }, 200);
                   }}
-                  placeholder={isApresentacao || isVenda ? 'Digite para buscar...' : 'Opcional'}
+                  placeholder={isApresentacao || isVenda || restrictToFoccoOnly ? 'Digite para buscar...' : 'Opcional'}
                   className={`input-flat w-full text-card-foreground ${errors.foccoProjectNumber ? 'border-destructive ring-1 ring-destructive' : ''}`}
                   autoComplete="off"
                 />
@@ -353,8 +358,8 @@ export function SmartClientFields({
               </div>
             )}
             
-            {/* Contract Number - show if enabled or if special action type */}
-            {(isFieldEnabled('contractNumber') || isVenda || isSeletiva) && (
+            {/* Contract Number - show if enabled or if special action type, but NOT in restrictToFoccoOnly mode */}
+            {showOtherFields && (isFieldEnabled('contractNumber') || isVenda || isSeletiva) && (
               <div>
                 <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.contractNumber ? 'text-destructive' : 'text-muted-foreground'}`}>
                   Nº Contrato {(isVenda || isSeletiva) && '*'}
@@ -383,8 +388,8 @@ export function SmartClientFields({
             )}
           </div>
 
-          {/* Presentation Number and Presented Value */}
-          {(isFieldEnabled('presentationNumber') || isFieldEnabled('presentedValue')) && (
+          {/* Presentation Number and Presented Value - hide in restrictToFoccoOnly mode */}
+          {showOtherFields && (isFieldEnabled('presentationNumber') || isFieldEnabled('presentedValue')) && (
             <div className="grid grid-cols-2 gap-4">
               {isFieldEnabled('presentationNumber') && (
                 <div>
