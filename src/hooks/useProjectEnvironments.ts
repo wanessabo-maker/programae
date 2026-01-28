@@ -76,6 +76,7 @@ export function useProjetistaEnvironments(projetistaId: string | undefined, year
 }
 
 // Get monthly summary stats - combining project_environments AND actions data
+// Legacy compatibility: old "Projeto" actions (before environment tracking) = 10 environments each
 export function useMonthlyEnvironmentStats(year: number, month: number) {
   const competenceMonth = format(new Date(year, month - 1, 1), 'yyyy-MM-dd');
   const startDate = format(new Date(year, month - 1, 1), 'yyyy-MM-dd');
@@ -84,7 +85,7 @@ export function useMonthlyEnvironmentStats(year: number, month: number) {
   return useQuery({
     queryKey: ['project-environments', 'stats', year, month],
     queryFn: async () => {
-      // Fetch from project_environments table
+      // Fetch from project_environments table (new system)
       const { data: envData, error: envError } = await supabase
         .from('project_environments')
         .select('environment_type, environment_count, projetista_id')
@@ -93,7 +94,6 @@ export function useMonthlyEnvironmentStats(year: number, month: number) {
       if (envError) throw envError;
 
       // Also fetch actions of type "Projeto de Apresentação" for this month
-      // These are actions that may not have project_environments records yet
       const { data: actionsData, error: actionsError } = await supabase
         .from('actions')
         .select(`
@@ -109,8 +109,8 @@ export function useMonthlyEnvironmentStats(year: number, month: number) {
 
       if (actionsError) throw actionsError;
 
-      // Calculate totals from project_environments
-      let apresentacao = envData
+      // Calculate totals from project_environments (new system)
+      let apresentacaoFromEnv = envData
         .filter(e => e.environment_type === 'apresentacao')
         .reduce((sum, e) => sum + (e.environment_count || 0), 0);
 
@@ -118,9 +118,20 @@ export function useMonthlyEnvironmentStats(year: number, month: number) {
         .filter(e => e.environment_type === 'tecnico')
         .reduce((sum, e) => sum + (e.environment_count || 0), 0);
 
-      // Count actions (each action = 1 presentation if no environment_count)
-      // For legacy data without environment_count, count as 1
-      const actionsApresentacao = actionsData.length;
+      // Calculate totals from actions (with legacy compatibility)
+      // If action has environment_count, use it; otherwise, legacy = 10 ambientes
+      const apresentacaoFromActions = (actionsData || []).reduce((sum, action) => {
+        // If environment_count is set, use it; otherwise legacy = 10 ambientes per action
+        const envCount = action.environment_count ?? 10;
+        return sum + envCount;
+      }, 0);
+
+      // Total environments (prefer environment_count from actions, fallback to legacy)
+      const totalApresentacao = apresentacaoFromEnv > 0 
+        ? apresentacaoFromEnv 
+        : apresentacaoFromActions;
+
+      const actionsCount = (actionsData || []).length;
 
       // Group by projetista
       const byProjetista: Record<string, { apresentacao: number; tecnico: number }> = {};
@@ -133,9 +144,9 @@ export function useMonthlyEnvironmentStats(year: number, month: number) {
       });
 
       return {
-        totalApresentacao: apresentacao > 0 ? apresentacao : actionsApresentacao,
+        totalApresentacao,
         totalTecnico: tecnico,
-        actionsCount: actionsApresentacao,
+        actionsCount,
         byProjetista,
       };
     },

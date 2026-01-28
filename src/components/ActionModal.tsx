@@ -96,8 +96,11 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
 
   const activeMembers = teamMembers.filter(m => m.active);
 
-  // Check if current user is a Projetista de Apresentação (should hide specifier field)
-  const [isProjetistaApresentacao, setIsProjetistaApresentacao] = useState(false);
+  // Check if current user is a Projetista (from Projetos area - should see consultant selector instead of specifier)
+  const [isUserFromProjetosArea, setIsUserFromProjetosArea] = useState(false);
+
+  // Commercial consultants for selection by Projetistas
+  const [commercialConsultants, setCommercialConsultants] = useState<{ id: string; name: string }[]>([]);
 
   // Fetch team members with specific positions for assignment
   const [projetistaMembers, setProjetistaMembers] = useState<{ id: string; name: string }[]>([]);
@@ -161,11 +164,12 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     fetchPositionMembers();
   }, []);
 
-  // Check if current user has the "Projetista de Apresentação" position
+  // Check if current user is from Projetos area (any projetista position)
+  // Also fetch commercial consultants for them to select
   useEffect(() => {
-    const checkProjetistaApresentacao = async () => {
+    const checkProjetosAreaAndFetchConsultants = async () => {
       if (!currentTeamMember?.id) {
-        setIsProjetistaApresentacao(false);
+        setIsUserFromProjetosArea(false);
         return;
       }
 
@@ -175,22 +179,58 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           .from('team_member_positions')
           .select(`
             position_id,
-            positions!inner(name)
+            positions!inner(name, area)
           `)
           .eq('team_member_id', currentTeamMember.id);
 
         if (memberPositions) {
-          const hasProjetistaApresentacao = memberPositions.some(
-            (mp: any) => mp.positions?.name?.toLowerCase().includes('projetista de apresentação')
+          // Check if user has any position from "projetos" area or is a "projetista"
+          const isFromProjetos = memberPositions.some(
+            (mp: any) => 
+              mp.positions?.area === 'projetos' ||
+              mp.positions?.name?.toLowerCase().includes('projetista')
           );
-          setIsProjetistaApresentacao(hasProjetistaApresentacao);
+          setIsUserFromProjetosArea(isFromProjetos);
+
+          // If from projetos, fetch commercial consultants
+          if (isFromProjetos) {
+            // Get positions from comercial area
+            const { data: comercialPositions } = await supabase
+              .from('positions')
+              .select('id')
+              .eq('is_active', true)
+              .eq('area', 'comercial');
+
+            if (comercialPositions && comercialPositions.length > 0) {
+              const comercialPositionIds = comercialPositions.map(p => p.id);
+              
+              // Get team members with these positions
+              const { data: comercialMemberPositions } = await supabase
+                .from('team_member_positions')
+                .select('team_member_id')
+                .in('position_id', comercialPositionIds);
+
+              if (comercialMemberPositions && comercialMemberPositions.length > 0) {
+                const comercialMemberIds = [...new Set(comercialMemberPositions.map(mp => mp.team_member_id))];
+                
+                const { data: comercialMembers } = await supabase
+                  .from('team_members')
+                  .select('id, name')
+                  .in('id', comercialMemberIds)
+                  .eq('active', true)
+                  .order('name');
+
+                setCommercialConsultants(comercialMembers || []);
+              }
+            }
+          }
         }
       } catch (error) {
-        console.error('Error checking Projetista de Apresentação position:', error);
+        console.error('Error checking Projetos area position:', error);
       }
     };
 
-    checkProjetistaApresentacao();
+    checkProjetosAreaAndFetchConsultants();
   }, [currentTeamMember?.id]);
 
   const [form, setForm] = useState<FormState>(initialFormState);
@@ -949,10 +989,10 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           <DialogTitle>REGISTRAR AÇÃO</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
-          {/* Consultant Selection - Only show dropdown for admins */}
+          {/* Collaborator Selection - Only show dropdown for admins */}
           <div>
             <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.consultantId ? 'text-destructive' : 'text-muted-foreground'}`}>
-              Consultor *
+              Colaborador *
             </label>
             {isAdmin ? (
               <select
@@ -976,8 +1016,30 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             {errors.consultantId && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
           </div>
 
-          {/* Professional/Specifier Selection - Hide for Projetista de Apresentação */}
-          {form.consultantId && !isProjetistaApresentacao && (
+          {/* For users from Projetos area: show Commercial Consultant selector */}
+          {isUserFromProjetosArea && form.consultantId && (
+            <div>
+              <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
+                Consultor Comercial Atendido
+              </label>
+              <select
+                value={form.professionalId}
+                onChange={(e) => handleFieldChange('professionalId', e.target.value)}
+                className="input-flat w-full text-card-foreground"
+              >
+                <option value="">Selecione</option>
+                {commercialConsultants.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Selecione o consultor comercial que receberá esta apresentação
+              </p>
+            </div>
+          )}
+
+          {/* Professional/Specifier Selection - Hide for users from Projetos area */}
+          {form.consultantId && !isUserFromProjetosArea && (
             <div>
               <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Especificador</label>
               <div className="flex items-center gap-4 mb-2 flex-wrap">
