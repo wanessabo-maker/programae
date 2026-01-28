@@ -164,45 +164,46 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     fetchPositionMembers();
   }, []);
 
-  // Check if current user is from Projetos area (any projetista position)
-  // Also fetch commercial consultants for them to select
+  // Check if current user is "Projetista de Apresentação" specifically
+  // They should see Commercial Consultant field instead of Especificador
   useEffect(() => {
-    const checkProjetosAreaAndFetchConsultants = async () => {
+    const checkProjetistaApresentacaoAndFetchConsultants = async () => {
       if (!currentTeamMember?.id) {
         setIsUserFromProjetosArea(false);
         return;
       }
 
       try {
-        // Get positions for this team member
+        // Get positions for this team member with area info
         const { data: memberPositions } = await supabase
           .from('team_member_positions')
           .select(`
             position_id,
-            positions!inner(name, area)
+            positions!inner(id, name, area, area_id)
           `)
           .eq('team_member_id', currentTeamMember.id);
 
         if (memberPositions) {
-          // Check if user has any position from "projetos" area or is a "projetista"
-          const isFromProjetos = memberPositions.some(
+          // Check if user has "Projetista de Apresentação" position specifically
+          const isProjetistaApresentacao = memberPositions.some(
             (mp: any) => 
-              mp.positions?.area === 'projetos' ||
-              mp.positions?.name?.toLowerCase().includes('projetista')
+              mp.positions?.name?.toLowerCase().includes('projetista de apresentação') ||
+              mp.positions?.name?.toLowerCase().includes('projetista apresentação')
           );
-          setIsUserFromProjetosArea(isFromProjetos);
+          setIsUserFromProjetosArea(isProjetistaApresentacao);
 
-          // If from projetos, fetch commercial consultants
-          if (isFromProjetos) {
-            // Get positions from comercial area
-            const { data: comercialPositions } = await supabase
+          // If is Projetista de Apresentação, fetch commercial consultants
+          if (isProjetistaApresentacao) {
+            // Get "Consultor Comercial" position specifically
+            const { data: comercialPosition } = await supabase
               .from('positions')
               .select('id')
               .eq('is_active', true)
-              .eq('area', 'comercial');
+              .ilike('name', '%consultor comercial%')
+              .not('name', 'ilike', '%engenharia%'); // Exclude "Consultor Comercial Engenharia"
 
-            if (comercialPositions && comercialPositions.length > 0) {
-              const comercialPositionIds = comercialPositions.map(p => p.id);
+            if (comercialPosition && comercialPosition.length > 0) {
+              const comercialPositionIds = comercialPosition.map(p => p.id);
               
               // Get team members with these positions
               const { data: comercialMemberPositions } = await supabase
@@ -226,11 +227,11 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           }
         }
       } catch (error) {
-        console.error('Error checking Projetos area position:', error);
+        console.error('Error checking Projetista de Apresentação position:', error);
       }
     };
 
-    checkProjetosAreaAndFetchConsultants();
+    checkProjetistaApresentacaoAndFetchConsultants();
   }, [currentTeamMember?.id]);
 
   const [form, setForm] = useState<FormState>(initialFormState);
