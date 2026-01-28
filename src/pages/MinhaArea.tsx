@@ -16,31 +16,50 @@ import {
 import { Layout } from '@/components/Layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useCurrentTeamMember } from '@/hooks/useCurrentTeamMember';
 import { useUserAreas } from '@/hooks/useUserAreas';
 import { usePositions } from '@/hooks/usePositions';
 import { 
-  useMyAllChecklistItems, 
-  getResponsibleAreaLabel,
+  useMyAllChecklistItems,
+  useAllProjectChecklistItems,
   getWorkflowStatusLabel,
   ChecklistItemWithDetails
 } from '@/hooks/useChecklist';
 import { CompleteActivityModal } from '@/components/minha-area/CompleteActivityModal';
 import { ProjetistaSection } from '@/components/minha-area/ProjetistaSection';
 
+interface ChecklistItemFull {
+  id: string;
+  step_order: number;
+  name: string;
+  status: string;
+  responsible_area: string;
+  due_date: string | null;
+  assigned_to: string | null;
+  checklist: {
+    id: string;
+    project_id: string;
+    workflow_status: string;
+    assigned_projetista_id: string | null;
+    assigned_logistica_id: string | null;
+    assigned_cs_id: string | null;
+  };
+}
+
 interface ContractGroup {
   projectId: string;
   projectName: string;
   clientName: string | null;
   foccoNumber: string | null;
+  contractNumber: string | null;
   workflowStatus: string;
-  items: ChecklistItemWithDetails[];
+  userItems: ChecklistItemWithDetails[];
+  allItems: ChecklistItemFull[];
   activeCount: number;
   blockedCount: number;
+  completedCount: number;
   hasOverdue: boolean;
 }
 
@@ -89,7 +108,20 @@ export default function MinhaArea() {
     currentTeamMember?.id
   );
 
-  // Safety filter: enforce ownership rules client-side
+  // Get unique project IDs from user items
+  const projectIds = useMemo(() => {
+    const ids = new Set<string>();
+    allItems.forEach(item => {
+      const projectId = item.project?.id || (item as any).checklist?.project_id;
+      if (projectId) ids.add(projectId);
+    });
+    return Array.from(ids);
+  }, [allItems]);
+
+  // Fetch ALL checklist items for these projects (all areas, all statuses)
+  const { data: allProjectItems = [] } = useAllProjectChecklistItems(projectIds);
+
+  // Safety filter: enforce ownership rules client-side (only for user's own items)
   const visibleItems = useMemo(() => {
     const currentTeamMemberId = currentTeamMember?.id;
 
@@ -137,6 +169,7 @@ export default function MinhaArea() {
   const contractGroups = useMemo(() => {
     const groups = new Map<string, ContractGroup>();
 
+    // First, add all user's visible items
     visibleItems.forEach(item => {
       const projectId = item.project?.id || 'unknown';
       
@@ -146,16 +179,19 @@ export default function MinhaArea() {
           projectName: item.project?.name || 'Projeto sem nome',
           clientName: item.project?.clients?.name || null,
           foccoNumber: item.project?.focco_project_number || null,
+          contractNumber: (item.project as any)?.clients?.contract_number || null,
           workflowStatus: item.checklist?.workflow_status || 'formalizacao',
-          items: [],
+          userItems: [],
+          allItems: [],
           activeCount: 0,
           blockedCount: 0,
+          completedCount: 0,
           hasOverdue: false,
         });
       }
 
       const group = groups.get(projectId)!;
-      group.items.push(item);
+      group.userItems.push(item);
       
       if (item.status === 'active') {
         group.activeCount++;
@@ -167,9 +203,19 @@ export default function MinhaArea() {
       }
     });
 
-    // Sort items within each group: active first (by due date), then blocked (by step order)
+    // Add ALL checklist items for each project (from allProjectItems)
+    allProjectItems.forEach((item: ChecklistItemFull) => {
+      const projectId = item.checklist?.project_id;
+      if (projectId && groups.has(projectId)) {
+        groups.get(projectId)!.allItems.push(item);
+      }
+    });
+
+    // Sort allItems by step_order
     groups.forEach(group => {
-      group.items.sort((a, b) => {
+      group.allItems.sort((a, b) => a.step_order - b.step_order);
+      // Sort user items: active first (by due date)
+      group.userItems.sort((a, b) => {
         if (a.status === 'active' && b.status !== 'active') return -1;
         if (a.status !== 'active' && b.status === 'active') return 1;
         
@@ -182,6 +228,8 @@ export default function MinhaArea() {
         
         return a.step_order - b.step_order;
       });
+      // Count completed
+      group.completedCount = group.allItems.filter(i => i.status === 'completed').length;
     });
 
     // Sort groups: contracts with overdue items first, then by active count, then by name
@@ -191,7 +239,7 @@ export default function MinhaArea() {
       if (a.activeCount !== b.activeCount) return b.activeCount - a.activeCount;
       return a.projectName.localeCompare(b.projectName);
     });
-  }, [visibleItems]);
+  }, [visibleItems, allProjectItems]);
 
   // Stats
   const totalActive = visibleItems.filter(item => item.status === 'active').length;
@@ -275,7 +323,7 @@ export default function MinhaArea() {
             Olá, {currentTeamMember?.name?.split(' ')[0] || 'Usuário'}
           </h1>
           <p className="text-muted-foreground">
-            Suas atividades pendentes do workflow de contratos
+            Atividades liberadas para sua execução e aguardando liberação de outras áreas
           </p>
         </div>
 
@@ -290,7 +338,7 @@ export default function MinhaArea() {
                 <div>
                   <p className="text-2xl font-semibold">{totalActive}</p>
                   <p className="text-xs text-muted-foreground uppercase tracking-widest">
-                    Ativas
+                    Liberadas
                   </p>
                 </div>
               </div>
@@ -381,7 +429,7 @@ export default function MinhaArea() {
                     className={`border-2 border-black/10 shadow-md ${group.hasOverdue ? 'border-l-4 border-l-destructive' : ''}`}
                   >
                     <CardContent className="p-5">
-                      {/* Contract Header */}
+                      {/* Contract Header - Cliente, FOCCO, Contrato */}
                       <div className="flex items-start justify-between mb-4 pb-3 border-b border-black/10">
                         <div className="flex-1 min-w-0">
                           {group.clientName && (
@@ -390,14 +438,16 @@ export default function MinhaArea() {
                               {group.clientName}
                             </p>
                           )}
-                          <p className="text-sm font-semibold text-black truncate flex items-center gap-2 mt-1">
-                            <Building2 className="h-3.5 w-3.5 shrink-0 text-black" />
-                            {group.projectName}
-                          </p>
                           {group.foccoNumber && (
                             <p className="text-xs font-bold text-black flex items-center gap-2 mt-1">
                               <FileText className="h-3 w-3 shrink-0 text-black" />
                               FOCCO {group.foccoNumber}
+                            </p>
+                          )}
+                          {group.contractNumber && (
+                            <p className="text-xs font-bold text-black flex items-center gap-2 mt-1">
+                              <Building2 className="h-3 w-3 shrink-0 text-black" />
+                              Contrato {group.contractNumber}
                             </p>
                           )}
                         </div>
@@ -405,7 +455,7 @@ export default function MinhaArea() {
                           variant={group.hasOverdue ? 'destructive' : 'default'} 
                           className={`text-xs font-bold shrink-0 ${!group.hasOverdue ? 'bg-black text-white' : ''}`}
                         >
-                          {group.activeCount} {group.activeCount === 1 ? 'ativa' : 'ativas'}
+                          {group.activeCount} {group.activeCount === 1 ? 'liberada' : 'liberadas'}
                         </Badge>
                       </div>
 
@@ -416,71 +466,147 @@ export default function MinhaArea() {
                         </Badge>
                       </div>
 
-                      {/* Activity Summary */}
+                      {/* All Checklist Items */}
                       <div className="space-y-2 mb-4">
-                        {/* Active items preview */}
-                        {group.items.filter(i => i.status === 'active').slice(0, 2).map((item) => {
-                          const dueDateStatus = getDueDateStatus(item.due_date);
-                          return (
-                            <div 
-                              key={item.id}
-                              className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg cursor-pointer hover:bg-green-100 transition-colors"
-                              onClick={() => handleOpenCompleteModal(item)}
-                            >
-                              <div className="flex items-center gap-2 min-w-0 flex-1">
-                                <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
-                                <span className="text-sm font-semibold text-black truncate">{item.name}</span>
-                              </div>
-                              <div className="flex items-center gap-2 shrink-0">
-                                <span className={`text-xs font-bold ${dueDateStatus.color}`}>
-                                  {dueDateStatus.label}
-                                </span>
-                                <ChevronRight className="h-4 w-4 text-black/50" />
-                              </div>
-                            </div>
-                          );
-                        })}
-
-                        {/* Show blocked items count */}
-                        {group.blockedCount > 0 && (
-                          <div className="flex items-center gap-2 text-xs font-bold text-black mt-2">
-                            <Clock className="h-4 w-4 text-amber-600" />
-                            <span>{group.blockedCount} {group.blockedCount === 1 ? 'etapa aguardando' : 'etapas aguardando'}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Expand/Collapse for blocked items */}
-                      {group.blockedCount > 0 && (
                         <Collapsible open={isExpanded} onOpenChange={() => toggleContract(group.projectId)}>
-                           <CollapsibleTrigger className="w-full text-left text-xs font-bold text-card-foreground hover:underline flex items-center gap-1">
+                          <CollapsibleTrigger className="w-full text-left text-xs font-bold text-card-foreground hover:underline flex items-center gap-1 mb-2">
                             <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                            {isExpanded ? 'Ocultar próximas etapas' : 'Ver próximas etapas'}
+                            {isExpanded ? 'Ocultar checklist completo' : `Ver checklist completo (${group.allItems.length} etapas)`}
                           </CollapsibleTrigger>
-                          
-                          <CollapsibleContent className="mt-3 space-y-2">
-                            {group.items.filter(i => i.status === 'blocked').map((item) => (
-                              <div 
-                                key={item.id}
-                                className="flex items-center gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg"
-                              >
-                                <Clock className="h-4 w-4 text-amber-600 shrink-0" />
-                                <span className="text-xs font-bold text-black truncate">{item.name}</span>
-                                <Badge variant="outline" className="text-[10px] font-bold ml-auto shrink-0 border-amber-400 text-black bg-amber-100">
-                                  Etapa {item.step_order}
-                                </Badge>
-                              </div>
-                            ))}
+
+                          <CollapsibleContent className="space-y-1.5">
+                            {group.allItems.map((item) => {
+                              // Check if this item belongs to the current user
+                              const isUserItem = group.userItems.some(ui => ui.id === item.id);
+                              const userItem = group.userItems.find(ui => ui.id === item.id);
+                              const dueDateStatus = item.due_date ? getDueDateStatus(item.due_date) : null;
+                              
+                              // Completed items
+                              if (item.status === 'completed') {
+                                return (
+                                  <div 
+                                    key={item.id}
+                                    className="flex items-center gap-2 p-2 bg-gray-100 border border-gray-200 rounded-lg opacity-60"
+                                  >
+                                    <CheckCircle2 className="h-4 w-4 text-gray-500 shrink-0" />
+                                    <span className="text-xs text-gray-600 truncate line-through">{item.name}</span>
+                                    <Badge variant="outline" className="text-[10px] font-medium ml-auto shrink-0 border-gray-300 text-gray-500 bg-gray-50">
+                                      Concluída
+                                    </Badge>
+                                  </div>
+                                );
+                              }
+                              
+                              // Active items - check if it's the user's turn
+                              if (item.status === 'active') {
+                                if (isUserItem && userItem) {
+                                  return (
+                                    <div 
+                                      key={item.id}
+                                      className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg cursor-pointer hover:bg-green-100 transition-colors"
+                                      onClick={() => handleOpenCompleteModal(userItem)}
+                                    >
+                                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                                        <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
+                                        <span className="text-sm font-semibold text-black truncate">{item.name}</span>
+                                      </div>
+                                      <div className="flex items-center gap-2 shrink-0">
+                                        {dueDateStatus && (
+                                          <span className={`text-xs font-bold ${dueDateStatus.color}`}>
+                                            {dueDateStatus.label}
+                                          </span>
+                                        )}
+                                        <ChevronRight className="h-4 w-4 text-black/50" />
+                                      </div>
+                                    </div>
+                                  );
+                                } else {
+                                  // Active but not user's area - show as waiting for other area
+                                  return (
+                                    <div 
+                                      key={item.id}
+                                      className="flex items-center gap-2 p-2.5 bg-blue-50 border border-blue-200 rounded-lg"
+                                    >
+                                      <Clock className="h-4 w-4 text-blue-600 shrink-0" />
+                                      <span className="text-xs font-medium text-blue-800 truncate">{item.name}</span>
+                                      <Badge variant="outline" className="text-[10px] font-bold ml-auto shrink-0 border-blue-300 text-blue-700 bg-blue-100">
+                                        Outra área
+                                      </Badge>
+                                    </div>
+                                  );
+                                }
+                              }
+                              
+                              // Blocked items
+                              if (isUserItem) {
+                                // User's blocked item - waiting for previous step
+                                return (
+                                  <div 
+                                    key={item.id}
+                                    className="flex items-center gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg"
+                                  >
+                                    <Clock className="h-4 w-4 text-amber-600 shrink-0" />
+                                    <span className="text-xs font-bold text-black truncate">{item.name}</span>
+                                    <Badge variant="outline" className="text-[10px] font-bold ml-auto shrink-0 border-amber-400 text-black bg-amber-100">
+                                      Etapa {item.step_order}
+                                    </Badge>
+                                  </div>
+                                );
+                              } else {
+                                // Other area's blocked item
+                                return (
+                                  <div 
+                                    key={item.id}
+                                    className="flex items-center gap-2 p-2 bg-gray-50 border border-gray-200 rounded-lg opacity-50"
+                                  >
+                                    <Clock className="h-4 w-4 text-gray-400 shrink-0" />
+                                    <span className="text-xs text-gray-500 truncate">{item.name}</span>
+                                    <Badge variant="outline" className="text-[10px] font-medium ml-auto shrink-0 border-gray-300 text-gray-400 bg-gray-100">
+                                      Etapa {item.step_order}
+                                    </Badge>
+                                  </div>
+                                );
+                              }
+                            })}
                           </CollapsibleContent>
                         </Collapsible>
-                      )}
 
-                      {/* Show remaining active items if more than 2 */}
-                      {group.items.filter(i => i.status === 'active').length > 2 && (
-                        <p className="text-xs font-bold text-black mt-3">
-                          +{group.items.filter(i => i.status === 'active').length - 2} mais atividades ativas
-                        </p>
-                      )}
+                        {/* Quick summary when collapsed */}
+                        {!isExpanded && (
+                          <>
+                            {/* Show user's active items */}
+                            {group.userItems.filter(i => i.status === 'active').map((item) => {
+                              const dueDateStatus = getDueDateStatus(item.due_date);
+                              return (
+                                <div 
+                                  key={item.id}
+                                  className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg cursor-pointer hover:bg-green-100 transition-colors"
+                                  onClick={() => handleOpenCompleteModal(item)}
+                                >
+                                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                                    <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
+                                    <span className="text-sm font-semibold text-black truncate">{item.name}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <span className={`text-xs font-bold ${dueDateStatus.color}`}>
+                                      {dueDateStatus.label}
+                                    </span>
+                                    <ChevronRight className="h-4 w-4 text-black/50" />
+                                  </div>
+                                </div>
+                              );
+                            })}
+
+                            {/* Show blocked count */}
+                            {group.blockedCount > 0 && (
+                              <div className="flex items-center gap-2 text-xs font-bold text-black mt-2">
+                                <Clock className="h-4 w-4 text-amber-600" />
+                                <span>{group.blockedCount} {group.blockedCount === 1 ? 'etapa aguardando' : 'etapas aguardando'}</span>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
                 );

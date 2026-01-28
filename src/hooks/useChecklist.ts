@@ -421,6 +421,37 @@ export function useMyAllChecklistItems(userAreas: string[], currentTeamMemberId?
   });
 }
 
+// Fetch ALL checklist items for specific projects (including all areas, all statuses)
+// Used to display full checklist in contract cards with different styling for other areas
+export function useAllProjectChecklistItems(projectIds: string[]) {
+  return useQuery({
+    queryKey: ['all-project-checklist-items', projectIds],
+    queryFn: async () => {
+      if (!projectIds.length) return [];
+
+      const { data, error } = await supabase
+        .from('checklist_items')
+        .select(`
+          *,
+          checklist:contract_checklists!inner (
+            id,
+            project_id,
+            workflow_status,
+            assigned_projetista_id,
+            assigned_logistica_id,
+            assigned_cs_id
+          )
+        `)
+        .in('checklist.project_id', projectIds)
+        .order('step_order', { ascending: true });
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: projectIds.length > 0,
+  });
+}
+
 // Create checklist for a project (called when sale is registered)
 export function useCreateChecklist() {
   const queryClient = useQueryClient();
@@ -606,6 +637,8 @@ export function useCompleteChecklistItem() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contract-checklist'] });
       queryClient.invalidateQueries({ queryKey: ['my-active-checklist-items'] });
+      queryClient.invalidateQueries({ queryKey: ['my-all-checklist-items'] });
+      queryClient.invalidateQueries({ queryKey: ['all-project-checklist-items'] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       toast.success('Atividade concluída com sucesso!');
     },
