@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { format, subMonths, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
@@ -7,10 +7,6 @@ import {
   ChevronRight,
   Trophy,
   Users,
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  Loader2,
   PenTool,
   Ruler
 } from 'lucide-react';
@@ -38,12 +34,6 @@ export default function Projetos() {
   const handleNextMonth = () => {
     setSelectedDate(addMonths(selectedDate, 1));
   };
-
-  // Calculate difference between apresentação and técnico
-  const difference = useMemo(() => {
-    if (!stats) return 0;
-    return stats.totalApresentacao - stats.totalTecnico;
-  }, [stats]);
 
   const isLoading = statsLoading || rankingLoading;
 
@@ -73,12 +63,12 @@ export default function Projetos() {
       </div>
 
       {/* Main Metrics */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         {/* Ambientes de Apresentação */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Projetos de Apresentação
+              Ambientes de Apresentação
             </CardTitle>
             <PenTool className="h-4 w-4 text-blue-500" />
           </CardHeader>
@@ -98,7 +88,7 @@ export default function Projetos() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Projetos Técnicos
+              Ambientes Técnicos
             </CardTitle>
             <Ruler className="h-4 w-4 text-green-500" />
           </CardHeader>
@@ -109,41 +99,7 @@ export default function Projetos() {
               <div className="text-3xl font-bold">{stats?.totalTecnico || 0}</div>
             )}
             <p className="text-xs text-muted-foreground mt-1">
-              Ambientes técnicos executados
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Diferença */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Diferença (Apresentação - Técnico)
-            </CardTitle>
-            {difference > 0 ? (
-              <TrendingUp className="h-4 w-4 text-amber-500" />
-            ) : difference < 0 ? (
-              <TrendingDown className="h-4 w-4 text-red-500" />
-            ) : (
-              <Minus className="h-4 w-4 text-muted-foreground" />
-            )}
-          </CardHeader>
-          <CardContent>
-            {statsLoading ? (
-              <Skeleton className="h-8 w-20" />
-            ) : (
-              <div className={`text-3xl font-bold ${
-                difference > 0 ? 'text-amber-600' : difference < 0 ? 'text-red-600' : ''
-              }`}>
-                {difference > 0 ? '+' : ''}{difference}
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground mt-1">
-              {difference > 0 
-                ? 'Aguardando execução técnica' 
-                : difference < 0 
-                  ? 'Mais técnicos que apresentações'
-                  : 'Produção equilibrada'}
+              Ambientes executados via checklist
             </p>
           </CardContent>
         </Card>
