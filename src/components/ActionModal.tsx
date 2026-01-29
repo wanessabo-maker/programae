@@ -507,7 +507,11 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
         }
       }
 
-      const points = selectedActionType?.programPoints || 0;
+      // For Projetista de Apresentação: points = environment count (1 ambiente = 1 ponto)
+      // For other users: use action type's configured points
+      const points = (isApresentacaoProjeto && isUserFromProjetosArea && form.environmentCount)
+        ? Number(form.environmentCount)
+        : (selectedActionType?.programPoints || 0);
 
       // Handle automatic project/client creation for Apresentação de Projeto
       let projectId: string | undefined = undefined;
