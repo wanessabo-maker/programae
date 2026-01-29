@@ -452,6 +452,50 @@ export function useAllProjectChecklistItems(projectIds: string[]) {
   });
 }
 
+// Fetch ALL checklist items for ALL projects (for admins to see full team overview)
+export function useAllTeamChecklistItems(isAdmin: boolean) {
+  return useQuery({
+    queryKey: ['all-team-checklist-items'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('checklist_items')
+        .select(`
+          *,
+          checklist:contract_checklists (
+            *,
+            project:projects (
+              id,
+              name,
+              focco_project_number,
+              responsible_id,
+              clients (
+                id,
+                name,
+                contract_number
+              )
+            )
+          ),
+          assigned_member:team_members!checklist_items_assigned_to_fkey (
+            id,
+            name
+          )
+        `)
+        .in('status', ['active', 'blocked', 'completed'])
+        .order('step_order', { ascending: true });
+
+      if (error) throw error;
+      
+      // Transform the data
+      return (data || []).map(item => ({
+        ...item,
+        project: item.checklist?.project,
+        checklist: item.checklist ? { ...item.checklist, project: undefined } : undefined,
+      })) as ChecklistItemWithDetails[];
+    },
+    enabled: isAdmin,
+  });
+}
+
 // Create checklist for a project (called when sale is registered)
 export function useCreateChecklist() {
   const queryClient = useQueryClient();
