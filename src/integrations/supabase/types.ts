@@ -17,6 +17,7 @@ export type Database = {
       action_types: {
         Row: {
           additional_fields: boolean | null
+          area_id: string | null
           classification: string
           created_at: string | null
           credit_validity_days: number | null
@@ -30,6 +31,7 @@ export type Database = {
         }
         Insert: {
           additional_fields?: boolean | null
+          area_id?: string | null
           classification: string
           created_at?: string | null
           credit_validity_days?: number | null
@@ -43,6 +45,7 @@ export type Database = {
         }
         Update: {
           additional_fields?: boolean | null
+          area_id?: string | null
           classification?: string
           created_at?: string | null
           credit_validity_days?: number | null
@@ -54,7 +57,15 @@ export type Database = {
           points?: number | null
           requires_value?: boolean | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "action_types_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "areas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       actions: {
         Row: {
