@@ -4,6 +4,7 @@ import { useApp } from '@/contexts/AppContext';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useCurrentTeamMember } from '@/hooks/useCurrentTeamMember';
 import { usePositions } from '@/hooks/usePositions';
+import { useMonthlyEnvironmentStats } from '@/hooks/useProjectEnvironments';
 import { MetricCard } from '@/components/MetricCard';
 import { ActionModal } from '@/components/ActionModal';
 import { EditActionModal } from '@/components/EditActionModal';
@@ -45,6 +46,10 @@ export default function Dashboard() {
   // Query hooks (that depend on context)
   const { data: currentTeamMember, isLoading: isCurrentTeamMemberLoading } = useCurrentTeamMember();
   const { getMemberAreaIds, getAreaName } = usePositions();
+  
+  // Get current month environment stats for project goals
+  const currentDate = new Date();
+  const { data: envStats } = useMonthlyEnvironmentStats(currentDate.getFullYear(), currentDate.getMonth() + 1);
 
   // Show timeout message after 3 seconds if still loading
   useEffect(() => {
@@ -230,17 +235,18 @@ export default function Dashboard() {
             order: 3,
           });
         } else if (meta.type === 'projeto') {
-          // Projetos: contagem de ações que impactam 'projeto' (não soma de valores)
-          const totalProjetos = thisMonthActions.filter(a => {
-            const type = actionTypes.find(t => t.id === a.actionTypeId);
-            return type?.impactsMetas.includes('projeto');
-          }).length;
+          // Projetos: usar contagem de AMBIENTES (não ações)
+          // Buscar ambientes do projetista na tabela project_environments
+          const memberEnvStats = envStats?.byProjetista?.[member.id];
+          const totalAmbientes = memberEnvStats 
+            ? (memberEnvStats.apresentacao || 0) + (memberEnvStats.tecnico || 0)
+            : 0;
           metricsForArea.push({
             type: 'projeto',
-            label: 'PROJETOS',
-            value: totalProjetos,
+            label: 'AMBIENTES',
+            value: totalAmbientes,
             meta: individualMeta,
-            percentage: individualMeta > 0 ? (totalProjetos / individualMeta) * 100 : 0,
+            percentage: individualMeta > 0 ? (totalAmbientes / individualMeta) * 100 : 0,
             isPrimary: false,
             order: 4,
           });
@@ -289,7 +295,7 @@ export default function Dashboard() {
         shouldDisplay,
       };
     });
-  }, [activeMembers, actions, metas, actionTypes, professionals, professionalCategories, getMemberAreaIds, getAreaName]);
+  }, [activeMembers, actions, metas, actionTypes, professionals, professionalCategories, getMemberAreaIds, getAreaName, envStats]);
 
   // Group consultants by area (only those that should be displayed)
   const consultantsByArea = useMemo(() => {
