@@ -614,6 +614,7 @@ const MetasTab = () => {
 const TiposAcaoTab = () => {
   const {
     actionTypes,
+    areas,
     addActionType,
     updateActionType,
     deleteActionType
@@ -629,7 +630,8 @@ const TiposAcaoTab = () => {
     enabledFields: [] as AdditionalFieldKey[],
     programPoints: 0,
     creditValidityType: 'global' as 'global' | 'mensal' | 'anual' | 'dias' | 'personalizado' | 'sem_validade',
-    creditValidityDays: undefined as number | undefined
+    creditValidityDays: undefined as number | undefined,
+    areaId: '' as string
   });
   const classLabels = {
     relacionamento: 'Relacionamento',
@@ -657,7 +659,8 @@ const TiposAcaoTab = () => {
       enabledFields: [],
       programPoints: 0,
       creditValidityType: 'global',
-      creditValidityDays: undefined
+      creditValidityDays: undefined,
+      areaId: ''
     });
     setFormOpen(false);
     setEditingId(null);
@@ -668,18 +671,43 @@ const TiposAcaoTab = () => {
         updateActionType(editingId, {
           ...form,
           impactsMetas: form.impactsMetas as ('acoes' | 'vendas' | 'captacao' | 'projeto')[],
-          enabledFields: form.additionalFields ? form.enabledFields : []
+          enabledFields: form.additionalFields ? form.enabledFields : [],
+          areaId: form.areaId || undefined
         });
       } else {
         addActionType({
           ...form,
           impactsMetas: form.impactsMetas as ('acoes' | 'vendas' | 'captacao' | 'projeto')[],
-          enabledFields: form.additionalFields ? form.enabledFields : []
+          enabledFields: form.additionalFields ? form.enabledFields : [],
+          areaId: form.areaId || undefined
         });
       }
       resetForm();
     }
   };
+
+  // Group action types by area
+  const actionTypesByArea = useMemo(() => {
+    const grouped: Record<string, typeof actionTypes> = { 'Sem Área': [] };
+    
+    // Initialize groups for all areas
+    areas.forEach(area => {
+      grouped[area.name] = [];
+    });
+    
+    // Group action types
+    actionTypes.forEach(type => {
+      const area = areas.find(a => a.id === type.areaId);
+      const areaName = area?.name || 'Sem Área';
+      if (!grouped[areaName]) {
+        grouped[areaName] = [];
+      }
+      grouped[areaName].push(type);
+    });
+    
+    // Filter out empty groups (except 'Sem Área' if it has items)
+    return Object.entries(grouped).filter(([name, types]) => types.length > 0 || name === 'Sem Área');
+  }, [actionTypes, areas]);
   const handleEdit = (id: string) => {
     const type = actionTypes.find(t => t.id === id);
     if (type) {
@@ -692,7 +720,8 @@ const TiposAcaoTab = () => {
         enabledFields: type.enabledFields || [],
         programPoints: type.programPoints,
         creditValidityType: type.creditValidityType,
-        creditValidityDays: type.creditValidityDays
+        creditValidityDays: type.creditValidityDays,
+        areaId: type.areaId || ''
       });
       setEditingId(id);
       setFormOpen(true);
@@ -711,6 +740,13 @@ const TiposAcaoTab = () => {
         classification: e.target.value as typeof form.classification
       })} className="input-flat w-full text-card-foreground">
             {Object.entries(classLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+          <select value={form.areaId} onChange={e => setForm({
+        ...form,
+        areaId: e.target.value
+      })} className="input-flat w-full text-card-foreground">
+            <option value="">Selecione a Área</option>
+            {areas.map(area => <option key={area.id} value={area.id}>{area.name}</option>)}
           </select>
           <div className="flex items-center gap-4">
             <label className="flex items-center gap-2 text-sm">
@@ -818,37 +854,50 @@ const TiposAcaoTab = () => {
             <button onClick={resetForm} className="btn-secondary border-card-foreground text-card-foreground">Cancelar</button>
           </div>
         </div>}
-      <div className="space-y-2">
-        {actionTypes.map(type => {
-        const getValidityLabel = () => {
-          if (type.creditValidityType === 'global') return 'Global';
-          if (type.creditValidityType === 'mensal') return 'Mensal';
-          if (type.creditValidityType === 'anual') return 'Anual';
-          if (type.creditValidityType === 'dias' || type.creditValidityType === 'personalizado') {
-            return `${type.creditValidityDays || 0} dias`;
-          }
-          if (type.creditValidityType === 'sem_validade') return 'Sem validade';
-          return 'Global';
-        };
-        return <div key={type.id} className="flex items-center justify-between p-3 border border-black">
-              <div className="flex items-center gap-4 flex-wrap">
-                <span className="text-sm font-medium">{type.name}</span>
-                <span className="text-xs text-muted-foreground uppercase">{classLabels[type.classification]}</span>
-                <span className="text-xs text-muted-foreground">{type.programPoints} pts</span>
-                <span className="text-xs px-2 py-0.5 bg-muted rounded-sm text-muted-foreground">
-                  Validade: {getValidityLabel()}
-                </span>
-              </div>
-              <div className="flex gap-1">
-                <button onClick={() => handleEdit(type.id)} className="p-2 opacity-60 hover:opacity-100">
-                  <Pencil className="w-4 h-4" />
-                </button>
-                <button onClick={() => deleteActionType(type.id)} className="p-2 opacity-60 hover:opacity-100 text-destructive">
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>;
-      })}
+      
+      {/* Action Types Grouped by Area */}
+      <div className="space-y-4">
+        {actionTypesByArea.map(([areaName, types]) => (
+          types.length > 0 && (
+            <div key={areaName} className="space-y-2">
+              <h4 className="text-xs uppercase tracking-widest font-semibold text-muted-foreground border-b border-border pb-1">
+                {areaName}
+              </h4>
+              {types.map(type => {
+                const getValidityLabel = () => {
+                  if (type.creditValidityType === 'global') return 'Global';
+                  if (type.creditValidityType === 'mensal') return 'Mensal';
+                  if (type.creditValidityType === 'anual') return 'Anual';
+                  if (type.creditValidityType === 'dias' || type.creditValidityType === 'personalizado') {
+                    return `${type.creditValidityDays || 0} dias`;
+                  }
+                  if (type.creditValidityType === 'sem_validade') return 'Sem validade';
+                  return 'Global';
+                };
+                return (
+                  <div key={type.id} className="flex items-center justify-between p-3 border border-black">
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <span className="text-sm font-medium">{type.name}</span>
+                      <span className="text-xs text-muted-foreground uppercase">{classLabels[type.classification]}</span>
+                      <span className="text-xs text-muted-foreground">{type.programPoints} pts</span>
+                      <span className="text-xs px-2 py-0.5 bg-muted rounded-sm text-muted-foreground">
+                        Validade: {getValidityLabel()}
+                      </span>
+                    </div>
+                    <div className="flex gap-1">
+                      <button onClick={() => handleEdit(type.id)} className="p-2 opacity-60 hover:opacity-100">
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => deleteActionType(type.id)} className="p-2 opacity-60 hover:opacity-100 text-destructive">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )
+        ))}
       </div>
     </div>;
 };

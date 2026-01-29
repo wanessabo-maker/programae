@@ -38,6 +38,7 @@ export interface ActionType {
   programPoints: number;
   creditValidityType: 'global' | 'mensal' | 'anual' | 'dias' | 'personalizado' | 'sem_validade';
   creditValidityDays?: number;
+  areaId?: string; // Reference to area this action type belongs to
 }
 
 export interface Meta {

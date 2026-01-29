@@ -134,6 +134,7 @@ function transformActionType(dbType: {
   points: number | null;
   credit_validity_type: string | null;
   credit_validity_days: number | null;
+  area_id: string | null;
 }): ActionType {
   return {
     id: dbType.id,
@@ -146,6 +147,7 @@ function transformActionType(dbType: {
     programPoints: dbType.points ?? 0,
     creditValidityType: (dbType.credit_validity_type as ActionType['creditValidityType']) ?? 'global',
     creditValidityDays: dbType.credit_validity_days ?? undefined,
+    areaId: dbType.area_id ?? undefined,
   };
 }
 
@@ -421,6 +423,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       points: type.programPoints,
       credit_validity_type: type.creditValidityType,
       credit_validity_days: type.creditValidityDays ?? null,
+      area_id: type.areaId ?? null,
     });
   }, [createActionType]);
 
@@ -436,6 +439,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       points: type.programPoints,
       credit_validity_type: type.creditValidityType,
       credit_validity_days: type.creditValidityDays ?? null,
+      area_id: type.areaId ?? null,
     });
   }, [updateActionTypeMutation]);
 
