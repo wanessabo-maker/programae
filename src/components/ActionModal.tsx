@@ -44,6 +44,8 @@ interface FormState {
   assignedLogisticaId: string;
   // Project environments (for Projeto de Apresentação)
   environmentCount: string;
+  // Commercial consultant served (for Projetista de Apresentação)
+  commercialConsultantId: string;
 }
 
 const initialFormState: FormState = {
@@ -68,6 +70,7 @@ const initialFormState: FormState = {
   assignedProjetistaId: '',
   assignedLogisticaId: '',
   environmentCount: '',
+  commercialConsultantId: '',
 };
 
 export function ActionModal({ open, onOpenChange }: ActionModalProps) {
@@ -366,6 +369,11 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     // Environment count is required for Apresentação de Projeto ONLY for Projetista de Apresentação
     if (isApresentacaoProjeto && isUserFromProjetosArea && (!form.environmentCount || Number(form.environmentCount) < 1)) {
       newErrors.environmentCount = true;
+    }
+    
+    // Commercial consultant is required for Projetista de Apresentação
+    if (isApresentacaoProjeto && isUserFromProjetosArea && !form.commercialConsultantId) {
+      newErrors.commercialConsultantId = true;
     }
     
     // Contract number is required for Seletiva (e.g., Assinatura Certificado)
@@ -866,7 +874,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             environment_type: 'apresentacao',
             environment_count: Number(form.environmentCount),
             projetista_id: currentTeamMember.id,
-            consultant_id: form.consultantId,
+            consultant_id: form.commercialConsultantId || undefined, // Commercial consultant served
             project_id: projectId,
             action_id: actionId,
             competence_date: form.date,
@@ -1069,19 +1077,20 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           {/* For users from Projetos area: show Commercial Consultant selector */}
           {isUserFromProjetosArea && form.consultantId && (
             <div>
-              <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
-                Consultor Comercial Atendido
+              <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.commercialConsultantId ? 'text-destructive' : 'text-muted-foreground'}`}>
+                Consultor Comercial Atendido *
               </label>
               <select
-                value={form.professionalId}
-                onChange={(e) => handleFieldChange('professionalId', e.target.value)}
-                className="input-flat w-full text-card-foreground"
+                value={form.commercialConsultantId}
+                onChange={(e) => handleFieldChange('commercialConsultantId', e.target.value)}
+                className={`input-flat w-full text-card-foreground ${errors.commercialConsultantId ? 'border-destructive ring-1 ring-destructive' : ''}`}
               >
                 <option value="">Selecione</option>
                 {commercialConsultants.map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
+              {errors.commercialConsultantId && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
               <p className="text-xs text-muted-foreground mt-1">
                 Selecione o consultor comercial que receberá esta apresentação
               </p>
