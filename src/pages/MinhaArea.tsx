@@ -11,7 +11,8 @@ import {
   ChevronRight,
   ListChecks,
   Loader2,
-  ChevronDown
+  ChevronDown,
+  Users
 } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -24,6 +25,7 @@ import { usePositions } from '@/hooks/usePositions';
 import { 
   useMyAllChecklistItems,
   useAllProjectChecklistItems,
+  useAllTeamChecklistItems,
   getWorkflowStatusLabel,
   ChecklistItemWithDetails
 } from '@/hooks/useChecklist';
@@ -64,7 +66,7 @@ interface ContractGroup {
 }
 
 export default function MinhaArea() {
-  const { user } = useAuthContext();
+  const { user, isAdmin } = useAuthContext();
   const { data: currentTeamMember, isLoading: isLoadingMember } = useCurrentTeamMember();
   const { areas: userFunctionalAreas, isLoading: isLoadingAreas } = useUserAreas(user?.id || null);
   const { getMemberAreaIds, getAreaName } = usePositions();
@@ -72,6 +74,7 @@ export default function MinhaArea() {
   const [selectedItem, setSelectedItem] = useState<ChecklistItemWithDetails | null>(null);
   const [completeModalOpen, setCompleteModalOpen] = useState(false);
   const [expandedContracts, setExpandedContracts] = useState<Set<string>>(new Set());
+  const [viewMode, setViewMode] = useState<'my' | 'team'>('my');
 
   // Get user's areas from positions
   const userAreaNames = useMemo(() => {
@@ -103,12 +106,20 @@ export default function MinhaArea() {
     return Array.from(areas);
   }, [userFunctionalAreas, userAreaNames]);
 
-  const { data: allItems = [], isLoading: isLoadingItems } = useMyAllChecklistItems(
+  // User's own checklist items
+  const { data: myItems = [], isLoading: isLoadingMyItems } = useMyAllChecklistItems(
     allUserAreas, 
     currentTeamMember?.id
   );
 
-  // Get unique project IDs from user items
+  // Admin: All team checklist items
+  const { data: allTeamItems = [], isLoading: isLoadingTeamItems } = useAllTeamChecklistItems(isAdmin && viewMode === 'team');
+
+  // Decide which items to use based on viewMode
+  const allItems = viewMode === 'team' && isAdmin ? allTeamItems : myItems;
+  const isLoadingItems = viewMode === 'team' && isAdmin ? isLoadingTeamItems : isLoadingMyItems;
+
+  // Get unique project IDs from items
   const projectIds = useMemo(() => {
     const ids = new Set<string>();
     allItems.forEach(item => {
@@ -122,7 +133,14 @@ export default function MinhaArea() {
   const { data: allProjectItems = [] } = useAllProjectChecklistItems(projectIds);
 
   // Safety filter: enforce ownership rules client-side (only for user's own items)
+  // For admin team view, show all items without filtering
   const visibleItems = useMemo(() => {
+    // Admin viewing team - show all items
+    if (isAdmin && viewMode === 'team') {
+      return allItems;
+    }
+
+    // Regular user or admin viewing their own items
     const currentTeamMemberId = currentTeamMember?.id;
 
     return allItems.filter((item) => {
@@ -163,7 +181,7 @@ export default function MinhaArea() {
 
       return true;
     });
-  }, [allItems, currentTeamMember?.id]);
+  }, [allItems, currentTeamMember?.id, isAdmin, viewMode]);
 
   // Group items by contract/project
   const contractGroups = useMemo(() => {
@@ -319,11 +337,43 @@ export default function MinhaArea() {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-light tracking-tight">
-            Olá, {currentTeamMember?.name?.split(' ')[0] || 'Usuário'}
-          </h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-light tracking-tight">
+              {viewMode === 'team' ? 'Visão Geral da Equipe' : `Olá, ${currentTeamMember?.name?.split(' ')[0] || 'Usuário'}`}
+            </h1>
+            
+            {/* Admin View Toggle */}
+            {isAdmin && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setViewMode('my')}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                    viewMode === 'my' 
+                      ? 'bg-black text-white' 
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
+                >
+                  <User className="h-3 w-3 inline mr-1" />
+                  Minhas Atividades
+                </button>
+                <button
+                  onClick={() => setViewMode('team')}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                    viewMode === 'team' 
+                      ? 'bg-black text-white' 
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
+                >
+                  <Users className="h-3 w-3 inline mr-1" />
+                  Toda Equipe
+                </button>
+              </div>
+            )}
+          </div>
           <p className="text-muted-foreground">
-            Atividades liberadas para sua execução e aguardando liberação de outras áreas
+            {viewMode === 'team' 
+              ? 'Acompanhe o andamento de todos os contratos e checklists da equipe'
+              : 'Atividades liberadas para sua execução e aguardando liberação de outras áreas'}
           </p>
         </div>
 
@@ -394,8 +444,8 @@ export default function MinhaArea() {
           </Card>
         </div>
 
-        {/* Projetista Section - shows project production stats if applicable */}
-        {currentTeamMember?.id && (
+        {/* Projetista Section - shows project production stats if applicable (only in personal view) */}
+        {viewMode === 'my' && currentTeamMember?.id && (
           <ProjetistaSection 
             teamMemberId={currentTeamMember.id} 
             teamMemberName={currentTeamMember.name} 
@@ -405,16 +455,20 @@ export default function MinhaArea() {
         {/* Contract Groups */}
         <div className="space-y-4">
           <h2 className="text-xs tracking-widest uppercase text-muted-foreground font-medium">
-            Meus Contratos ({contractGroups.length})
+            {viewMode === 'team' ? 'Contratos da Equipe' : 'Meus Contratos'} ({contractGroups.length})
           </h2>
 
           {contractGroups.length === 0 ? (
             <Card className="border-border">
               <CardContent className="p-8 text-center">
                 <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                <h3 className="font-medium mb-2">Tudo em dia!</h3>
+                <h3 className="font-medium mb-2">
+                  {viewMode === 'team' ? 'Nenhum contrato ativo' : 'Tudo em dia!'}
+                </h3>
                 <p className="text-muted-foreground text-sm">
-                  Você não possui atividades pendentes no momento.
+                  {viewMode === 'team' 
+                    ? 'Não há contratos com atividades pendentes no momento.'
+                    : 'Você não possui atividades pendentes no momento.'}
                 </p>
               </CardContent>
             </Card>
