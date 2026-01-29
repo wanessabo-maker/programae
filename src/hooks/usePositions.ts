@@ -89,15 +89,30 @@ export function usePositions() {
     fetchData();
   }, []);
 
+  // Helper to derive functional area enum from area name
+  const deriveAreaEnum = (areaId: string): FunctionalArea => {
+    const area = areas.find(a => a.id === areaId);
+    if (!area) return 'comercial';
+    
+    const name = area.name.toLowerCase();
+    if (name.includes('projeto')) return 'projetos';
+    if (name.includes('customer') || name.includes('success') || name === 'cs') return 'customer_success';
+    if (name.includes('assist') || name.includes('técnica') || name.includes('logist') || name === 'at') return 'assistencia_tecnica';
+    return 'comercial';
+  };
+
   // CRUD for Positions
   const createPosition = async (data: { name: string; area_id: string; description?: string }) => {
     try {
+      // Derive the correct functional area enum from area_id
+      const areaEnum = deriveAreaEnum(data.area_id);
+      
       const { data: newPosition, error } = await supabase
         .from('positions')
         .insert({
           name: data.name,
           area_id: data.area_id,
-          area: 'comercial', // Default value for legacy column
+          area: areaEnum,
           description: data.description || null,
         })
         .select()
