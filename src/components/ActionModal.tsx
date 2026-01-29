@@ -1370,7 +1370,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             isApresentacao={isApresentacaoProjeto}
             isSeletiva={isSeletiva}
             enabledFields={selectedActionType?.enabledFields || []}
-            restrictToFoccoOnly={isUserFromProjetosArea}
+            restrictToFoccoOnly={isUserFromProjetosArea && isApresentacaoProjeto}
           />
 
           <button 
