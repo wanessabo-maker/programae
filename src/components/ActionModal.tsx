@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useApp } from '@/contexts/AppContext';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -76,7 +76,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     professionals, 
     professionalTypes,
     professionalCategories,
-    actionTypes, 
+    actionTypes,
+    
     addAction, 
     addProfessional,
     addCreditTransaction,
@@ -105,6 +106,9 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
   // Fetch team members with specific positions for assignment
   const [projetistaMembers, setProjetistaMembers] = useState<{ id: string; name: string }[]>([]);
   const [logisticaMembers, setLogisticaMembers] = useState<{ id: string; name: string }[]>([]);
+
+  // User's areas based on their positions (for filtering action types)
+  const [userAreaIds, setUserAreaIds] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchPositionMembers = async () => {
@@ -163,6 +167,51 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
 
     fetchPositionMembers();
   }, []);
+
+  // Fetch user's areas based on their positions
+  useEffect(() => {
+    const fetchUserAreas = async () => {
+      if (!currentTeamMember?.id) {
+        setUserAreaIds([]);
+        return;
+      }
+
+      try {
+        // Get positions for this team member with area_id
+        const { data: memberPositions } = await supabase
+          .from('team_member_positions')
+          .select(`
+            position_id,
+            positions!inner(id, area_id)
+          `)
+          .eq('team_member_id', currentTeamMember.id);
+
+        if (memberPositions) {
+          const areaIds = memberPositions
+            .map((mp: any) => mp.positions?.area_id)
+            .filter(Boolean);
+          setUserAreaIds([...new Set(areaIds)]);
+        }
+      } catch (error) {
+        console.error('Error fetching user areas:', error);
+      }
+    };
+
+    fetchUserAreas();
+  }, [currentTeamMember?.id]);
+
+  // Filter action types based on user's areas (admins see all)
+  const filteredActionTypes = useMemo(() => {
+    if (isAdmin) {
+      return actionTypes;
+    }
+
+    // For non-admins: show action types that match user's areas OR have no area assigned
+    return actionTypes.filter(at => {
+      if (!at.areaId) return true; // Action types without area are visible to everyone
+      return userAreaIds.includes(at.areaId);
+    });
+  }, [actionTypes, userAreaIds, isAdmin]);
 
   // Check if current user is "Projetista de Apresentação" specifically
   // They should see Commercial Consultant field instead of Especificador
@@ -1166,7 +1215,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
               className={`input-flat w-full text-card-foreground ${errors.actionTypeId ? 'border-destructive ring-1 ring-destructive' : ''}`}
             >
               <option value="">Selecione</option>
-              {actionTypes.map((t) => (
+              {filteredActionTypes.map((t) => (
                 <option key={t.id} value={t.id}>{t.name}</option>
               ))}
             </select>
