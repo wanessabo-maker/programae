@@ -314,8 +314,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
       newErrors.foccoProjectNumber = true;
     }
     
-    // Environment count is required for Apresentação de Projeto
-    if (isApresentacaoProjeto && (!form.environmentCount || Number(form.environmentCount) < 1)) {
+    // Environment count is required for Apresentação de Projeto ONLY for Projetista de Apresentação
+    if (isApresentacaoProjeto && isUserFromProjetosArea && (!form.environmentCount || Number(form.environmentCount) < 1)) {
       newErrors.environmentCount = true;
     }
     
@@ -810,8 +810,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
         });
       }
 
-      // AUTOMATION: Create project environment record for Apresentação de Projeto
-      if (isApresentacaoProjeto && form.environmentCount && currentTeamMember?.id) {
+      // AUTOMATION: Create project environment record for Apresentação de Projeto (only for Projetista de Apresentação)
+      if (isApresentacaoProjeto && isUserFromProjetosArea && form.environmentCount && currentTeamMember?.id) {
         try {
           await createEnvironment.mutateAsync({
             environment_type: 'apresentacao',
@@ -1187,8 +1187,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             {errors.date && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
           </div>
 
-          {/* Environment Count - Only for Apresentação de Projeto */}
-          {isApresentacaoProjeto && (
+          {/* Environment Count - Only for Apresentação de Projeto AND only for Projetista de Apresentação */}
+          {isApresentacaoProjeto && isUserFromProjetosArea && (
             <div>
               <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.environmentCount ? 'text-destructive' : 'text-muted-foreground'}`}>
                 Quantidade de Ambientes *
