@@ -186,7 +186,9 @@ export default function MinhaArea() {
         return true;
       }
 
-      return true;
+      // CRITICAL: If no condition matched, user should NOT see this item
+      // This prevents users without proper area assignments from seeing all items
+      return false;
     });
   }, [allItems, currentTeamMember?.id, isAdmin, viewMode]);
 
