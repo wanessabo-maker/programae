@@ -368,6 +368,13 @@ export function useMyAllChecklistItems(userAreas: string[], currentTeamMemberId?
       })) as ChecklistItemWithDetails[];
 
       // Filter items based on assignment logic
+      // CRITICAL: If no currentTeamMemberId, user cannot see any items 
+      // (they need to be linked to a team_member)
+      if (!currentTeamMemberId) {
+        console.warn('No currentTeamMemberId - user not linked to team_member');
+        return [];
+      }
+
       return transformedData.filter(item => {
         // If item has a specific assigned_to, only show to that person
         if ((item as any).assigned_to) {

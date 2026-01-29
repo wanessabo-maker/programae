@@ -142,6 +142,12 @@ export default function MinhaArea() {
 
     // Regular user or admin viewing their own items
     const currentTeamMemberId = currentTeamMember?.id;
+    
+    // CRITICAL: If user is not linked to a team_member, they cannot see any items
+    if (!currentTeamMemberId) {
+      console.warn('No currentTeamMemberId in visibleItems - user not linked to team_member');
+      return [];
+    }
 
     return allItems.filter((item) => {
       const assignedTo = (item as any).assigned_to as string | null | undefined;
@@ -150,31 +156,32 @@ export default function MinhaArea() {
       const assignedLogisticaId = (item as any).checklist?.assigned_logistica_id as string | null | undefined;
       const assignedCsId = (item as any).checklist?.assigned_cs_id as string | null | undefined;
 
+      // If item has a specific assigned_to, only show to that person
       if (assignedTo) {
-        return !!currentTeamMemberId && assignedTo === currentTeamMemberId;
+        return assignedTo === currentTeamMemberId;
       }
 
       if (item.responsible_area === 'comercial') {
-        return !!currentTeamMemberId && !!projectResponsibleId && projectResponsibleId === currentTeamMemberId;
+        return !!projectResponsibleId && projectResponsibleId === currentTeamMemberId;
       }
 
       if (item.responsible_area === 'projetista_tecnico') {
         if (assignedProjetistaId) {
-          return !!currentTeamMemberId && assignedProjetistaId === currentTeamMemberId;
+          return assignedProjetistaId === currentTeamMemberId;
         }
         return true;
       }
 
       if (item.responsible_area === 'logistica') {
         if (assignedLogisticaId) {
-          return !!currentTeamMemberId && assignedLogisticaId === currentTeamMemberId;
+          return assignedLogisticaId === currentTeamMemberId;
         }
         return true;
       }
 
       if (item.responsible_area === 'cs') {
         if (assignedCsId) {
-          return !!currentTeamMemberId && assignedCsId === currentTeamMemberId;
+          return assignedCsId === currentTeamMemberId;
         }
         return true;
       }
