@@ -133,12 +133,18 @@ export default function Dashboard() {
   }, [actions, activeMetas, actionTypes, activeMembers]);
 
   // Metrics by consultant
+  // ID da área de Projetos para lógica especial de ambientes
+  const PROJETOS_AREA_ID = 'aad0d175-cabd-490d-ae7d-53b97dc8edc4';
+
   const consultantMetrics = useMemo(() => {
     return activeMembers.map(member => {
       // Use position-based areas, fallback to legacy areaId
       const memberAreaIds = getMemberAreaIds(member.id);
       const primaryAreaId = memberAreaIds[0] || member.areaId;
       const primaryAreaName = primaryAreaId ? getAreaName(primaryAreaId) : '';
+      
+      // Check if member is from Projects area
+      const isProjectsArea = memberAreaIds.includes(PROJETOS_AREA_ID) || primaryAreaId === PROJETOS_AREA_ID;
       
       const thisMonthActions = actions.filter(a => 
         a.consultantId === member.id && isThisMonth(parseISO(a.date))
@@ -275,8 +281,16 @@ export default function Dashboard() {
 
       // Check if consultant has any goals > 1 or performed actions this month
       const hasGoals = metricsForArea.length > 0;
-      const hasActions = thisMonthActions.length > 0;
-      const actionCount = thisMonthActions.length;
+      
+      // For Projects area, use environment count instead of action count
+      const memberEnvStats = envStats?.byProjetista?.[member.id];
+      const totalMemberAmbientes = memberEnvStats 
+        ? (memberEnvStats.apresentacao || 0) + (memberEnvStats.tecnico || 0)
+        : 0;
+      
+      // Activity count: for Projects area use environments, otherwise use actions
+      const hasActions = isProjectsArea ? totalMemberAmbientes > 0 : thisMonthActions.length > 0;
+      const actionCount = isProjectsArea ? totalMemberAmbientes : thisMonthActions.length;
 
       // RULE: Display consultant if they have actions OR goals
       // Actions take priority - never hide a consultant who has generated actions
@@ -293,6 +307,7 @@ export default function Dashboard() {
         hasActions,
         actionCount,
         shouldDisplay,
+        isProjectsArea,
       };
     });
   }, [activeMembers, actions, metas, actionTypes, professionals, professionalCategories, getMemberAreaIds, getAreaName, envStats]);
@@ -586,7 +601,10 @@ export default function Dashboard() {
                             <div className="text-sm">
                               <span className="font-medium">{consultant.actionCount}</span>
                               <span className="text-muted-foreground ml-1">
-                                {consultant.actionCount === 1 ? 'ação registrada' : 'ações registradas'}
+                                {consultant.isProjectsArea
+                                  ? (consultant.actionCount === 1 ? 'ambiente registrado' : 'ambientes registrados')
+                                  : (consultant.actionCount === 1 ? 'ação registrada' : 'ações registradas')
+                                }
                               </span>
                             </div>
                           </div>
