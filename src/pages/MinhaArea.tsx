@@ -12,12 +12,14 @@ import {
   ListChecks,
   Loader2,
   ChevronDown,
-  Users
+  Users,
+  BarChart3
 } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useCurrentTeamMember } from '@/hooks/useCurrentTeamMember';
 import { useUserAreas } from '@/hooks/useUserAreas';
@@ -31,6 +33,7 @@ import {
 } from '@/hooks/useChecklist';
 import { CompleteActivityModal } from '@/components/minha-area/CompleteActivityModal';
 import { ProjetistaSection } from '@/components/minha-area/ProjetistaSection';
+import { ManagementDashboard } from '@/components/minha-area/ManagementDashboard';
 
 interface ChecklistItemFull {
   id: string;
@@ -69,12 +72,23 @@ export default function MinhaArea() {
   const { user, isAdmin } = useAuthContext();
   const { data: currentTeamMember, isLoading: isLoadingMember } = useCurrentTeamMember();
   const { areas: userFunctionalAreas, isLoading: isLoadingAreas } = useUserAreas(user?.id || null);
-  const { getMemberAreaIds, getAreaName } = usePositions();
+  const { getMemberAreaIds, getAreaName, getMemberPositions } = usePositions();
   
   const [selectedItem, setSelectedItem] = useState<ChecklistItemWithDetails | null>(null);
   const [completeModalOpen, setCompleteModalOpen] = useState(false);
   const [expandedContracts, setExpandedContracts] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<'my' | 'team'>('my');
+  const [activeTab, setActiveTab] = useState<'activities' | 'indicators'>('activities');
+
+  // Check if user has management position (Gerencia or Gerente)
+  const isManagement = useMemo(() => {
+    if (!currentTeamMember?.id) return false;
+    const memberPositions = getMemberPositions(currentTeamMember.id);
+    return memberPositions.some(p => 
+      p.name.toLowerCase().includes('gerencia') || 
+      p.name.toLowerCase().includes('gerente')
+    );
+  }, [currentTeamMember?.id, getMemberPositions]);
 
   // Get user's areas from positions
   const userAreaNames = useMemo(() => {
@@ -348,11 +362,15 @@ export default function MinhaArea() {
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-light tracking-tight">
-              {viewMode === 'team' ? 'Visão Geral da Equipe' : `Olá, ${currentTeamMember?.name?.split(' ')[0] || 'Usuário'}`}
+              {activeTab === 'indicators' 
+                ? 'Indicadores de Resultados'
+                : viewMode === 'team' 
+                  ? 'Visão Geral da Equipe' 
+                  : `Olá, ${currentTeamMember?.name?.split(' ')[0] || 'Usuário'}`}
             </h1>
             
-            {/* Admin View Toggle */}
-            {isAdmin && (
+            {/* Admin/Manager View Toggle - only show when on activities tab */}
+            {isAdmin && activeTab === 'activities' && (
               <div className="flex gap-2">
                 <button
                   onClick={() => setViewMode('my')}
@@ -380,12 +398,57 @@ export default function MinhaArea() {
             )}
           </div>
           <p className="text-muted-foreground">
-            {viewMode === 'team' 
-              ? 'Acompanhe o andamento de todos os contratos e checklists da equipe'
-              : 'Atividades liberadas para sua execução e aguardando liberação de outras áreas'}
+            {activeTab === 'indicators'
+              ? 'Acompanhe a evolução mês a mês por colaborador e área em relação às metas'
+              : viewMode === 'team' 
+                ? 'Acompanhe o andamento de todos os contratos e checklists da equipe'
+                : 'Atividades liberadas para sua execução e aguardando liberação de outras áreas'}
           </p>
         </div>
 
+        {/* Main Tab Navigation for Managers/Admins */}
+        {(isManagement || isAdmin) ? (
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'activities' | 'indicators')}>
+            <TabsList className="mb-4">
+              <TabsTrigger value="activities" className="flex items-center gap-1.5">
+                <ListChecks className="h-4 w-4" />
+                Atividades
+              </TabsTrigger>
+              <TabsTrigger value="indicators" className="flex items-center gap-1.5">
+                <BarChart3 className="h-4 w-4" />
+                Indicadores
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="activities" className="space-y-6 mt-0">
+              {/* Activities Content */}
+              {renderActivitiesContent()}
+            </TabsContent>
+
+            <TabsContent value="indicators" className="mt-0">
+              <ManagementDashboard />
+            </TabsContent>
+          </Tabs>
+        ) : (
+          /* Regular users see activities only */
+          renderActivitiesContent()
+        )}
+      </div>
+
+      {/* Complete Activity Modal */}
+      <CompleteActivityModal
+        open={completeModalOpen}
+        onOpenChange={setCompleteModalOpen}
+        item={selectedItem}
+        onClose={handleCloseCompleteModal}
+      />
+    </Layout>
+  );
+
+  // Helper function to render activities content
+  function renderActivitiesContent() {
+    return (
+      <>
         {/* Summary Cards */}
         <div className="grid grid-cols-2 gap-3">
           <Card className="border-border">
@@ -645,15 +708,7 @@ export default function MinhaArea() {
             </div>
           )}
         </div>
-      </div>
-
-      {/* Complete Activity Modal */}
-      <CompleteActivityModal
-        open={completeModalOpen}
-        onOpenChange={setCompleteModalOpen}
-        item={selectedItem}
-        onClose={handleCloseCompleteModal}
-      />
-    </Layout>
-  );
+      </>
+    );
+  }
 }
