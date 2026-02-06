@@ -204,8 +204,6 @@ export function useCreateProjectEnvironment() {
 // Get ranking of projetistas for a month - uses actions data as fallback
 export function useProjetistaRanking(year: number, month: number) {
   const competenceMonth = format(new Date(year, month - 1, 1), 'yyyy-MM-dd');
-  const startDate = format(new Date(year, month - 1, 1), 'yyyy-MM-dd');
-  const endDate = format(new Date(year, month, 0), 'yyyy-MM-dd');
   
   return useQuery({
     queryKey: ['project-environments', 'ranking', year, month],
@@ -218,25 +216,21 @@ export function useProjetistaRanking(year: number, month: number) {
 
       if (error) throw error;
 
-      // Also fetch actions for consultant ranking (who received the most presentations)
-      const { data: actionsData } = await supabase
-        .from('actions')
-        .select(`
-          id,
-          action_date,
-          environment_count,
-          consultant_id,
-          action_type:action_types!inner(id, name)
-        `)
-        .gte('action_date', startDate)
-        .lte('action_date', endDate)
-        .ilike('action_types.name', '%projeto de apresentação%');
+      // Get consultant ranking from project_environments (commercial consultants served)
+      const { data: envWithConsultants, error: envConsError } = await supabase
+        .from('project_environments')
+        .select('consultant_id, environment_count')
+        .eq('competence_month', competenceMonth)
+        .eq('environment_type', 'apresentacao')
+        .not('consultant_id', 'is', null);
+
+      if (envConsError) throw envConsError;
 
       // Get unique projetista IDs
       const projetistaIds = [...new Set(environments.map(e => e.projetista_id))];
       
-      // Get consultant IDs from actions
-      const consultantIds = [...new Set((actionsData || []).map(a => a.consultant_id).filter(Boolean))];
+      // Get consultant IDs from project_environments
+      const consultantIds = [...new Set((envWithConsultants || []).map(e => e.consultant_id).filter(Boolean))];
       const allMemberIds = [...new Set([...projetistaIds, ...consultantIds])];
 
       // Fetch all team member names
@@ -257,14 +251,14 @@ export function useProjetistaRanking(year: number, month: number) {
           env.environment_count || 0;
       });
 
-      // Calculate consultant ranking from actions (presentations received)
+      // Calculate consultant ranking from project_environments (commercial consultants served)
       const consultantTotals: Record<string, number> = {};
-      (actionsData || []).forEach(action => {
-        if (action.consultant_id) {
-          if (!consultantTotals[action.consultant_id]) {
-            consultantTotals[action.consultant_id] = 0;
+      (envWithConsultants || []).forEach(env => {
+        if (env.consultant_id) {
+          if (!consultantTotals[env.consultant_id]) {
+            consultantTotals[env.consultant_id] = 0;
           }
-          consultantTotals[action.consultant_id] += action.environment_count || 1;
+          consultantTotals[env.consultant_id] += env.environment_count || 1;
         }
       });
 
