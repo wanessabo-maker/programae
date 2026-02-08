@@ -4,6 +4,7 @@ import Profissionais from './Profissionais';
 import ClientesTab from '@/components/comercial/ClientesTab';
 import ProjetosTab from '@/components/comercial/ProjetosTab';
 import ContratosTab from '@/components/comercial/ContratosTab';
+import IndicadoresTab from '@/components/comercial/IndicadoresTab';
 
 export default function Comercial() {
   const [activeTab, setActiveTab] = useState('profissionais');
@@ -18,7 +19,7 @@ export default function Comercial() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 bg-background border border-border">
+        <TabsList className="grid w-full grid-cols-5 bg-background border border-border">
           <TabsTrigger 
             value="profissionais" 
             className="text-xs tracking-widest uppercase data-[state=active]:bg-foreground data-[state=active]:text-background"
@@ -43,6 +44,12 @@ export default function Comercial() {
           >
             Contratos
           </TabsTrigger>
+          <TabsTrigger 
+            value="indicadores"
+            className="text-xs tracking-widest uppercase data-[state=active]:bg-foreground data-[state=active]:text-background"
+          >
+            Indicadores
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="profissionais" className="mt-6">
@@ -59,6 +66,10 @@ export default function Comercial() {
 
         <TabsContent value="contratos" className="mt-6">
           <ContratosTab />
+        </TabsContent>
+
+        <TabsContent value="indicadores" className="mt-6">
+          <IndicadoresTab />
         </TabsContent>
       </Tabs>
     </div>
