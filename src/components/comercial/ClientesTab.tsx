@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { safeParseInt } from '@/lib/validators';
 import { Search, User, Phone, Mail, Eye, TrendingUp, Users, XCircle, CheckCircle, Pencil } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
@@ -197,7 +198,7 @@ export default function ClientesTab() {
         email: editForm.email.trim() || null,
         phone: editForm.phone.trim() || null,
         cpf_cnpj: editForm.cpf_cnpj.trim() || null,
-        age: editForm.age ? parseInt(editForm.age) : null,
+        age: safeParseInt(editForm.age, { min: 0, max: 150 }),
         profession: editForm.profession.trim() || null,
         address: editForm.address.trim() || null,
         city: editForm.city.trim() || null,
