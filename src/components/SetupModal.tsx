@@ -8,7 +8,7 @@ import { format, parseISO, isValid } from 'date-fns';
 import { getCategoryForAction } from '@/hooks/useProfessionalCategory';
 import { CSSetupTab } from '@/components/setup/CSSetupTab';
 import { ATSetupTab } from '@/components/setup/ATSetupTab';
-import { PositionsSetupTab } from '@/components/setup/PositionsSetupTab';
+import { AreasAndPositionsTab } from '@/components/setup/AreasAndPositionsTab';
 import { TeamMemberPositionsTab } from '@/components/setup/TeamMemberPositionsTab';
 import { ChecklistSetupTab } from '@/components/setup/ChecklistSetupTab';
 import { AdditionalFieldKey } from '@/types';
@@ -63,14 +63,11 @@ interface SetupModalProps {
   onOpenChange: (open: boolean) => void;
 }
 const TAB_CONFIG = [{
-  label: 'Áreas',
-  value: 'areas'
+  label: 'Áreas & Cargos',
+  value: 'areas-cargos'
 }, {
-  label: 'Cargos',
-  value: 'cargos'
-}, {
-  label: 'Equipe',
-  value: 'equipe'
+  label: 'Colaboradores',
+  value: 'colaboradores'
 }, {
   label: 'Metas',
   value: 'metas'
@@ -112,7 +109,7 @@ export function SetupModal({
         <DialogHeader>
           <DialogTitle>SETUP</DialogTitle>
         </DialogHeader>
-        <Tabs defaultValue="areas" className="h-full">
+        <Tabs defaultValue="areas-cargos" className="h-full">
           <TabsList className="bg-transparent border-b border-black rounded-none w-full justify-start gap-0 h-auto p-0 flex-wrap">
             {TAB_CONFIG.map(tab => <TabsTrigger key={tab.value} value={tab.value} className="rounded-none border-b-2 border-transparent data-[state=active]:border-black data-[state=active]:bg-transparent text-xs tracking-widest uppercase px-3 py-3">
                 {tab.label}
@@ -120,9 +117,8 @@ export function SetupModal({
           </TabsList>
           
           <div className="overflow-y-auto max-h-[60vh] py-4">
-            <TabsContent value="areas"><AreasTab /></TabsContent>
-            <TabsContent value="cargos"><PositionsSetupTab /></TabsContent>
-            <TabsContent value="equipe"><TeamMemberPositionsTab /></TabsContent>
+            <TabsContent value="areas-cargos"><AreasAndPositionsTab /></TabsContent>
+            <TabsContent value="colaboradores"><TeamMemberPositionsTab /></TabsContent>
             <TabsContent value="metas"><MetasTab /></TabsContent>
             <TabsContent value="tipos-acao"><TiposAcaoTab /></TabsContent>
             <TabsContent value="checklist"><ChecklistSetupTab /></TabsContent>
@@ -137,166 +133,6 @@ export function SetupModal({
       </DialogContent>
     </Dialog>;
 }
-const AreasTab = () => {
-  const {
-    areas,
-    addArea,
-    updateArea,
-    deleteArea
-  } = useApp();
-  const [newName, setNewName] = useState('');
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editName, setEditName] = useState('');
-  const handleAdd = () => {
-    if (newName.trim()) {
-      addArea({
-        name: newName.trim()
-      });
-      setNewName('');
-    }
-  };
-  return <div className="space-y-4">
-      <div className="flex gap-2">
-        <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Nova área" className="input-flat flex-1 text-card-foreground" />
-        <button onClick={handleAdd} className="btn-primary bg-card-foreground text-card">
-          <Plus className="w-4 h-4" />
-        </button>
-      </div>
-      <div className="space-y-2">
-        {areas.map(area => <div key={area.id} className="flex items-center justify-between p-3 border border-black">
-            {editingId === area.id ? <>
-                <input value={editName} onChange={e => setEditName(e.target.value)} className="input-flat flex-1 mr-2 text-card-foreground" />
-                <button onClick={() => {
-            updateArea(area.id, {
-              name: editName
-            });
-            setEditingId(null);
-          }} className="p-2">
-                  <Check className="w-4 h-4" />
-                </button>
-                <button onClick={() => setEditingId(null)} className="p-2">
-                  <X className="w-4 h-4" />
-                </button>
-              </> : <>
-                <span className="text-sm">{area.name}</span>
-                <div className="flex gap-2">
-                  <button onClick={() => {
-              setEditingId(area.id);
-              setEditName(area.name);
-            }} className="p-2 opacity-60 hover:opacity-100">
-                    <Pencil className="w-4 h-4" />
-                  </button>
-                  <button onClick={() => deleteArea(area.id)} className="p-2 opacity-60 hover:opacity-100 text-destructive">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </>}
-          </div>)}
-      </div>
-    </div>;
-};
-const EquipeTab = () => {
-  const {
-    teamMembers,
-    areas,
-    addTeamMember,
-    updateTeamMember,
-    deleteTeamMember
-  } = useApp();
-  const [newName, setNewName] = useState('');
-  const [newAreaId, setNewAreaId] = useState('');
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({
-    name: '',
-    areaId: ''
-  });
-  const handleAdd = () => {
-    if (newName.trim() && newAreaId) {
-      addTeamMember({
-        name: newName.trim(),
-        areaId: newAreaId,
-        active: true
-      });
-      setNewName('');
-      setNewAreaId('');
-    }
-  };
-  const handleEdit = (id: string) => {
-    const member = teamMembers.find(m => m.id === id);
-    if (member) {
-      setEditForm({
-        name: member.name,
-        areaId: member.areaId
-      });
-      setEditingId(id);
-    }
-  };
-  const handleSaveEdit = () => {
-    if (editingId && editForm.name.trim()) {
-      updateTeamMember(editingId, {
-        name: editForm.name.trim(),
-        areaId: editForm.areaId
-      });
-      setEditingId(null);
-    }
-  };
-  return <div className="space-y-4">
-      <div className="flex gap-2">
-        <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Nome" className="input-flat flex-1 text-card-foreground" />
-        <select value={newAreaId} onChange={e => setNewAreaId(e.target.value)} className="input-flat text-card-foreground">
-          <option value="">Área</option>
-          {areas.map(area => <option key={area.id} value={area.id}>{area.name}</option>)}
-        </select>
-        <button onClick={handleAdd} className="btn-primary bg-card-foreground text-card">
-          <Plus className="w-4 h-4" />
-        </button>
-      </div>
-      <div className="space-y-2">
-        {teamMembers.map(member => <div key={member.id} className="flex items-center justify-between p-3 border border-black">
-            {editingId === member.id ? <>
-                <div className="flex items-center gap-2 flex-1">
-                  <input value={editForm.name} onChange={e => setEditForm({
-              ...editForm,
-              name: e.target.value
-            })} className="input-flat flex-1 text-card-foreground" />
-                  <select value={editForm.areaId} onChange={e => setEditForm({
-              ...editForm,
-              areaId: e.target.value
-            })} className="input-flat text-card-foreground">
-                    {areas.map(area => <option key={area.id} value={area.id}>{area.name}</option>)}
-                  </select>
-                </div>
-                <div className="flex gap-1">
-                  <button onClick={handleSaveEdit} className="p-2">
-                    <Check className="w-4 h-4" />
-                  </button>
-                  <button onClick={() => setEditingId(null)} className="p-2">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </> : <>
-                <div className="flex items-center gap-4">
-                  <span className="text-sm">{member.name}</span>
-                  <span className="text-xs text-muted-foreground">{areas.find(a => a.id === member.areaId)?.name}</span>
-                  <button onClick={() => updateTeamMember(member.id, {
-              active: !member.active
-            })} className={`text-xs px-2 py-1 border ${member.active ? 'border-success text-success' : 'border-muted-foreground text-muted-foreground'}`}>
-                    {member.active ? 'ATIVO' : 'INATIVO'}
-                  </button>
-                </div>
-                <div className="flex gap-1">
-                  <button onClick={() => handleEdit(member.id)} className="p-2 opacity-60 hover:opacity-100">
-                    <Pencil className="w-4 h-4" />
-                  </button>
-                  <button onClick={() => deleteTeamMember(member.id)} className="p-2 opacity-60 hover:opacity-100 text-destructive">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </>}
-          </div>)}
-      </div>
-    </div>;
-};
 const MetasTab = () => {
   const {
     metas,
