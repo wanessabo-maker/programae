@@ -108,7 +108,7 @@ export function TeamMemberPositionsTab() {
       {/* List all members with their positions */}
       <div className="space-y-4">
         <h3 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground border-b border-muted pb-2">
-          Equipe e Cargos
+          Colaboradores e Cargos
         </h3>
         
         {activeMembers.map((member) => {
