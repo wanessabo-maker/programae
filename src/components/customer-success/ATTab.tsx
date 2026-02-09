@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { safeParseFloat } from '@/lib/validators';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Plus, Eye, Check, Clock, Calendar, Wrench, Pencil, Trash2, Download, UserPlus, AlertCircle, BarChart3 } from 'lucide-react';
@@ -217,8 +218,8 @@ export function ATTab() {
     }
 
     try {
-      const costVal = closeForm.cost_value ? parseFloat(closeForm.cost_value) : null;
-      const saleVal = closeForm.sale_value ? parseFloat(closeForm.sale_value) : null;
+      const costVal = safeParseFloat(closeForm.cost_value, { min: 0 });
+      const saleVal = safeParseFloat(closeForm.sale_value, { min: 0 });
       
       await closeMutation.mutateAsync({
         id: selectedCase.id,

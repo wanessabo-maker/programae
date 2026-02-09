@@ -11,6 +11,7 @@ import { createClientDirect } from '@/hooks/useClients';
 import { supabase } from '@/integrations/supabase/client';
 import { SmartClientFields } from '@/components/SmartClientFields';
 import { SmartClientData, updateClientData } from '@/hooks/useSmartClientData';
+import { safeNumber, safeParseInt } from '@/lib/validators';
 import { useCSContactSchedules, generateCSActionsForCase } from '@/hooks/useCustomerSuccess';
 import { createChecklistForProject } from '@/hooks/useChecklist';
 import { useCreateProjectEnvironment } from '@/hooks/useProjectEnvironments';
@@ -367,7 +368,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     }
     
     // Environment count is required for Apresentação de Projeto ONLY for Projetista de Apresentação
-    if (isApresentacaoProjeto && isUserFromProjetosArea && (!form.environmentCount || Number(form.environmentCount) < 1)) {
+    if (isApresentacaoProjeto && isUserFromProjetosArea && (!form.environmentCount || (safeParseInt(form.environmentCount, { min: 1 }) === null))) {
       newErrors.environmentCount = true;
     }
     
@@ -510,7 +511,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
       // For Projetista de Apresentação: points = environment count (1 ambiente = 1 ponto)
       // For other users: use action type's configured points
       const points = (isApresentacaoProjeto && isUserFromProjetosArea && form.environmentCount)
-        ? Number(form.environmentCount)
+        ? (safeParseInt(form.environmentCount, { min: 0 }) ?? 0)
         : (selectedActionType?.programPoints || 0);
 
       // Handle automatic project/client creation for Apresentação de Projeto
@@ -528,21 +529,23 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             
             // Update existing project with new presented value (always use latest)
             if (form.presentedValue) {
-              const presentedValueNum = Number(form.presentedValue);
+              const presentedValueNum = safeNumber(form.presentedValue, { min: 0 });
               
-              await supabase
-                .from('projects')
-                .update({ estimated_value: presentedValueNum })
-                .eq('id', existingProject.id);
-              
-              // Save to value history
-              await supabase
-                .from('project_value_history')
-                .insert({
-                  project_id: existingProject.id,
-                  presented_value: presentedValueNum,
-                  consultant_id: form.consultantId,
-                });
+              if (presentedValueNum !== null) {
+                await supabase
+                  .from('projects')
+                  .update({ estimated_value: presentedValueNum })
+                  .eq('id', existingProject.id);
+                
+                // Save to value history
+                await supabase
+                  .from('project_value_history')
+                  .insert({
+                    project_id: existingProject.id,
+                    presented_value: presentedValueNum,
+                    consultant_id: form.consultantId,
+                  });
+              }
             }
             
             // Update existing client with any new data (progressive filling)
@@ -556,9 +559,9 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 address: form.clientAddress.trim() || undefined,
                 city: form.clientCity.trim() || undefined,
                 state: form.clientState.trim() || undefined,
-                age: form.clientAge ? Number(form.clientAge) : undefined,
-                profession: form.clientProfession.trim() || undefined,
-              });
+                    age: safeParseInt(form.clientAge, { min: 0, max: 150 }) ?? undefined,
+                    profession: form.clientProfession.trim() || undefined,
+                  });
             }
             toast.info(`Ação vinculada ao projeto FOCCO ${foccoNumber} existente`);
           } else {
@@ -566,7 +569,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             if (form.clientName.trim()) {
               clientId = await createClientDirect({
                 name: form.clientName.trim(),
-                age: form.clientAge ? Number(form.clientAge) : null,
+                age: safeParseInt(form.clientAge, { min: 0, max: 150 }),
                 profession: form.clientProfession || null,
                 professional_id: professionalId || null,
                 responsible_id: form.consultantId,
@@ -597,7 +600,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 client_id: clientId,
                 stage: 'em_negociacao',
                 start_date: form.date,
-                estimated_value: form.presentedValue ? Number(form.presentedValue) : null,
+                estimated_value: safeNumber(form.presentedValue, { min: 0 }),
                 origin_type: 'standard', // Normal flow - Apresentação creates project
               })
               .select('id')
@@ -615,7 +618,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   .from('project_value_history')
                   .insert({
                     project_id: newProject.id,
-                    presented_value: Number(form.presentedValue),
+                    presented_value: safeNumber(form.presentedValue, { min: 0 }) ?? 0,
                     consultant_id: form.consultantId,
                   });
               }
@@ -643,7 +646,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 .update({
                   stage: 'closed_won',
                   closed_date: form.date,
-                  closed_value: form.value ? Number(form.value) : existingProject.estimated_value,
+                  closed_value: safeNumber(form.value, { min: 0 }) ?? existingProject.estimated_value,
                 })
                 .eq('id', existingProject.id);
               
@@ -665,7 +668,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                     address: form.clientAddress.trim() || undefined,
                     city: form.clientCity.trim() || undefined,
                     state: form.clientState.trim() || undefined,
-                    age: form.clientAge ? Number(form.clientAge) : undefined,
+                    age: safeParseInt(form.clientAge, { min: 0, max: 150 }) ?? undefined,
                     profession: form.clientProfession.trim() || undefined,
                   });
                   
@@ -690,7 +693,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
               if (form.clientName.trim()) {
                 clientId = await createClientDirect({
                   name: form.clientName.trim(),
-                  age: form.clientAge ? Number(form.clientAge) : null,
+                  age: safeParseInt(form.clientAge, { min: 0, max: 150 }),
                   profession: form.clientProfession || null,
                   professional_id: professionalId || null,
                   responsible_id: form.consultantId,
@@ -721,8 +724,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   stage: 'closed_won',
                   start_date: form.date,
                   closed_date: form.date,
-                  closed_value: form.value ? Number(form.value) : null,
-                  estimated_value: form.value ? Number(form.value) : null,
+                  closed_value: safeNumber(form.value, { min: 0 }),
+                  estimated_value: safeNumber(form.value, { min: 0 }),
                   origin_type: 'venda_direta', // Exception: Sale without prior presentation
                 })
                 .select('id')
@@ -749,7 +752,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             if (form.clientName.trim()) {
               clientId = await createClientDirect({
                 name: form.clientName.trim(),
-                age: form.clientAge ? Number(form.clientAge) : null,
+                age: safeParseInt(form.clientAge, { min: 0, max: 150 }),
                 profession: form.clientProfession || null,
                 professional_id: professionalId || null,
                 responsible_id: form.consultantId,
@@ -785,8 +788,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 stage: 'closed_won',
                 start_date: form.date,
                 closed_date: form.date,
-                closed_value: form.value ? Number(form.value) : null,
-                estimated_value: form.value ? Number(form.value) : null,
+                closed_value: safeNumber(form.value, { min: 0 }),
+                estimated_value: safeNumber(form.value, { min: 0 }),
                 origin_type: 'venda_direta', // Exception: Direct sale without FOCCO
               })
               .select('id')
@@ -825,23 +828,23 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             address: form.clientAddress.trim() || undefined,
             city: form.clientCity.trim() || undefined,
             state: form.clientState.trim() || undefined,
-            age: form.clientAge ? Number(form.clientAge) : undefined,
-            profession: form.clientProfession.trim() || undefined,
-            contract_number: form.contractNumber.trim() || undefined,
-          });
-          projectId = existingProject.id;
-        }
-      }
+             age: safeParseInt(form.clientAge, { min: 0, max: 150 }) ?? undefined,
+             profession: form.clientProfession.trim() || undefined,
+             contract_number: form.contractNumber.trim() || undefined,
+           });
+           projectId = existingProject.id;
+         }
+       }
 
-      // Add action
-      const actionId = await addAction({
-        consultantId: form.consultantId,
-        professionalId,
-        actionTypeId: form.actionTypeId,
-        date: form.date,
-        value: form.value ? Number(form.value) : undefined,
-        clientName: form.clientName || undefined,
-        clientAge: form.clientAge ? Number(form.clientAge) : undefined,
+       // Add action
+       const actionId = await addAction({
+         consultantId: form.consultantId,
+         professionalId,
+         actionTypeId: form.actionTypeId,
+         date: form.date,
+         value: safeNumber(form.value, { min: 0 }) ?? undefined,
+         clientName: form.clientName || undefined,
+         clientAge: safeParseInt(form.clientAge, { min: 0, max: 150 }) ?? undefined,
         clientProfession: form.clientProfession || undefined,
         presentationNumber: form.presentationNumber || undefined,
         foccoProjectNumber: form.foccoProjectNumber || undefined,
@@ -876,7 +879,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
         try {
           await createEnvironment.mutateAsync({
             environment_type: 'apresentacao',
-            environment_count: Number(form.environmentCount),
+            environment_count: safeParseInt(form.environmentCount, { min: 1 }) ?? 1,
             projetista_id: currentTeamMember.id,
             consultant_id: form.commercialConsultantId || undefined, // Commercial consultant served
             project_id: projectId,
@@ -887,7 +890,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           // Also update the action with environment_count
           await supabase
             .from('actions')
-            .update({ environment_count: Number(form.environmentCount) })
+            .update({ environment_count: safeParseInt(form.environmentCount, { min: 1 }) ?? 1 })
             .eq('id', actionId);
             
         } catch (envError) {

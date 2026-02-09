@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Action } from '@/types';
+import { safeNumber, safeParseInt } from '@/lib/validators';
 
 interface EditActionModalProps {
   open: boolean;
@@ -111,9 +112,9 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
         professionalId: form.professionalId || undefined,
         actionTypeId: form.actionTypeId,
         date: form.date,
-        value: form.value ? Number(form.value) : undefined,
+        value: safeNumber(form.value, { min: 0 }) ?? undefined,
         clientName: form.clientName || undefined,
-        clientAge: form.clientAge ? Number(form.clientAge) : undefined,
+        clientAge: safeParseInt(form.clientAge, { min: 0, max: 150 }) ?? undefined,
         clientProfession: form.clientProfession || undefined,
         presentationNumber: form.presentationNumber || undefined,
       });
@@ -181,7 +182,7 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
         if (actionType?.classification === 'venda') {
           await supabase
             .from('projects')
-            .update({ closed_value: form.value ? Number(form.value) : null })
+            .update({ closed_value: safeNumber(form.value, { min: 0 }) })
             .eq('id', action.projectId);
         }
       }

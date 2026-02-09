@@ -33,6 +33,7 @@ import {
 } from '@/hooks/useChecklist';
 import { useCreateProjectEnvironment } from '@/hooks/useProjectEnvironments';
 import { supabase } from '@/integrations/supabase/client';
+import { safeParseInt } from '@/lib/validators';
 
 interface CompleteActivityModalProps {
   open: boolean;
@@ -81,8 +82,8 @@ export function CompleteActivityModal({
 
     // Validate environment count if required
     if (requiresEnvironmentCount) {
-      const count = Number(environmentCount);
-      if (!environmentCount || count < 1) {
+      const count = safeParseInt(environmentCount, { min: 1 });
+      if (!environmentCount || count === null) {
         setError('Informe a quantidade de ambientes técnicos produzidos');
         return;
       }
@@ -102,7 +103,7 @@ export function CompleteActivityModal({
         
         await createEnvironment.mutateAsync({
           environment_type: 'tecnico',
-          environment_count: Number(environmentCount),
+          environment_count: safeParseInt(environmentCount, { min: 1 }) ?? 1,
           projetista_id: currentTeamMember.id,
           project_id: projectId || undefined,
           checklist_item_id: item.id,
@@ -113,7 +114,7 @@ export function CompleteActivityModal({
         // Also update the checklist item with environment_count
         await supabase
           .from('checklist_items')
-          .update({ environment_count: Number(environmentCount) })
+          .update({ environment_count: safeParseInt(environmentCount, { min: 1 }) ?? 1 })
           .eq('id', item.id);
       }
 
