@@ -401,7 +401,7 @@ export default function Dashboard() {
         </div>
         <button
           onClick={() => setShowActionModal(true)}
-          className="flex items-center gap-2 w-full sm:w-auto justify-center bg-white text-black px-6 py-2.5 text-xs tracking-widest uppercase font-semibold border-2 border-white hover:bg-black hover:text-white transition-all duration-200 shadow-[0_0_15px_rgba(255,255,255,0.15)]"
+          className="btn-primary flex items-center gap-2 w-full sm:w-auto justify-center"
         >
           <Plus className="w-4 h-4" />
           Registrar Ação
