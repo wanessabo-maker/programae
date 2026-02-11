@@ -42,6 +42,7 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
     clientProfession: '',
     presentationNumber: '',
     foccoProjectNumber: '',
+    presentedValue: '',
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -61,7 +62,21 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
         clientProfession: action.clientProfession || '',
         presentationNumber: action.presentationNumber || '',
         foccoProjectNumber: action.foccoProjectNumber || '',
+        presentedValue: '',
       });
+      // Load presented value from project if exists
+      if (action.projectId) {
+        supabase
+          .from('projects')
+          .select('estimated_value')
+          .eq('id', action.projectId)
+          .single()
+          .then(({ data }) => {
+            if (data?.estimated_value) {
+              setForm(prev => ({ ...prev, presentedValue: data.estimated_value.toString() }));
+            }
+          });
+      }
     }
   }, [action]);
 
@@ -80,6 +95,10 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
     
     if (selectedActionType?.requiresValue && !form.value) {
       newErrors.value = true;
+    }
+
+    if (selectedActionType?.enabledFields?.includes('presentedValue') && !form.presentedValue) {
+      newErrors.presentedValue = true;
     }
     
     setErrors(newErrors);
@@ -183,6 +202,17 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
           await supabase
             .from('projects')
             .update({ closed_value: safeNumber(form.value, { min: 0 }) })
+            .eq('id', action.projectId);
+        }
+      }
+
+      // If presented value changed for a presentation, update project estimated_value and history
+      if (action.projectId && form.presentedValue && selectedActionType?.enabledFields?.includes('presentedValue')) {
+        const presentedValueNum = safeNumber(form.presentedValue, { min: 0 });
+        if (presentedValueNum !== null) {
+          await supabase
+            .from('projects')
+            .update({ estimated_value: presentedValueNum })
             .eq('id', action.projectId);
         }
       }
@@ -361,6 +391,25 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
                     </div>
                   )}
                 </div>
+                {selectedActionType.enabledFields.includes('presentedValue') && (
+                  <div>
+                    <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.presentedValue ? 'text-destructive' : 'text-muted-foreground'}`}>
+                      Valor Apresentado *
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={form.presentedValue}
+                      onChange={(e) => {
+                        setForm({ ...form, presentedValue: e.target.value });
+                        setErrors({ ...errors, presentedValue: false });
+                      }}
+                      placeholder="R$ 0,00"
+                      className={`input-flat w-full text-card-foreground ${errors.presentedValue ? 'border-destructive ring-1 ring-destructive' : ''}`}
+                    />
+                    {errors.presentedValue && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
+                  </div>
+                )}
               </>
             )}
 
