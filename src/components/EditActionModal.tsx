@@ -66,19 +66,29 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
         foccoProjectNumber: action.foccoProjectNumber || '',
         presentedValue: '',
       });
-      // Load presented value from project if exists
-      if (action.projectId) {
-        supabase
-          .from('projects')
-          .select('estimated_value')
-          .eq('id', action.projectId)
-          .single()
-          .then(({ data }) => {
-            if (data?.estimated_value) {
-              setForm(prev => ({ ...prev, presentedValue: data.estimated_value.toString() }));
-            }
-          });
-      }
+      // Load presented value from project if exists (by project_id or focco_project_number)
+      const loadPresentedValue = async () => {
+        let projectData = null;
+        if (action.projectId) {
+          const { data } = await supabase
+            .from('projects')
+            .select('estimated_value')
+            .eq('id', action.projectId)
+            .single();
+          projectData = data;
+        } else if (action.foccoProjectNumber) {
+          const { data } = await supabase
+            .from('projects')
+            .select('estimated_value')
+            .eq('focco_project_number', action.foccoProjectNumber)
+            .single();
+          projectData = data;
+        }
+        if (projectData?.estimated_value) {
+          setForm(prev => ({ ...prev, presentedValue: projectData.estimated_value.toString() }));
+        }
+      };
+      loadPresentedValue();
     }
   }, [action]);
 
@@ -208,14 +218,26 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
         }
       }
 
-      // If presented value changed for a presentation, update project estimated_value and history
-      if (action.projectId && form.presentedValue && selectedActionType?.enabledFields?.includes('presentedValue')) {
+      // If presented value changed for a presentation, update project estimated_value
+      if (form.presentedValue && selectedActionType?.enabledFields?.includes('presentedValue')) {
         const presentedValueNum = safeNumber(form.presentedValue, { min: 0 });
         if (presentedValueNum !== null) {
-          await supabase
-            .from('projects')
-            .update({ estimated_value: presentedValueNum })
-            .eq('id', action.projectId);
+          // Find project by project_id or focco_project_number
+          let projectId = action.projectId;
+          if (!projectId && form.foccoProjectNumber) {
+            const { data: proj } = await supabase
+              .from('projects')
+              .select('id')
+              .eq('focco_project_number', form.foccoProjectNumber)
+              .single();
+            projectId = proj?.id;
+          }
+          if (projectId) {
+            await supabase
+              .from('projects')
+              .update({ estimated_value: presentedValueNum })
+              .eq('id', projectId);
+          }
         }
       }
 
