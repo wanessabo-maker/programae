@@ -20,7 +20,7 @@ import {
   generateCSActionsForCase,
 } from '@/hooks/useCustomerSuccess';
 import { useProjects } from '@/hooks/useProjects';
-import { useClients, useCreateClient } from '@/hooks/useClients';
+import { useClients, useCreateClient, useUpdateClient } from '@/hooks/useClients';
 
 export function CSTab() {
   const { toast } = useToast();
@@ -38,6 +38,7 @@ export function CSTab() {
   const updateActionMutation = useUpdateCSAction();
   const deleteActionMutation = useDeleteCSAction();
   const createClientMutation = useCreateClient();
+  const updateClientMutation = useUpdateClient();
 
   const [showNewCaseModal, setShowNewCaseModal] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
@@ -52,6 +53,8 @@ export function CSTab() {
   const [newClientName, setNewClientName] = useState('');
   const [newClientPhone, setNewClientPhone] = useState('');
   const [newClientEmail, setNewClientEmail] = useState('');
+  const [isEditingClientName, setIsEditingClientName] = useState(false);
+  const [editedClientName, setEditedClientName] = useState('');
 
   // Edit case form
   const [editCaseForm, setEditCaseForm] = useState({
@@ -1156,16 +1159,70 @@ export function CSTab() {
                   />
                 </div>
               ) : (
-                <select
-                  value={editCaseForm.client_id}
-                  onChange={(e) => setEditCaseForm({ ...editCaseForm, client_id: e.target.value })}
-                  className="input-flat w-full mt-1"
-                >
-                  <option value="">Nenhum</option>
-                  {clients.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+                <div className="flex gap-2 mt-1">
+                  {isEditingClientName ? (
+                    <>
+                      <input
+                        type="text"
+                        value={editedClientName}
+                        onChange={(e) => setEditedClientName(e.target.value)}
+                        className="input-flat flex-1"
+                        placeholder="Nome do cliente"
+                      />
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (editCaseForm.client_id && editedClientName.trim()) {
+                            try {
+                              await updateClientMutation.mutateAsync({ id: editCaseForm.client_id, name: editedClientName.trim() });
+                              toast({ title: 'Nome do cliente atualizado' });
+                              setIsEditingClientName(false);
+                            } catch {
+                              toast({ title: 'Erro ao atualizar nome', variant: 'destructive' });
+                            }
+                          }
+                        }}
+                        className="btn-primary bg-foreground text-background text-xs px-3"
+                      >
+                        Salvar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingClientName(false)}
+                        className="btn-secondary border-border text-xs px-3"
+                      >
+                        Cancelar
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <select
+                        value={editCaseForm.client_id}
+                        onChange={(e) => setEditCaseForm({ ...editCaseForm, client_id: e.target.value })}
+                        className="input-flat flex-1"
+                      >
+                        <option value="">Nenhum</option>
+                        {clients.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                      {editCaseForm.client_id && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const client = clients.find(c => c.id === editCaseForm.client_id);
+                            setEditedClientName(client?.name || '');
+                            setIsEditingClientName(true);
+                          }}
+                          className="btn-secondary border-border px-2"
+                          title="Editar nome do cliente"
+                        >
+                          <Pencil className="w-3 h-3" />
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
               )}
             </div>
 
