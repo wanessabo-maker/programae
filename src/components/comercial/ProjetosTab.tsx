@@ -243,6 +243,26 @@ export default function ProjetosTab() {
         </div>
       </div>
 
+      {/* Carteira Flutuante */}
+      {(() => {
+        const emNegociacao = activeProjects.filter(p => p.stage === 'em_negociacao');
+        const carteiraFlutuante = emNegociacao.reduce((sum, p) => sum + (p.estimated_value || 0), 0);
+        return (
+          <div className="border border-primary/30 bg-primary/5 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs tracking-widest uppercase text-muted-foreground">Carteira Flutuante</p>
+                <p className="text-2xl font-light tracking-tight mt-1">{formatCurrency(carteiraFlutuante)}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-muted-foreground">{emNegociacao.length} projetos em negociação</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Último valor apresentado por projeto</p>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {getStageTotals().map(stage => (
