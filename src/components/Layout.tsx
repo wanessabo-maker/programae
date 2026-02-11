@@ -35,6 +35,13 @@ export function Layout({ children }: LayoutProps) {
     // Admin routes
     if (path === '/usuarios') return isAdmin;
     
+    // CS & AT is accessible to users with customer_success, assistencia_tecnica, or comercial areas
+    if (path === '/customer-success') {
+      return hasAreaAccess('customer_success') 
+        || hasAreaAccess('assistencia_tecnica') 
+        || hasAreaAccess('comercial');
+    }
+    
     const requiredArea = ROUTE_AREA_MAP[path];
     
     // Public routes (dashboard, programa E+)
@@ -58,6 +65,12 @@ export function Layout({ children }: LayoutProps) {
     const filteredItems = allItems.filter(item => {
       // Public routes are always visible
       if (item.area === null) return true;
+      // CS & AT is accessible to users with customer_success, assistencia_tecnica, or comercial areas
+      if (item.path === '/customer-success') {
+        return hasAreaAccess('customer_success') 
+          || hasAreaAccess('assistencia_tecnica') 
+          || hasAreaAccess('comercial');
+      }
       // Check area access
       return hasAreaAccess(item.area);
     });
