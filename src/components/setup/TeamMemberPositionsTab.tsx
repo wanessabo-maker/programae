@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, X, Briefcase, Pencil } from 'lucide-react';
+import { Plus, X, Briefcase, Pencil, Power } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { usePositions } from '@/hooks/usePositions';
 import { Badge } from '@/components/ui/badge';
@@ -13,7 +13,7 @@ import {
 import { EditMemberPositionsModal } from './EditMemberPositionsModal';
 
 export function TeamMemberPositionsTab() {
-  const { teamMembers, areas } = useApp();
+  const { teamMembers, areas, updateTeamMember } = useApp();
   const {
     positions,
     areas: positionAreas,
@@ -152,14 +152,23 @@ export function TeamMemberPositionsTab() {
                   </div>
                 </div>
                 
-                {/* Edit button */}
-                <button
-                  onClick={() => setEditingMember({ id: member.id, name: member.name })}
-                  className="btn-secondary p-2"
-                  title="Editar cargos"
-                >
-                  <Pencil className="w-4 h-4" />
-                </button>
+                {/* Action buttons */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setEditingMember({ id: member.id, name: member.name })}
+                    className="btn-secondary p-2"
+                    title="Editar cargos"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => updateTeamMember(member.id, { active: false })}
+                    className="p-2 border border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                    title="Desativar colaborador"
+                  >
+                    <Power className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
           );
@@ -178,18 +187,29 @@ export function TeamMemberPositionsTab() {
             
             return (
               <div key={member.id} className="border border-muted p-4">
-                <div className="flex items-center gap-3 mb-2">
-                  <span className="font-medium text-muted-foreground">{member.name}</span>
-                  <Badge variant="secondary" className="text-xs">INATIVO</Badge>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="font-medium text-muted-foreground">{member.name}</span>
+                    <Badge variant="secondary" className="text-xs">INATIVO</Badge>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    {memberPositions.map((position) => (
+                      <Badge key={position.id} variant="secondary" className="text-xs">
+                        {position.name}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
-                
-                <div className="flex flex-wrap gap-2">
-                  {memberPositions.map((position) => (
-                    <Badge key={position.id} variant="secondary" className="text-xs">
-                      {position.name}
-                    </Badge>
-                  ))}
-                </div>
+                <button
+                  onClick={() => updateTeamMember(member.id, { active: true })}
+                  className="p-2 border border-success text-success hover:bg-success hover:text-success-foreground transition-colors"
+                  title="Reativar colaborador"
+                >
+                  <Power className="w-4 h-4" />
+                </button>
+              </div>
               </div>
             );
           })}
