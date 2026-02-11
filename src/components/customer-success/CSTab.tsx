@@ -20,7 +20,7 @@ import {
   generateCSActionsForCase,
 } from '@/hooks/useCustomerSuccess';
 import { useProjects } from '@/hooks/useProjects';
-import { useClients } from '@/hooks/useClients';
+import { useClients, useCreateClient } from '@/hooks/useClients';
 
 export function CSTab() {
   const { toast } = useToast();
@@ -37,6 +37,7 @@ export function CSTab() {
   const updateCaseMutation = useUpdateCSCase();
   const updateActionMutation = useUpdateCSAction();
   const deleteActionMutation = useDeleteCSAction();
+  const createClientMutation = useCreateClient();
 
   const [showNewCaseModal, setShowNewCaseModal] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
@@ -47,6 +48,10 @@ export function CSTab() {
   const [viewTab, setViewTab] = useState<'cases' | 'upcoming' | 'history'>('cases');
   const [showEditCaseModal, setShowEditCaseModal] = useState(false);
   const [editingCase, setEditingCase] = useState<typeof csCases[0] | null>(null);
+  const [isCreatingNewClient, setIsCreatingNewClient] = useState(false);
+  const [newClientName, setNewClientName] = useState('');
+  const [newClientPhone, setNewClientPhone] = useState('');
+  const [newClientEmail, setNewClientEmail] = useState('');
 
   // Edit case form
   const [editCaseForm, setEditCaseForm] = useState({
@@ -296,18 +301,35 @@ export function CSTab() {
     }
 
     try {
+      let clientId = editCaseForm.client_id || null;
+
+      // Create new client if toggled
+      if (isCreatingNewClient && newClientName.trim()) {
+        const newClient = await createClientMutation.mutateAsync({
+          name: newClientName.trim(),
+          phone: newClientPhone.trim() || null,
+          email: newClientEmail.trim() || null,
+          status: 'Vendido',
+        });
+        clientId = newClient.id;
+      }
+
       await updateCaseMutation.mutateAsync({
         id: editingCase.id,
         contract_number: editCaseForm.contract_number.trim(),
         signature_date: editCaseForm.signature_date,
         responsible_id: editCaseForm.responsible_id || null,
-        client_id: editCaseForm.client_id || null,
+        client_id: clientId,
         status: editCaseForm.status,
         notes: editCaseForm.notes || null,
       });
       toast({ title: 'Caso atualizado com sucesso' });
       setShowEditCaseModal(false);
       setEditingCase(null);
+      setIsCreatingNewClient(false);
+      setNewClientName('');
+      setNewClientPhone('');
+      setNewClientEmail('');
     } catch (error) {
       console.error(error);
       toast({ title: 'Erro ao atualizar caso', variant: 'destructive' });
@@ -1088,19 +1110,63 @@ export function CSTab() {
             </div>
 
             <div>
-              <label className="text-xs uppercase tracking-widest text-muted-foreground">
-                Cliente
-              </label>
-              <select
-                value={editCaseForm.client_id}
-                onChange={(e) => setEditCaseForm({ ...editCaseForm, client_id: e.target.value })}
-                className="input-flat w-full mt-1"
-              >
-                <option value="">Nenhum</option>
-                {clients.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+              <div className="flex items-center justify-between">
+                <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                  Cliente
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCreatingNewClient(!isCreatingNewClient);
+                    if (!isCreatingNewClient) {
+                      setEditCaseForm({ ...editCaseForm, client_id: '' });
+                    } else {
+                      setNewClientName('');
+                      setNewClientPhone('');
+                      setNewClientEmail('');
+                    }
+                  }}
+                  className="text-xs text-primary hover:underline"
+                >
+                  {isCreatingNewClient ? 'Selecionar existente' : '+ Novo Cliente'}
+                </button>
+              </div>
+              {isCreatingNewClient ? (
+                <div className="space-y-2 mt-1">
+                  <input
+                    type="text"
+                    placeholder="Nome do cliente *"
+                    value={newClientName}
+                    onChange={(e) => setNewClientName(e.target.value)}
+                    className="input-flat w-full"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Telefone"
+                    value={newClientPhone}
+                    onChange={(e) => setNewClientPhone(e.target.value)}
+                    className="input-flat w-full"
+                  />
+                  <input
+                    type="email"
+                    placeholder="E-mail"
+                    value={newClientEmail}
+                    onChange={(e) => setNewClientEmail(e.target.value)}
+                    className="input-flat w-full"
+                  />
+                </div>
+              ) : (
+                <select
+                  value={editCaseForm.client_id}
+                  onChange={(e) => setEditCaseForm({ ...editCaseForm, client_id: e.target.value })}
+                  className="input-flat w-full mt-1"
+                >
+                  <option value="">Nenhum</option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              )}
             </div>
 
             <div>
