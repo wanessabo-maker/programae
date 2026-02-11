@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useApp } from '@/contexts/AppContext';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useCurrentTeamMember } from '@/hooks/useCurrentTeamMember';
+import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,6 +19,7 @@ interface EditActionModalProps {
 export function EditActionModal({ open, onOpenChange, action }: EditActionModalProps) {
   const { isAdmin } = useAuthContext();
   const { data: currentTeamMember } = useCurrentTeamMember();
+  const queryClient = useQueryClient();
   const { 
     teamMembers, 
     professionals, 
@@ -218,6 +220,7 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
       }
 
       toast.success('Ação atualizada com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
       onOpenChange(false);
     } catch (error) {
       console.error('Error updating action:', error);
