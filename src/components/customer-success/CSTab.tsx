@@ -46,7 +46,7 @@ export function CSTab() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedAction, setSelectedAction] = useState<typeof csActions[0] | null>(null);
   const [actionToDelete, setActionToDelete] = useState<typeof csActions[0] | null>(null);
-  const [viewTab, setViewTab] = useState<'cases' | 'upcoming' | 'history'>('cases');
+  const [viewTab, setViewTab] = useState<'cases' | 'completed_cycle' | 'upcoming' | 'history'>('cases');
   const [showEditCaseModal, setShowEditCaseModal] = useState(false);
   const [editingCase, setEditingCase] = useState<typeof csCases[0] | null>(null);
   const [isCreatingNewClient, setIsCreatingNewClient] = useState(false);
@@ -105,29 +105,23 @@ export function CSTab() {
   }, [teamMembers]);
 
   // Active clients with their next scheduled visit
-  const activeClientsWithNextVisit = useMemo(() => {
+  const allActiveClientsData = useMemo(() => {
     const activeCases = csCases.filter(c => c.status === 'active');
     
     return activeCases.map(csCase => {
-      // Get pending actions for this case
       const caseActions = csActions.filter(a => 
         a.cs_case_id === csCase.id && a.status === 'pending'
       );
-      
-      // Find next scheduled action
       const sortedActions = caseActions.sort((a, b) => 
         new Date(a.scheduled_date).getTime() - new Date(b.scheduled_date).getTime()
       );
-      
       const nextAction = sortedActions[0];
       const completedActions = csActions.filter(a => 
         a.cs_case_id === csCase.id && a.status === 'completed'
       ).length;
-      
       const totalScheduledActions = csActions.filter(a => 
         a.cs_case_id === csCase.id
       ).length;
-      
       const daysUntilNext = nextAction 
         ? differenceInDays(parseISO(nextAction.scheduled_date), new Date())
         : null;
@@ -140,14 +134,23 @@ export function CSTab() {
         totalScheduledActions,
         pendingActions: caseActions.length,
       };
-    }).sort((a, b) => {
-      // Sort by days until next (nulls last, then ascending)
-      if (a.daysUntilNext === null && b.daysUntilNext === null) return 0;
-      if (a.daysUntilNext === null) return 1;
-      if (b.daysUntilNext === null) return -1;
-      return a.daysUntilNext - b.daysUntilNext;
     });
   }, [csCases, csActions]);
+
+  const activeClientsWithNextVisit = useMemo(() => {
+    return allActiveClientsData
+      .filter(c => c.pendingActions > 0)
+      .sort((a, b) => {
+        if (a.daysUntilNext === null && b.daysUntilNext === null) return 0;
+        if (a.daysUntilNext === null) return 1;
+        if (b.daysUntilNext === null) return -1;
+        return a.daysUntilNext - b.daysUntilNext;
+      });
+  }, [allActiveClientsData]);
+
+  const completedCycleClients = useMemo(() => {
+    return allActiveClientsData.filter(c => c.pendingActions === 0 && c.totalScheduledActions > 0);
+  }, [allActiveClientsData]);
 
   const handleCreateCase = async () => {
     if (!newCase.contract_number || !newCase.signature_date) {
@@ -423,7 +426,7 @@ export function CSTab() {
       {/* Header with actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex flex-wrap gap-2">
-          <button
+           <button
             onClick={() => setViewTab('cases')}
             className={`px-4 py-2 text-xs uppercase tracking-widest border ${
               viewTab === 'cases' ? 'bg-foreground text-background' : 'border-border'
@@ -431,6 +434,15 @@ export function CSTab() {
           >
             <Users className="w-3 h-3 inline mr-1" />
             Clientes Ativos ({activeClientsWithNextVisit.length})
+          </button>
+          <button
+            onClick={() => setViewTab('completed_cycle')}
+            className={`px-4 py-2 text-xs uppercase tracking-widest border ${
+              viewTab === 'completed_cycle' ? 'bg-foreground text-background' : 'border-border'
+            }`}
+          >
+            <Check className="w-3 h-3 inline mr-1" />
+            Ciclo Completo ({completedCycleClients.length})
           </button>
           <button
             onClick={() => setViewTab('upcoming')}
@@ -595,6 +607,75 @@ export function CSTab() {
                           Ciclo Completo
                         </div>
                       )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Completed Cycle Clients */}
+      {viewTab === 'completed_cycle' && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Check className="w-4 h-4" />
+            Clientes que completaram todas as visitas programadas
+          </div>
+
+          {completedCycleClients.length === 0 ? (
+            <div className="border border-border p-8 text-center">
+              <p className="text-xs text-muted-foreground">
+                Nenhum cliente com ciclo completo
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {completedCycleClients.map((csCase) => (
+                <div
+                  key={csCase.id}
+                  className="p-4 border border-border"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <div className="text-sm font-medium">
+                          {csCase.client_name || 'Cliente não identificado'}
+                        </div>
+                        <span className="text-xs px-2 py-0.5 bg-muted text-muted-foreground rounded">
+                          Contrato: {csCase.contract_number}
+                        </span>
+                        <button
+                          onClick={() => openEditCaseModal(csCase)}
+                          className="btn-secondary border-border text-xs px-2 py-1"
+                          title="Editar caso"
+                        >
+                          <Pencil className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Assinatura: {format(parseISO(csCase.signature_date), "dd/MM/yyyy", { locale: ptBR })}
+                        {csCase.responsible_name && ` | Responsável: ${csCase.responsible_name}`}
+                      </div>
+                      
+                      {/* Progress bar - full */}
+                      <div className="mt-2">
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="text-muted-foreground">Visitas concluídas</span>
+                          <span className="font-medium">{csCase.completedActions}/{csCase.totalScheduledActions}</span>
+                        </div>
+                        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div className="h-full bg-primary w-full" />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="ml-4 text-right">
+                      <div className="text-xs px-3 py-1.5 bg-success/10 text-success rounded">
+                        <Check className="w-3 h-3 inline mr-1" />
+                        Ciclo Completo
+                      </div>
                     </div>
                   </div>
                 </div>
