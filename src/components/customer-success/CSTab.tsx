@@ -10,6 +10,7 @@ import { useApp } from '@/contexts/AppContext';
 import {
   useCSCases,
   useCreateCSCase,
+  useUpdateCSCase,
   useCSActions,
   useUpcomingCSActions,
   useUpdateCSAction,
@@ -19,6 +20,7 @@ import {
   generateCSActionsForCase,
 } from '@/hooks/useCustomerSuccess';
 import { useProjects } from '@/hooks/useProjects';
+import { useClients } from '@/hooks/useClients';
 
 export function CSTab() {
   const { toast } = useToast();
@@ -29,8 +31,10 @@ export function CSTab() {
   const { data: schedules = [] } = useCSContactSchedules();
   const { data: actionTypes = [] } = useCSActionTypes();
   const { data: projects = [] } = useProjects();
+  const { data: clients = [] } = useClients();
   
   const createCaseMutation = useCreateCSCase();
+  const updateCaseMutation = useUpdateCSCase();
   const updateActionMutation = useUpdateCSAction();
   const deleteActionMutation = useDeleteCSAction();
 
@@ -41,6 +45,18 @@ export function CSTab() {
   const [selectedAction, setSelectedAction] = useState<typeof csActions[0] | null>(null);
   const [actionToDelete, setActionToDelete] = useState<typeof csActions[0] | null>(null);
   const [viewTab, setViewTab] = useState<'cases' | 'upcoming' | 'history'>('cases');
+  const [showEditCaseModal, setShowEditCaseModal] = useState(false);
+  const [editingCase, setEditingCase] = useState<typeof csCases[0] | null>(null);
+
+  // Edit case form
+  const [editCaseForm, setEditCaseForm] = useState({
+    contract_number: '',
+    signature_date: '',
+    responsible_id: '',
+    client_id: '',
+    status: 'active',
+    notes: '',
+  });
 
   // Edit action form
   const [editForm, setEditForm] = useState({
@@ -259,6 +275,45 @@ export function CSTab() {
     }
   };
 
+  const openEditCaseModal = (csCase: typeof csCases[0]) => {
+    setEditingCase(csCase);
+    setEditCaseForm({
+      contract_number: csCase.contract_number,
+      signature_date: csCase.signature_date,
+      responsible_id: csCase.responsible_id || '',
+      client_id: csCase.client_id || '',
+      status: csCase.status,
+      notes: csCase.notes || '',
+    });
+    setShowEditCaseModal(true);
+  };
+
+  const handleEditCase = async () => {
+    if (!editingCase) return;
+    if (!editCaseForm.contract_number.trim() || !editCaseForm.signature_date) {
+      toast({ title: 'Preencha os campos obrigatórios', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      await updateCaseMutation.mutateAsync({
+        id: editingCase.id,
+        contract_number: editCaseForm.contract_number.trim(),
+        signature_date: editCaseForm.signature_date,
+        responsible_id: editCaseForm.responsible_id || null,
+        client_id: editCaseForm.client_id || null,
+        status: editCaseForm.status,
+        notes: editCaseForm.notes || null,
+      });
+      toast({ title: 'Caso atualizado com sucesso' });
+      setShowEditCaseModal(false);
+      setEditingCase(null);
+    } catch (error) {
+      console.error(error);
+      toast({ title: 'Erro ao atualizar caso', variant: 'destructive' });
+    }
+  };
+
   const getDaysUntil = (dateStr: string) => {
     return differenceInDays(parseISO(dateStr), new Date());
   };
@@ -433,6 +488,13 @@ export function CSTab() {
                         <span className="text-xs px-2 py-0.5 bg-muted text-muted-foreground rounded">
                           Contrato: {csCase.contract_number}
                         </span>
+                        <button
+                          onClick={() => openEditCaseModal(csCase)}
+                          className="btn-secondary border-border text-xs px-2 py-1"
+                          title="Editar caso"
+                        >
+                          <Pencil className="w-3 h-3" />
+                        </button>
                       </div>
                       <div className="text-xs text-muted-foreground mt-1">
                         Assinatura: {format(parseISO(csCase.signature_date), "dd/MM/yyyy", { locale: ptBR })}
@@ -1003,6 +1065,115 @@ export function CSTab() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit Case Modal */}
+      <Dialog open={showEditCaseModal} onOpenChange={setShowEditCaseModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm uppercase tracking-widest">
+              Editar Caso de CS
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                Número do Contrato *
+              </label>
+              <input
+                type="text"
+                value={editCaseForm.contract_number}
+                onChange={(e) => setEditCaseForm({ ...editCaseForm, contract_number: e.target.value })}
+                className="input-flat w-full mt-1"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                Cliente
+              </label>
+              <select
+                value={editCaseForm.client_id}
+                onChange={(e) => setEditCaseForm({ ...editCaseForm, client_id: e.target.value })}
+                className="input-flat w-full mt-1"
+              >
+                <option value="">Nenhum</option>
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                Data de Assinatura do Certificado *
+              </label>
+              <input
+                type="date"
+                value={editCaseForm.signature_date}
+                onChange={(e) => setEditCaseForm({ ...editCaseForm, signature_date: e.target.value })}
+                className="input-flat w-full mt-1"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                Responsável
+              </label>
+              <select
+                value={editCaseForm.responsible_id}
+                onChange={(e) => setEditCaseForm({ ...editCaseForm, responsible_id: e.target.value })}
+                className="input-flat w-full mt-1"
+              >
+                <option value="">Selecione</option>
+                {activeTeamMembers.map((m) => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                Status
+              </label>
+              <select
+                value={editCaseForm.status}
+                onChange={(e) => setEditCaseForm({ ...editCaseForm, status: e.target.value })}
+                className="input-flat w-full mt-1"
+              >
+                <option value="active">Ativo</option>
+                <option value="completed">Concluído</option>
+                <option value="cancelled">Cancelado</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                Observações
+              </label>
+              <textarea
+                value={editCaseForm.notes}
+                onChange={(e) => setEditCaseForm({ ...editCaseForm, notes: e.target.value })}
+                className="input-flat w-full mt-1 h-20 resize-none"
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={handleEditCase}
+              className="btn-primary bg-foreground text-background flex-1"
+            >
+              Salvar Alterações
+            </button>
+            <button
+              onClick={() => setShowEditCaseModal(false)}
+              className="btn-secondary border-border flex-1"
+            >
+              Cancelar
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
