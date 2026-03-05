@@ -38,6 +38,7 @@ export default function ProgramaEMais() {
     date: string;
   } | null>(null);
   const [historyFilterMember, setHistoryFilterMember] = useState<string>('all');
+  const [historyFilterMonth, setHistoryFilterMonth] = useState<string>('all');
 
   const activeMembers = teamMembers.filter(m => m.active);
 
@@ -433,45 +434,62 @@ export default function ProgramaEMais() {
 
           {isAdmin && (
             <TabsContent value="history">
-              {/* Filter by team member */}
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
-                <label className="text-sm text-muted-foreground whitespace-nowrap">Filtrar por colaborador:</label>
-                <select
-                  value={historyFilterMember}
-                  onChange={(e) => setHistoryFilterMember(e.target.value)}
-                  className="input-field text-sm max-w-xs"
-                >
-                  <option value="all">Todos</option>
-                  {activeMembers.map(m => (
-                    <option key={m.id} value={m.id}>{m.name}</option>
-                  ))}
-                </select>
-                {historyFilterMember !== 'all' && (() => {
-                  const totalGanho = pastMonthsGrouped.flatMap(g => g.transactions)
-                    .filter(t => t.consultantId === historyFilterMember && t.type === 'ganho')
-                    .reduce((sum, t) => sum + t.amount, 0);
-                  const totalResgate = pastMonthsGrouped.flatMap(g => g.transactions)
-                    .filter(t => t.consultantId === historyFilterMember && t.type === 'resgate')
-                    .reduce((sum, t) => sum + t.amount, 0);
-                  return (
+              {/* Filters */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-muted-foreground whitespace-nowrap">Colaborador:</label>
+                  <select
+                    value={historyFilterMember}
+                    onChange={(e) => setHistoryFilterMember(e.target.value)}
+                    className="input-field text-sm max-w-[200px]"
+                  >
+                    <option value="all">Todos</option>
+                    {activeMembers.map(m => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-muted-foreground whitespace-nowrap">Mês:</label>
+                  <select
+                    value={historyFilterMonth}
+                    onChange={(e) => setHistoryFilterMonth(e.target.value)}
+                    className="input-field text-sm max-w-[200px]"
+                  >
+                    <option value="all">Todos</option>
+                    {pastMonthsGrouped.map(g => (
+                      <option key={g.label} value={g.label}>{g.label}</option>
+                    ))}
+                  </select>
+                </div>
+                {(() => {
+                  const allFiltered = pastMonthsGrouped
+                    .filter(g => historyFilterMonth === 'all' || g.label === historyFilterMonth)
+                    .flatMap(g => g.transactions)
+                    .filter(t => historyFilterMember === 'all' || t.consultantId === historyFilterMember);
+                  const totalGanho = allFiltered.filter(t => t.type === 'ganho').reduce((sum, t) => sum + t.amount, 0);
+                  const totalResgate = allFiltered.filter(t => t.type === 'resgate').reduce((sum, t) => sum + t.amount, 0);
+                  return (totalGanho > 0 || totalResgate > 0) ? (
                     <div className="flex items-center gap-4 text-sm">
                       <span className="text-success font-medium">+{totalGanho} ganhos</span>
                       <span className="text-destructive font-medium">-{totalResgate} resgates</span>
                       <span className="font-medium">Saldo: {totalGanho - totalResgate}</span>
                     </div>
-                  );
+                  ) : null;
                 })()}
               </div>
               {(() => {
-                const filtered = pastMonthsGrouped.map(group => ({
-                  ...group,
-                  transactions: historyFilterMember === 'all'
-                    ? group.transactions
-                    : group.transactions.filter(t => t.consultantId === historyFilterMember),
-                })).filter(group => group.transactions.length > 0);
+                const filtered = pastMonthsGrouped
+                  .filter(g => historyFilterMonth === 'all' || g.label === historyFilterMonth)
+                  .map(group => ({
+                    ...group,
+                    transactions: historyFilterMember === 'all'
+                      ? group.transactions
+                      : group.transactions.filter(t => t.consultantId === historyFilterMember),
+                  })).filter(group => group.transactions.length > 0);
 
                 return filtered.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Nenhuma movimentação em meses anteriores.</p>
+                  <p className="text-sm text-muted-foreground">Nenhuma movimentação encontrada.</p>
                 ) : (
                   <div className="space-y-6">
                     {filtered.map((group) => (
