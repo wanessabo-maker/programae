@@ -15,6 +15,7 @@ import CustomerSuccess from "./pages/CustomerSuccess";
 import Projetos from "./pages/Projetos";
 import MinhaArea from "./pages/MinhaArea";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -94,6 +95,7 @@ function AppRoutes() {
           </PublicRoute>
         }
       />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route
         path="/"
         element={
