@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { format, parseISO, startOfMonth, endOfMonth, startOfYear, endOfYear, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Eye, FileText, Calendar, TrendingUp, Filter, User, DollarSign, ListChecks } from 'lucide-react';
+import { Eye, FileText, Calendar, TrendingUp, Filter, User, DollarSign, ListChecks, Pencil } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -9,6 +9,11 @@ import { useProjects, Project } from '@/hooks/useProjects';
 import { useClients } from '@/hooks/useClients';
 import { useApp } from '@/contexts/AppContext';
 import { ContractChecklistView } from './ContractChecklistView';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useQueryClient } from '@tanstack/react-query';
 
 type PeriodFilter = 'all' | 'month' | 'year' | 'custom';
 
@@ -17,11 +22,18 @@ export default function ContratosTab() {
   const { data: clients = [] } = useClients();
   const { teamMembers, professionals, actions, actionTypes } = useApp();
   
+  const queryClient = useQueryClient();
+  
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('month');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [editContractNumber, setEditContractNumber] = useState('');
+  const [editClientName, setEditClientName] = useState('');
+  const [saving, setSaving] = useState(false);
 
   // Get only closed projects (closed_won stage)
   const closedProjects = useMemo(() => {
@@ -104,6 +116,38 @@ export default function ContratosTab() {
   const handleViewProject = (project: Project) => {
     setSelectedProject(project);
     setViewModalOpen(true);
+  };
+
+  const handleEditProject = (project: Project) => {
+    const client = getClientForProject(project.id);
+    const saleAction = getSaleAction(project.id);
+    setEditingProject(project);
+    setEditContractNumber(client?.contract_number || saleAction?.presentationNumber || '');
+    setEditClientName(project.clients?.name || client?.name || '');
+    setEditModalOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingProject) return;
+    setSaving(true);
+    try {
+      const clientId = editingProject.client_id;
+      if (clientId) {
+        const { error } = await supabase
+          .from('clients')
+          .update({ contract_number: editContractNumber.trim() || null, name: editClientName.trim() })
+          .eq('id', clientId);
+        if (error) throw error;
+      }
+      toast.success('Contrato atualizado com sucesso');
+      setEditModalOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+    } catch (err: any) {
+      toast.error('Erro ao atualizar: ' + (err.message || 'Erro desconhecido'));
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (isLoading) {
@@ -257,7 +301,14 @@ export default function ContratosTab() {
                     <td className="p-3 text-sm text-right font-medium">
                       {formatCurrency(project.closed_value || project.estimated_value)}
                     </td>
-                    <td className="p-3 text-center">
+                    <td className="p-3 text-center flex items-center justify-center gap-1">
+                      <button
+                        onClick={() => handleEditProject(project)}
+                        className="p-1 hover:bg-muted rounded"
+                        title="Editar contrato"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
                       <button
                         onClick={() => handleViewProject(project)}
                         className="p-1 hover:bg-muted rounded"
@@ -426,6 +477,53 @@ export default function ContratosTab() {
               </TabsContent>
             </Tabs>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Contract Modal */}
+      <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+        <DialogContent className="bg-background border-border max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-5 w-5" />
+              Editar Contrato
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label className="text-xs tracking-widest uppercase text-muted-foreground">Nº Contrato</Label>
+              <Input
+                value={editContractNumber}
+                onChange={(e) => setEditContractNumber(e.target.value)}
+                placeholder="Número do contrato"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs tracking-widest uppercase text-muted-foreground">Nome do Cliente</Label>
+              <Input
+                value={editClientName}
+                onChange={(e) => setEditClientName(e.target.value)}
+                placeholder="Nome do cliente"
+                className="mt-1"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => setEditModalOpen(false)}
+                className="px-4 py-2 text-sm border border-border hover:bg-muted"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                disabled={saving || !editClientName.trim()}
+                className="px-4 py-2 text-sm bg-foreground text-background hover:bg-foreground/90 disabled:opacity-50"
+              >
+                {saving ? 'Salvando...' : 'Salvar'}
+              </button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
