@@ -37,6 +37,7 @@ export default function ProgramaEMais() {
     cost: number;
     date: string;
   } | null>(null);
+  const [historyFilterMember, setHistoryFilterMember] = useState<string>('all');
 
   const activeMembers = teamMembers.filter(m => m.active);
 
@@ -432,19 +433,57 @@ export default function ProgramaEMais() {
 
           {isAdmin && (
             <TabsContent value="history">
-              {pastMonthsGrouped.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nenhuma movimentação em meses anteriores.</p>
-              ) : (
-                <div className="space-y-6">
-                  {pastMonthsGrouped.map((group) => (
-                    <div key={group.label}>
-                      <h3 className="text-sm font-medium mb-3 capitalize border-b border-border pb-2">{group.label}</h3>
-                      {renderTransactionsTable(group.transactions)}
-                      {renderTransactionsMobile(group.transactions)}
-                    </div>
+              {/* Filter by team member */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+                <label className="text-sm text-muted-foreground whitespace-nowrap">Filtrar por colaborador:</label>
+                <select
+                  value={historyFilterMember}
+                  onChange={(e) => setHistoryFilterMember(e.target.value)}
+                  className="input-field text-sm max-w-xs"
+                >
+                  <option value="all">Todos</option>
+                  {activeMembers.map(m => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
                   ))}
-                </div>
-              )}
+                </select>
+                {historyFilterMember !== 'all' && (() => {
+                  const totalGanho = pastMonthsGrouped.flatMap(g => g.transactions)
+                    .filter(t => t.consultantId === historyFilterMember && t.type === 'ganho')
+                    .reduce((sum, t) => sum + t.amount, 0);
+                  const totalResgate = pastMonthsGrouped.flatMap(g => g.transactions)
+                    .filter(t => t.consultantId === historyFilterMember && t.type === 'resgate')
+                    .reduce((sum, t) => sum + t.amount, 0);
+                  return (
+                    <div className="flex items-center gap-4 text-sm">
+                      <span className="text-success font-medium">+{totalGanho} ganhos</span>
+                      <span className="text-destructive font-medium">-{totalResgate} resgates</span>
+                      <span className="font-medium">Saldo: {totalGanho - totalResgate}</span>
+                    </div>
+                  );
+                })()}
+              </div>
+              {(() => {
+                const filtered = pastMonthsGrouped.map(group => ({
+                  ...group,
+                  transactions: historyFilterMember === 'all'
+                    ? group.transactions
+                    : group.transactions.filter(t => t.consultantId === historyFilterMember),
+                })).filter(group => group.transactions.length > 0);
+
+                return filtered.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhuma movimentação em meses anteriores.</p>
+                ) : (
+                  <div className="space-y-6">
+                    {filtered.map((group) => (
+                      <div key={group.label}>
+                        <h3 className="text-sm font-medium mb-3 capitalize border-b border-border pb-2">{group.label}</h3>
+                        {renderTransactionsTable(group.transactions)}
+                        {renderTransactionsMobile(group.transactions)}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
             </TabsContent>
           )}
         </Tabs>
