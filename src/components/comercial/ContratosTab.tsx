@@ -138,11 +138,20 @@ export default function ContratosTab() {
           .update({ contract_number: editContractNumber.trim() || null, name: editClientName.trim() })
           .eq('id', clientId);
         if (error) throw error;
+      } else {
+        toast.error('Este contrato não possui cliente vinculado');
+        return;
       }
-      toast.success('Contrato atualizado com sucesso');
       setEditModalOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
-      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['projects'] }),
+        queryClient.invalidateQueries({ queryKey: ['clients'] }),
+      ]);
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['projects'] }),
+        queryClient.refetchQueries({ queryKey: ['clients'] }),
+      ]);
+      toast.success('Contrato atualizado com sucesso');
     } catch (err: any) {
       toast.error('Erro ao atualizar: ' + (err.message || 'Erro desconhecido'));
     } finally {
