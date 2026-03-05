@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { Gift, Award, Printer, Trash2, Calendar, Clock, XCircle, CheckCircle, AlertCircle, Pencil } from 'lucide-react';
+import { Gift, Award, Printer, Trash2, Calendar, Clock, XCircle, CheckCircle, AlertCircle, History } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/hooks/useAuth';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -63,10 +64,11 @@ export default function ProgramaEMais() {
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [creditTransactions]);
 
-  // All transactions for history
-  const allTransactions = useMemo(() => {
+  // Past months transactions grouped by month (excludes current month)
+  const pastMonthsGrouped = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
-    return creditTransactions
+    const past = creditTransactions
+      .filter(t => !isThisMonth(parseISO(t.date)))
       .map(t => {
         let displayStatus = t.status;
         if (t.type === 'ganho' && t.status === 'active' && t.expiresAt && t.expiresAt < today) {
@@ -75,6 +77,20 @@ export default function ProgramaEMais() {
         return { ...t, displayStatus };
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    const grouped: Record<string, typeof past> = {};
+    past.forEach(t => {
+      const key = format(parseISO(t.date), 'yyyy-MM');
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(t);
+    });
+
+    return Object.entries(grouped)
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([key, transactions]) => ({
+        label: format(parseISO(key + '-01'), "MMMM 'de' yyyy", { locale: ptBR }),
+        transactions,
+      }));
   }, [creditTransactions]);
 
   // How to earn points
@@ -192,6 +208,126 @@ export default function ProgramaEMais() {
     sem_validade: 'Sem validade',
   };
 
+  const renderTransactionsTable = (transactions: typeof monthlyTransactions) => (
+    <div className="card-flat overflow-hidden hidden md:block">
+      <table className="w-full">
+        <thead>
+          <tr className="border-b border-black">
+            <th className="table-header text-left p-3">Data</th>
+            <th className="table-header text-left p-3">Colaborador</th>
+            <th className="table-header text-left p-3">Descrição</th>
+            <th className="table-header text-center p-3">Status</th>
+            <th className="table-header text-center p-3">Expira em</th>
+            <th className="table-header text-right p-3">Créditos</th>
+            {isAdmin && <th className="table-header text-center p-3 w-24">Ações</th>}
+          </tr>
+        </thead>
+        <tbody>
+          {transactions.map((transaction) => {
+            const consultant = teamMembers.find(m => m.id === transaction.consultantId);
+            return (
+              <tr key={transaction.id} className="border-b border-black/10 last:border-0">
+                <td className="p-3 text-sm">{format(parseISO(transaction.date), 'dd/MM')}</td>
+                <td className="p-3 text-sm">{consultant?.name || '-'}</td>
+                <td className="p-3 text-sm">{transaction.description}</td>
+                <td className="p-3 text-center">
+                  {transaction.type === 'ganho' ? getStatusBadge(transaction.displayStatus, transaction.expiresAt) : '-'}
+                </td>
+                <td className="p-3 text-sm text-center">
+                  {transaction.expiresAt ? format(parseISO(transaction.expiresAt), 'dd/MM/yy') : '-'}
+                </td>
+                <td className={`p-3 text-sm text-right font-medium ${
+                  transaction.type === 'ganho' ? 'text-success' : 'text-destructive'
+                }`}>
+                  {transaction.type === 'ganho' ? '+' : '-'}{transaction.amount}
+                </td>
+                {isAdmin && (
+                  <td className="p-3 text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      {transaction.type === 'ganho' && transaction.displayStatus === 'active' && (
+                        <>
+                          <button
+                            onClick={() => {
+                              setTransactionToExtend(transaction.id);
+                              setNewExpirationDate(transaction.expiresAt || '');
+                            }}
+                            className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                            title="Prorrogar validade"
+                          >
+                            <Calendar className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleCancelCredit(transaction.id)}
+                            className="text-warning hover:text-warning/80 transition-colors p-1"
+                            title="Cancelar crédito"
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
+                      <button
+                        onClick={() => setTransactionToDelete(transaction.id)}
+                        className="text-destructive hover:text-destructive/80 transition-colors p-1"
+                        title="Excluir transação"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                )}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  const renderTransactionsMobile = (transactions: typeof monthlyTransactions) => (
+    <div className="space-y-3 md:hidden">
+      {transactions.map((transaction) => {
+        const consultant = teamMembers.find(m => m.id === transaction.consultantId);
+        return (
+          <div key={transaction.id} className="card-flat">
+            <div className="flex justify-between items-start mb-2">
+              <div>
+                <p className="text-sm font-medium">{consultant?.name || '-'}</p>
+                <p className="text-xs text-muted-foreground">{transaction.description}</p>
+              </div>
+              <div className="text-right">
+                <span className={`text-sm font-medium ${
+                  transaction.type === 'ganho' ? 'text-success' : 'text-destructive'
+                }`}>
+                  {transaction.type === 'ganho' ? '+' : '-'}{transaction.amount}
+                </span>
+                <p className="text-xs text-muted-foreground">{format(parseISO(transaction.date), 'dd/MM')}</p>
+              </div>
+            </div>
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                {transaction.type === 'ganho' && getStatusBadge(transaction.displayStatus, transaction.expiresAt)}
+                {transaction.expiresAt && (
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    {format(parseISO(transaction.expiresAt), 'dd/MM/yy')}
+                  </span>
+                )}
+              </div>
+              {isAdmin && (
+                <button
+                  onClick={() => setTransactionToDelete(transaction.id)}
+                  className="text-destructive hover:text-destructive/80 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Header */}
@@ -264,134 +400,54 @@ export default function ProgramaEMais() {
         </div>
       </section>
 
-      {/* Monthly Extract */}
+      {/* Extract with Tabs */}
       <section>
-        <h2 className="title-section mb-4">
-          Extrato do Mês ({format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })})
-        </h2>
-        {monthlyTransactions.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nenhuma movimentação este mês.</p>
-        ) : (
-          <>
-            {/* Desktop Table */}
-            <div className="card-flat overflow-hidden hidden md:block">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-black">
-                    <th className="table-header text-left p-3">Data</th>
-                    <th className="table-header text-left p-3">Colaborador</th>
-                    <th className="table-header text-left p-3">Descrição</th>
-                    <th className="table-header text-center p-3">Status</th>
-                    <th className="table-header text-center p-3">Expira em</th>
-                    <th className="table-header text-right p-3">Créditos</th>
-                    {isAdmin && <th className="table-header text-center p-3 w-24">Ações</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {monthlyTransactions.map((transaction) => {
-                    const consultant = teamMembers.find(m => m.id === transaction.consultantId);
-                    return (
-                      <tr key={transaction.id} className="border-b border-black/10 last:border-0">
-                        <td className="p-3 text-sm">{format(parseISO(transaction.date), 'dd/MM')}</td>
-                        <td className="p-3 text-sm">{consultant?.name || '-'}</td>
-                        <td className="p-3 text-sm">{transaction.description}</td>
-                        <td className="p-3 text-center">
-                          {transaction.type === 'ganho' ? getStatusBadge(transaction.displayStatus, transaction.expiresAt) : '-'}
-                        </td>
-                        <td className="p-3 text-sm text-center">
-                          {transaction.expiresAt ? format(parseISO(transaction.expiresAt), 'dd/MM/yy') : '-'}
-                        </td>
-                        <td className={`p-3 text-sm text-right font-medium ${
-                          transaction.type === 'ganho' ? 'text-success' : 'text-destructive'
-                        }`}>
-                          {transaction.type === 'ganho' ? '+' : '-'}{transaction.amount}
-                        </td>
-                        {isAdmin && (
-                          <td className="p-3 text-center">
-                            <div className="flex items-center justify-center gap-1">
-                              {transaction.type === 'ganho' && transaction.displayStatus === 'active' && (
-                                <>
-                                  <button
-                                    onClick={() => {
-                                      setTransactionToExtend(transaction.id);
-                                      setNewExpirationDate(transaction.expiresAt || '');
-                                    }}
-                                    className="text-muted-foreground hover:text-foreground transition-colors p-1"
-                                    title="Prorrogar validade"
-                                  >
-                                    <Calendar className="w-4 h-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleCancelCredit(transaction.id)}
-                                    className="text-warning hover:text-warning/80 transition-colors p-1"
-                                    title="Cancelar crédito"
-                                  >
-                                    <XCircle className="w-4 h-4" />
-                                  </button>
-                                </>
-                              )}
-                              <button
-                                onClick={() => setTransactionToDelete(transaction.id)}
-                                className="text-destructive hover:text-destructive/80 transition-colors p-1"
-                                title="Excluir transação"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
-                        )}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+        <Tabs defaultValue="current">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="title-section">Extrato de Créditos</h2>
+            {isAdmin && (
+              <TabsList>
+                <TabsTrigger value="current">Mês Atual</TabsTrigger>
+                <TabsTrigger value="history" className="flex items-center gap-1">
+                  <History className="w-3.5 h-3.5" />
+                  Histórico
+                </TabsTrigger>
+              </TabsList>
+            )}
+          </div>
 
-            {/* Mobile Cards */}
-            <div className="space-y-3 md:hidden">
-              {monthlyTransactions.map((transaction) => {
-                const consultant = teamMembers.find(m => m.id === transaction.consultantId);
-                return (
-                  <div key={transaction.id} className="card-flat">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <p className="text-sm font-medium">{consultant?.name || '-'}</p>
-                        <p className="text-xs text-muted-foreground">{transaction.description}</p>
-                      </div>
-                      <div className="text-right">
-                        <span className={`text-sm font-medium ${
-                          transaction.type === 'ganho' ? 'text-success' : 'text-destructive'
-                        }`}>
-                          {transaction.type === 'ganho' ? '+' : '-'}{transaction.amount}
-                        </span>
-                        <p className="text-xs text-muted-foreground">{format(parseISO(transaction.date), 'dd/MM')}</p>
-                      </div>
+          <TabsContent value="current">
+            <h3 className="text-sm text-muted-foreground mb-3 capitalize">
+              {format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })}
+            </h3>
+            {monthlyTransactions.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhuma movimentação este mês.</p>
+            ) : (
+              <>
+                {renderTransactionsTable(monthlyTransactions)}
+                {renderTransactionsMobile(monthlyTransactions)}
+              </>
+            )}
+          </TabsContent>
+
+          {isAdmin && (
+            <TabsContent value="history">
+              {pastMonthsGrouped.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhuma movimentação em meses anteriores.</p>
+              ) : (
+                <div className="space-y-6">
+                  {pastMonthsGrouped.map((group) => (
+                    <div key={group.label}>
+                      <h3 className="text-sm font-medium mb-3 capitalize border-b border-border pb-2">{group.label}</h3>
+                      {renderTransactionsTable(group.transactions)}
+                      {renderTransactionsMobile(group.transactions)}
                     </div>
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        {transaction.type === 'ganho' && getStatusBadge(transaction.displayStatus, transaction.expiresAt)}
-                        {transaction.expiresAt && (
-                          <span className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {format(parseISO(transaction.expiresAt), 'dd/MM/yy')}
-                          </span>
-                        )}
-                      </div>
-                      {isAdmin && (
-                        <button
-                          onClick={() => setTransactionToDelete(transaction.id)}
-                          className="text-destructive hover:text-destructive/80 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        )}
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          )}
+        </Tabs>
       </section>
 
       {/* Redeem Modal */}
