@@ -4,13 +4,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import logo from '@/assets/logo.png';
 
-type AuthMode = 'login' | 'signup' | 'forgot' | 'reset';
+type AuthMode = 'login' | 'signup' | 'forgot';
 
 export default function Auth() {
   const [mode, setMode] = useState<AuthMode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { signIn, signUp } = useAuthContext();
 
@@ -59,7 +58,7 @@ export default function Auth() {
           return;
         }
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/auth?mode=reset`,
+          redirectTo: `${window.location.origin}/reset-password`,
         });
         if (error) {
           toast.error(error.message);
@@ -75,57 +74,11 @@ export default function Auth() {
     }
   };
 
-  const handleResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!password || !confirmPassword) {
-      toast.error('Preencha todos os campos');
-      return;
-    }
-    
-    if (password.length < 6) {
-      toast.error('A senha deve ter pelo menos 6 caracteres');
-      return;
-    }
-    
-    if (password !== confirmPassword) {
-      toast.error('As senhas não coincidem');
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      const { error } = await supabase.auth.updateUser({ password });
-      if (error) {
-        toast.error(error.message);
-      } else {
-        toast.success('Senha alterada com sucesso!');
-        setMode('login');
-        setPassword('');
-        setConfirmPassword('');
-      }
-    } catch (err) {
-      toast.error('Erro ao alterar senha');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Check if we're in reset mode from URL
-  useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('mode') === 'reset') {
-      setMode('reset');
-    }
-  });
-
   const getTitle = () => {
     switch (mode) {
       case 'login': return 'Entrar';
       case 'signup': return 'Criar Conta';
       case 'forgot': return 'Recuperar Senha';
-      case 'reset': return 'Nova Senha';
     }
   };
 
@@ -143,47 +96,7 @@ export default function Auth() {
             {getTitle()}
           </h1>
 
-          {/* Reset Password Form */}
-          {mode === 'reset' ? (
-            <form onSubmit={handleResetPassword} className="space-y-4">
-              <div>
-                <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
-                  Nova Senha
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="input-flat w-full text-card-foreground"
-                  placeholder="••••••"
-                  autoComplete="new-password"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
-                  Confirmar Senha
-                </label>
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="input-flat w-full text-card-foreground"
-                  placeholder="••••••"
-                  autoComplete="new-password"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="btn-primary w-full bg-card-foreground text-card mt-6 disabled:opacity-50"
-              >
-                {isSubmitting ? 'Aguarde...' : 'Alterar Senha'}
-              </button>
-            </form>
-          ) : (
-            /* Login / Signup / Forgot Form */
+          {/* Login / Signup / Forgot Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">
@@ -223,7 +136,6 @@ export default function Auth() {
                 {isSubmitting ? 'Aguarde...' : mode === 'login' ? 'Entrar' : mode === 'signup' ? 'Criar Conta' : 'Enviar Email'}
               </button>
             </form>
-          )}
 
           {/* Forgot Password Link (only on login) */}
           {mode === 'login' && (
