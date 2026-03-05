@@ -129,9 +129,13 @@ export default function ContratosTab() {
 
   const handleSaveEdit = async () => {
     if (!editingProject) return;
+    if (!editClientName.trim()) {
+      toast.error('O nome do cliente é obrigatório');
+      return;
+    }
     setSaving(true);
     try {
-      const clientId = editingProject.client_id;
+      let clientId = editingProject.client_id;
       if (clientId) {
         const { error } = await supabase
           .from('clients')
@@ -139,8 +143,20 @@ export default function ContratosTab() {
           .eq('id', clientId);
         if (error) throw error;
       } else {
-        toast.error('Este contrato não possui cliente vinculado');
-        return;
+        // Create a new client and link to the project
+        const { data: newClient, error: createError } = await supabase
+          .from('clients')
+          .insert({ name: editClientName.trim(), contract_number: editContractNumber.trim() || null, status: 'active' })
+          .select('id')
+          .single();
+        if (createError) throw createError;
+        clientId = newClient.id;
+        // Link client to project
+        const { error: linkError } = await supabase
+          .from('projects')
+          .update({ client_id: clientId })
+          .eq('id', editingProject.id);
+        if (linkError) throw linkError;
       }
       setEditModalOpen(false);
       await Promise.all([
