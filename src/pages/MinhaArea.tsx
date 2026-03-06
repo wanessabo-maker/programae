@@ -180,28 +180,18 @@ export default function MinhaArea() {
       }
 
       if (item.responsible_area === 'projetista_tecnico') {
-        if (assignedProjetistaId) {
-          return assignedProjetistaId === currentTeamMemberId;
-        }
-        return true;
+        return !!assignedProjetistaId && assignedProjetistaId === currentTeamMemberId;
       }
 
       if (item.responsible_area === 'logistica') {
-        if (assignedLogisticaId) {
-          return assignedLogisticaId === currentTeamMemberId;
-        }
-        return true;
+        return !!assignedLogisticaId && assignedLogisticaId === currentTeamMemberId;
       }
 
       if (item.responsible_area === 'cs') {
-        if (assignedCsId) {
-          return assignedCsId === currentTeamMemberId;
-        }
-        return true;
+        return !!assignedCsId && assignedCsId === currentTeamMemberId;
       }
 
       // CRITICAL: If no condition matched, user should NOT see this item
-      // This prevents users without proper area assignments from seeing all items
       return false;
     });
   }, [allItems, currentTeamMember?.id, isAdmin, viewMode]);
