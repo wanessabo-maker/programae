@@ -388,40 +388,26 @@ export function useMyAllChecklistItems(userAreas: string[], currentTeamMemberId?
           return projectResponsibleId === currentTeamMemberId;
         }
         
-        // For projetista_tecnico without specific assignment, check checklist's assigned_projetista_id
+        // For projetista_tecnico, only show to assigned projetista
         if (item.responsible_area === 'projetista_tecnico') {
           const assignedProjetistaId = (item as any).checklist?.assigned_projetista_id;
-          // If there's an assigned projetista, only show to them
-          if (assignedProjetistaId) {
-            return assignedProjetistaId === currentTeamMemberId;
-          }
-          // Legacy checklists without assignment: show to all projetistas (area-based)
-          return true;
+          return !!assignedProjetistaId && assignedProjetistaId === currentTeamMemberId;
         }
         
-        // For logistica without specific assignment, check checklist's assigned_logistica_id
+        // For logistica, only show to assigned logistica
         if (item.responsible_area === 'logistica') {
           const assignedLogisticaId = (item as any).checklist?.assigned_logistica_id;
-          // If there's an assigned logistica, only show to them
-          if (assignedLogisticaId) {
-            return assignedLogisticaId === currentTeamMemberId;
-          }
-          // Legacy checklists without assignment: show to all logistica (area-based)
-          return true;
+          return !!assignedLogisticaId && assignedLogisticaId === currentTeamMemberId;
         }
         
-        // For CS without specific assignment, check checklist's assigned_cs_id
+        // For CS, only show to assigned CS
         if (item.responsible_area === 'cs') {
           const assignedCsId = (item as any).checklist?.assigned_cs_id;
-          if (assignedCsId) {
-            return assignedCsId === currentTeamMemberId;
-          }
-          // Legacy checklists without assignment: show to all CS
-          return true;
+          return !!assignedCsId && assignedCsId === currentTeamMemberId;
         }
         
-        // For other areas, show to all team members in that area
-        return true;
+        // For other areas, deny by default
+        return false;
       });
     },
     enabled: userAreas.length > 0,
