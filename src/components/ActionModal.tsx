@@ -1125,7 +1125,9 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           {/* Professional/Specifier Selection - Hide for users from Projetos area */}
           {form.consultantId && !isUserFromProjetosArea && (
             <div>
-              <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Especificador</label>
+              <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.professionalId ? 'text-destructive' : 'text-muted-foreground'}`}>
+                Especificador {isStrictValidationType ? '*' : ''}
+              </label>
               <div className="flex items-center gap-4 mb-2 flex-wrap">
                 <label className="flex items-center gap-2 text-sm">
                   <input
@@ -1149,23 +1151,27 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   />
                   Novo
                 </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="radio"
-                    checked={!isNewProfessional && form.professionalId === 'none'}
-                    onChange={() => {
-                      setIsNewProfessional(false);
-                      handleFieldChange('professionalId', 'none');
-                    }}
-                  />
-                  Sem Especificador
-                </label>
+                {/* Hide "Sem Especificador" for strict validation types */}
+                {!isStrictValidationType && (
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="radio"
+                      checked={!isNewProfessional && form.professionalId === 'none'}
+                      onChange={() => {
+                        setIsNewProfessional(false);
+                        handleFieldChange('professionalId', 'none');
+                      }}
+                    />
+                    Sem Especificador
+                  </label>
+                )}
               </div>
+              {errors.professionalId && <span className="text-xs text-destructive mt-1 block mb-2">Campo obrigatório</span>}
               {!isNewProfessional && form.professionalId !== 'none' ? (
                 <select
                   value={form.professionalId}
                   onChange={(e) => handleFieldChange('professionalId', e.target.value)}
-                  className="input-flat w-full text-card-foreground"
+                  className={`input-flat w-full text-card-foreground ${errors.professionalId ? 'border-destructive ring-1 ring-destructive' : ''}`}
                 >
                   <option value="">Selecione</option>
                   {consultantProfessionals.map((p) => (
