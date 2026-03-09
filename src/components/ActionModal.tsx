@@ -368,8 +368,16 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     if (!form.actionTypeId) newErrors.actionTypeId = true;
     if (!form.date) newErrors.date = true;
     
-    // FOCCO number is required for Apresentação de Projeto
-    if (isApresentacaoProjeto && !form.foccoProjectNumber.trim()) {
+    // For strict validation types (Apresentação, Venda, Seletiva, Projeto), 
+    // professional (especificador) is required unless user is Projetista de Apresentação
+    if (isStrictValidationType && !isUserFromProjetosArea) {
+      if (!form.professionalId || form.professionalId === '') {
+        newErrors.professionalId = true;
+      }
+    }
+    
+    // FOCCO number is required for Apresentação de Projeto, Venda, and Projeto
+    if ((isApresentacaoProjeto || isVenda || isProjeto) && !form.foccoProjectNumber.trim()) {
       newErrors.foccoProjectNumber = true;
     }
     
@@ -394,12 +402,12 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     }
     
     // Validate all enabled fields (marked as required in action type configuration)
+    // For strict validation types, ALL enabled fields are mandatory
     if (selectedActionType?.additionalFields && selectedActionType?.enabledFields) {
       selectedActionType.enabledFields.forEach((fieldKey) => {
         const formKey = fieldToFormKeyMap[fieldKey];
         if (formKey) {
           const value = form[formKey];
-          // Check if field is empty (string fields only)
           if (typeof value === 'string' && !value.trim()) {
             newErrors[fieldKey] = true;
           }
