@@ -1147,20 +1147,17 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   />
                   Novo
                 </label>
-                {/* Hide "Sem Especificador" for strict validation types */}
-                {!isStrictValidationType && (
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="radio"
-                      checked={!isNewProfessional && form.professionalId === 'none'}
-                      onChange={() => {
-                        setIsNewProfessional(false);
-                        handleFieldChange('professionalId', 'none');
-                      }}
-                    />
-                    Sem Especificador
-                  </label>
-                )}
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    checked={!isNewProfessional && form.professionalId === 'none'}
+                    onChange={() => {
+                      setIsNewProfessional(false);
+                      handleFieldChange('professionalId', 'none');
+                    }}
+                  />
+                  Sem Especificador
+                </label>
               </div>
               {errors.professionalId && <span className="text-xs text-destructive mt-1 block mb-2">Campo obrigatório</span>}
               {!isNewProfessional && form.professionalId !== 'none' ? (
