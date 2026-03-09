@@ -321,6 +321,12 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
   
   // Check if this is a "Seletiva" action type (e.g., Assinatura de Certificado de Garantia)
   const isSeletiva = selectedActionType?.classification === 'seletiva';
+  
+  // Check if this is a "Projeto" classification (Projeto Técnico)
+  const isProjeto = selectedActionType?.classification === 'projeto';
+  
+  // Action types where ALL fields must be mandatory
+  const isStrictValidationType = isApresentacaoProjeto || isVenda || isSeletiva || isProjeto;
 
   const handleFieldChange = useCallback((field: keyof FormState, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -362,8 +368,16 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     if (!form.actionTypeId) newErrors.actionTypeId = true;
     if (!form.date) newErrors.date = true;
     
-    // FOCCO number is required for Apresentação de Projeto
-    if (isApresentacaoProjeto && !form.foccoProjectNumber.trim()) {
+    // For strict validation types (Apresentação, Venda, Seletiva, Projeto), 
+    // professional (especificador) is required unless user is Projetista de Apresentação
+    if (isStrictValidationType && !isUserFromProjetosArea) {
+      if (!form.professionalId || form.professionalId === '') {
+        newErrors.professionalId = true;
+      }
+    }
+    
+    // FOCCO number is required for Apresentação de Projeto, Venda, and Projeto
+    if ((isApresentacaoProjeto || isVenda || isProjeto) && !form.foccoProjectNumber.trim()) {
       newErrors.foccoProjectNumber = true;
     }
     
@@ -388,12 +402,12 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     }
     
     // Validate all enabled fields (marked as required in action type configuration)
+    // For strict validation types, ALL enabled fields are mandatory
     if (selectedActionType?.additionalFields && selectedActionType?.enabledFields) {
       selectedActionType.enabledFields.forEach((fieldKey) => {
         const formKey = fieldToFormKeyMap[fieldKey];
         if (formKey) {
           const value = form[formKey];
-          // Check if field is empty (string fields only)
           if (typeof value === 'string' && !value.trim()) {
             newErrors[fieldKey] = true;
           }
@@ -1111,7 +1125,9 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           {/* Professional/Specifier Selection - Hide for users from Projetos area */}
           {form.consultantId && !isUserFromProjetosArea && (
             <div>
-              <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Especificador</label>
+              <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.professionalId ? 'text-destructive' : 'text-muted-foreground'}`}>
+                Especificador {isStrictValidationType ? '*' : ''}
+              </label>
               <div className="flex items-center gap-4 mb-2 flex-wrap">
                 <label className="flex items-center gap-2 text-sm">
                   <input
@@ -1135,23 +1151,27 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   />
                   Novo
                 </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="radio"
-                    checked={!isNewProfessional && form.professionalId === 'none'}
-                    onChange={() => {
-                      setIsNewProfessional(false);
-                      handleFieldChange('professionalId', 'none');
-                    }}
-                  />
-                  Sem Especificador
-                </label>
+                {/* Hide "Sem Especificador" for strict validation types */}
+                {!isStrictValidationType && (
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="radio"
+                      checked={!isNewProfessional && form.professionalId === 'none'}
+                      onChange={() => {
+                        setIsNewProfessional(false);
+                        handleFieldChange('professionalId', 'none');
+                      }}
+                    />
+                    Sem Especificador
+                  </label>
+                )}
               </div>
+              {errors.professionalId && <span className="text-xs text-destructive mt-1 block mb-2">Campo obrigatório</span>}
               {!isNewProfessional && form.professionalId !== 'none' ? (
                 <select
                   value={form.professionalId}
                   onChange={(e) => handleFieldChange('professionalId', e.target.value)}
-                  className="input-flat w-full text-card-foreground"
+                  className={`input-flat w-full text-card-foreground ${errors.professionalId ? 'border-destructive ring-1 ring-destructive' : ''}`}
                 >
                   <option value="">Selecione</option>
                   {consultantProfessionals.map((p) => (
