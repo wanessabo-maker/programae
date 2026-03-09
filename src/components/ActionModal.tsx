@@ -370,11 +370,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     
     // For strict validation types (Apresentação, Venda, Seletiva, Projeto), 
     // professional (especificador) is required unless user is Projetista de Apresentação
-    if (isStrictValidationType && !isUserFromProjetosArea) {
-      if (!form.professionalId || form.professionalId === '') {
-        newErrors.professionalId = true;
-      }
-    }
+    // professionalId is optional - "Sem Especificador" is always allowed
     
     // FOCCO number is required for Apresentação de Projeto, Venda, and Projeto
     if ((isApresentacaoProjeto || isVenda || isProjeto) && !form.foccoProjectNumber.trim()) {
