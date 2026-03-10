@@ -11,7 +11,7 @@ import { Action } from '@/types';
 import { safeNumber, safeParseInt } from '@/lib/validators';
 import { findProjectByFocco } from '@/hooks/useProjects';
 import { createClientDirect } from '@/hooks/useClients';
-import { updateClientData } from '@/hooks/useSmartClientData';
+
 import { createChecklistForProject } from '@/hooks/useChecklist';
 
 interface EditActionModalProps {
