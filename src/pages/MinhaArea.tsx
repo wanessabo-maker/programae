@@ -74,6 +74,7 @@ export default function MinhaArea() {
   const { data: currentTeamMember, isLoading: isLoadingMember } = useCurrentTeamMember();
   const { areas: userFunctionalAreas, isLoading: isLoadingAreas } = useUserAreas(user?.id || null);
   const { getMemberAreaIds, getAreaName, getMemberPositions } = usePositions();
+  const { data: allTeamMembersData = [] } = useTeamMembers();
   
   const [selectedItem, setSelectedItem] = useState<ChecklistItemWithDetails | null>(null);
   const [completeModalOpen, setCompleteModalOpen] = useState(false);
