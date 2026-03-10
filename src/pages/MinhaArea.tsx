@@ -35,7 +35,6 @@ import { CompleteActivityModal } from '@/components/minha-area/CompleteActivityM
 import { ProjetistaSection } from '@/components/minha-area/ProjetistaSection';
 import { ManagementDashboard } from '@/components/minha-area/ManagementDashboard';
 import { useTeamMembers } from '@/hooks/useDatabase';
-import { ManagementDashboard } from '@/components/minha-area/ManagementDashboard';
 
 interface ChecklistItemFull {
   id: string;
