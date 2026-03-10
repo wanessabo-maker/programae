@@ -322,7 +322,7 @@ export default function MinhaArea() {
       if (a.activeCount !== b.activeCount) return b.activeCount - a.activeCount;
       return a.projectName.localeCompare(b.projectName);
     });
-  }, [visibleItems, allProjectItems]);
+  }, [visibleItems, allProjectItems, viewMode, isAdmin, teamFilterMemberId]);
 
   // Stats
   const totalActive = visibleItems.filter(item => item.status === 'active').length;
