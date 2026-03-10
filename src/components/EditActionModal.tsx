@@ -9,6 +9,10 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Action } from '@/types';
 import { safeNumber, safeParseInt } from '@/lib/validators';
+import { findProjectByFocco } from '@/hooks/useProjects';
+import { createClientDirect } from '@/hooks/useClients';
+
+import { createChecklistForProject } from '@/hooks/useChecklist';
 
 interface EditActionModalProps {
   open: boolean;
@@ -45,10 +49,69 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
     presentationNumber: '',
     foccoProjectNumber: '',
     presentedValue: '',
+    assignedProjetistaId: '',
+    assignedLogisticaId: '',
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
+
+  // Fetch projetista/logistica members for checklist assignment
+  const [projetistaMembers, setProjetistaMembers] = useState<{ id: string; name: string }[]>([]);
+  const [logisticaMembers, setLogisticaMembers] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    const fetchPositionMembers = async () => {
+      try {
+        const { data: positions } = await supabase
+          .from('positions')
+          .select('id, name')
+          .eq('is_active', true)
+          .or('name.ilike.%projetista técnico%,name.ilike.%logistica%,name.ilike.%logística%');
+
+        if (!positions || positions.length === 0) return;
+
+        const projetistaPos = positions.find(p => p.name.toLowerCase().includes('projetista técnico'));
+        const logisticaPos = positions.find(p => p.name.toLowerCase().includes('logistica') || p.name.toLowerCase().includes('logística'));
+
+        const positionIds = [projetistaPos?.id, logisticaPos?.id].filter(Boolean);
+        if (positionIds.length === 0) return;
+
+        const { data: memberPositions } = await supabase
+          .from('team_member_positions')
+          .select('team_member_id, position_id')
+          .in('position_id', positionIds);
+
+        if (!memberPositions) return;
+
+        const projetistaIds = memberPositions
+          .filter(mp => mp.position_id === projetistaPos?.id)
+          .map(mp => mp.team_member_id);
+        
+        const logisticaIds = memberPositions
+          .filter(mp => mp.position_id === logisticaPos?.id)
+          .map(mp => mp.team_member_id);
+
+        const allMemberIds = [...new Set([...projetistaIds, ...logisticaIds])];
+        if (allMemberIds.length === 0) return;
+
+        const { data: members } = await supabase
+          .from('team_members')
+          .select('id, name')
+          .in('id', allMemberIds)
+          .eq('active', true);
+
+        if (!members) return;
+
+        setProjetistaMembers(members.filter(m => projetistaIds.includes(m.id)));
+        setLogisticaMembers(members.filter(m => logisticaIds.includes(m.id)));
+      } catch (error) {
+        console.error('Error fetching position members:', error);
+      }
+    };
+
+    fetchPositionMembers();
+  }, []);
 
   // Populate form when action changes
   useEffect(() => {
@@ -65,8 +128,10 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
         presentationNumber: action.presentationNumber || '',
         foccoProjectNumber: action.foccoProjectNumber || '',
         presentedValue: '',
+        assignedProjetistaId: '',
+        assignedLogisticaId: '',
       });
-      // Load presented value from project if exists (by project_id or focco_project_number)
+      // Load presented value from project if exists
       const loadPresentedValue = async () => {
         let projectData = null;
         if (action.projectId) {
@@ -94,6 +159,12 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
 
   const selectedActionType = actionTypes.find(t => t.id === form.actionTypeId);
   const consultantProfessionals = professionals.filter(p => p.consultantId === form.consultantId);
+  const isVenda = selectedActionType?.classification === 'venda';
+
+  // Check if the action type is changing TO venda (was not venda before)
+  const oldActionType = action ? actionTypes.find(t => t.id === action.actionTypeId) : null;
+  
+  
 
   // Check if user can edit this action
   const canEdit = isAdmin || (currentTeamMember?.id && action?.consultantId === currentTeamMember.id);
@@ -132,7 +203,6 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
     setIsSubmitting(true);
     
     try {
-      const oldActionType = actionTypes.find(t => t.id === action.actionTypeId);
       const newActionType = actionTypes.find(t => t.id === form.actionTypeId);
       const oldPoints = oldActionType?.programPoints || 0;
       const newPoints = newActionType?.programPoints || 0;
@@ -150,7 +220,7 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
         presentationNumber: form.presentationNumber || undefined,
       });
 
-      // Update focco_project_number directly (not in updateAction)
+      // Update focco_project_number directly
       if (form.foccoProjectNumber !== action.foccoProjectNumber) {
         await supabase
           .from('actions')
@@ -160,18 +230,13 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
 
       // Handle credit transaction updates
       const existingCredit = creditTransactions.find(ct => ct.actionId === action.id && ct.type === 'ganho');
-      
-      // If consultant changed, update the credit transaction consultant
       const consultantChanged = form.consultantId !== action.consultantId;
-      // If points changed (different action type), update the amount
       const pointsChanged = newPoints !== oldPoints;
       
       if (existingCredit) {
         if (newPoints === 0) {
-          // New action type has no points - delete the credit
           deleteCreditTransaction(existingCredit.id);
         } else if (pointsChanged || consultantChanged) {
-          // Update existing credit transaction
           const professional = form.professionalId ? professionals.find(p => p.id === form.professionalId) : null;
           const professionalName = professional?.name || 'Sem Especificador';
           
@@ -183,7 +248,6 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
           });
         }
       } else if (newPoints > 0) {
-        // No existing credit but new action type has points - create one
         const professional = form.professionalId ? professionals.find(p => p.id === form.professionalId) : null;
         const professionalName = professional?.name || 'Sem Especificador';
         
@@ -197,6 +261,158 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
           actionTypeId: form.actionTypeId,
           status: 'active',
         });
+      }
+
+      // ===== VENDA FLOW: Create project + checklist when changing to Venda =====
+      if (isVenda && !action.projectId) {
+        // Check if there's already a project for this action (via projectId or checklist)
+        const existingChecklist = action.projectId ? await supabase
+          .from('contract_checklists')
+          .select('id')
+          .eq('project_id', action.projectId)
+          .maybeSingle() : null;
+
+        if (!existingChecklist?.data) {
+          const foccoNumber = form.foccoProjectNumber?.trim();
+          let projectId: string | undefined;
+          let clientId: string | null = null;
+
+          try {
+            if (foccoNumber) {
+              const existingProject = await findProjectByFocco(foccoNumber);
+              
+              if (existingProject) {
+                // Update existing project to closed_won
+                const { error: updateError } = await supabase
+                  .from('projects')
+                  .update({
+                    stage: 'closed_won',
+                    closed_date: form.date,
+                    closed_value: safeNumber(form.value, { min: 0 }) ?? existingProject.estimated_value,
+                  })
+                  .eq('id', existingProject.id);
+                
+                if (!updateError) {
+                  projectId = existingProject.id;
+                  
+                  if (existingProject.client_id) {
+                    clientId = existingProject.client_id;
+                    await supabase
+                      .from('clients')
+                      .update({ status: 'closed' })
+                      .eq('id', existingProject.client_id);
+                  }
+
+                  // Create checklist
+                  await createChecklistForProject(existingProject.id, {
+                    assignedProjetistaId: form.assignedProjetistaId || undefined,
+                    assignedLogisticaId: form.assignedLogisticaId || undefined,
+                    commercialResponsibleId: form.consultantId,
+                  });
+                  
+                  toast.success(`Projeto FOCCO ${foccoNumber} fechado e checklist criado!`);
+                }
+              } else {
+                // FOCCO provided but no project exists - create new
+                if (form.clientName?.trim()) {
+                  clientId = await createClientDirect({
+                    name: form.clientName.trim(),
+                    age: safeParseInt(form.clientAge, { min: 0, max: 150 }),
+                    profession: form.clientProfession || null,
+                    professional_id: form.professionalId || null,
+                    responsible_id: form.consultantId,
+                    status: 'closed',
+                  });
+                }
+
+                const { data: newProject, error: projectError } = await supabase
+                  .from('projects')
+                  .insert({
+                    name: `Projeto FOCCO ${foccoNumber}`,
+                    focco_project_number: foccoNumber,
+                    professional_id: form.professionalId || null,
+                    responsible_id: form.consultantId,
+                    created_by: form.consultantId,
+                    client_id: clientId,
+                    stage: 'closed_won',
+                    start_date: form.date,
+                    closed_date: form.date,
+                    closed_value: safeNumber(form.value, { min: 0 }),
+                    estimated_value: safeNumber(form.value, { min: 0 }),
+                    origin_type: 'venda_direta',
+                  })
+                  .select('id')
+                  .single();
+
+                if (!projectError && newProject) {
+                  projectId = newProject.id;
+                  await createChecklistForProject(newProject.id, {
+                    assignedProjetistaId: form.assignedProjetistaId || undefined,
+                    assignedLogisticaId: form.assignedLogisticaId || undefined,
+                    commercialResponsibleId: form.consultantId,
+                  });
+                  toast.success(`Contrato criado com FOCCO ${foccoNumber} e checklist gerado!`);
+                }
+              }
+            } else {
+              // No FOCCO - create direct sale project
+              if (form.clientName?.trim()) {
+                clientId = await createClientDirect({
+                  name: form.clientName.trim(),
+                  age: safeParseInt(form.clientAge, { min: 0, max: 150 }),
+                  profession: form.clientProfession || null,
+                  professional_id: form.professionalId || null,
+                  responsible_id: form.consultantId,
+                  status: 'closed',
+                });
+              }
+
+              const projectName = form.clientName?.trim()
+                ? `Venda - ${form.clientName.trim()}`
+                : `Venda - ${format(new Date(form.date), 'dd/MM/yyyy')}`;
+
+              const { data: newProject, error: projectError } = await supabase
+                .from('projects')
+                .insert({
+                  name: projectName,
+                  focco_project_number: null,
+                  professional_id: form.professionalId || null,
+                  responsible_id: form.consultantId,
+                  created_by: form.consultantId,
+                  client_id: clientId,
+                  stage: 'closed_won',
+                  start_date: form.date,
+                  closed_date: form.date,
+                  closed_value: safeNumber(form.value, { min: 0 }),
+                  estimated_value: safeNumber(form.value, { min: 0 }),
+                  origin_type: 'venda_direta',
+                })
+                .select('id')
+                .single();
+
+              if (!projectError && newProject) {
+                projectId = newProject.id;
+                await createChecklistForProject(newProject.id, {
+                  assignedProjetistaId: form.assignedProjetistaId || undefined,
+                  assignedLogisticaId: form.assignedLogisticaId || undefined,
+                  commercialResponsibleId: form.consultantId,
+                });
+                toast.success('Contrato e checklist criados com sucesso (Venda Direta)!');
+              }
+            }
+
+            // Link action to the new project
+            if (projectId) {
+              await supabase
+                .from('actions')
+                .update({ project_id: projectId })
+                .eq('id', action.id);
+            }
+          } catch (err) {
+            console.error('Error in sale project flow:', err);
+            toast.error('Erro ao criar projeto/checklist da venda');
+          }
+        }
       }
 
       // Update project if focco number changed and project exists
@@ -222,7 +438,6 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
       if (form.presentedValue && selectedActionType?.enabledFields?.includes('presentedValue')) {
         const presentedValueNum = safeNumber(form.presentedValue, { min: 0 });
         if (presentedValueNum !== null) {
-          // Find project by project_id or focco_project_number
           let projectId = action.projectId;
           if (!projectId && form.foccoProjectNumber) {
             const { data: proj } = await supabase
@@ -279,7 +494,7 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
                   setErrors({ ...errors, consultantId: false });
                 }}
                 className={`input-flat w-full text-card-foreground ${errors.consultantId ? 'border-destructive ring-1 ring-destructive' : ''}`}
-                disabled={!isAdmin} // Only admin can change consultant
+                disabled={!isAdmin}
               >
                 <option value="">Selecione</option>
                 {activeMembers.map((m) => (
@@ -356,6 +571,62 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
                   className={`input-flat w-full text-card-foreground ${errors.value ? 'border-destructive ring-1 ring-destructive' : ''}`}
                 />
                 {errors.value && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
+              </div>
+            )}
+
+            {/* Assigned Professionals for Checklist - Only for Venda when no project exists */}
+            {isVenda && !action.projectId && (
+              <div className="border border-border rounded-md p-3 space-y-3 bg-muted/30">
+                <label className="text-xs tracking-widest uppercase text-muted-foreground block">
+                  Atribuir Responsáveis do Checklist
+                </label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Ao salvar, o projeto e checklist serão criados automaticamente com os responsáveis selecionados.
+                </p>
+                
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">
+                    Projetista Técnico
+                  </label>
+                  {projetistaMembers.length > 0 ? (
+                    <select
+                      value={form.assignedProjetistaId}
+                      onChange={(e) => setForm({ ...form, assignedProjetistaId: e.target.value })}
+                      className="input-flat w-full text-card-foreground"
+                    >
+                      <option value="">Selecione (opcional)</option>
+                      {projetistaMembers.map((m) => (
+                        <option key={m.id} value={m.id}>{m.name}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p className="text-xs text-orange-500 italic">
+                      Nenhum membro com cargo "Projetista Técnico" encontrado
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">
+                    Analista de Logística
+                  </label>
+                  {logisticaMembers.length > 0 ? (
+                    <select
+                      value={form.assignedLogisticaId}
+                      onChange={(e) => setForm({ ...form, assignedLogisticaId: e.target.value })}
+                      className="input-flat w-full text-card-foreground"
+                    >
+                      <option value="">Selecione (opcional)</option>
+                      {logisticaMembers.map((m) => (
+                        <option key={m.id} value={m.id}>{m.name}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <p className="text-xs text-orange-500 italic">
+                      Nenhum membro com cargo "Analista de Logística" encontrado
+                    </p>
+                  )}
+                </div>
               </div>
             )}
 
