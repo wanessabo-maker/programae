@@ -13,7 +13,8 @@ import {
   Loader2,
   ChevronDown,
   Users,
-  BarChart3
+  BarChart3,
+  Search
 } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -24,6 +25,8 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { useCurrentTeamMember } from '@/hooks/useCurrentTeamMember';
 import { useUserAreas } from '@/hooks/useUserAreas';
 import { usePositions } from '@/hooks/usePositions';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   useMyAllChecklistItems,
   useAllProjectChecklistItems,
