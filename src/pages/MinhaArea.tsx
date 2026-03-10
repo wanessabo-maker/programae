@@ -24,8 +24,6 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { useCurrentTeamMember } from '@/hooks/useCurrentTeamMember';
 import { useUserAreas } from '@/hooks/useUserAreas';
 import { usePositions } from '@/hooks/usePositions';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { 
   useMyAllChecklistItems,
   useAllProjectChecklistItems,
