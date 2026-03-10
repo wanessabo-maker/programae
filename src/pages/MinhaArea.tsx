@@ -4,7 +4,6 @@ import { ptBR } from 'date-fns/locale';
 import { 
   CheckCircle2, 
   Clock, 
-  AlertTriangle, 
   FileText, 
   User, 
   Building2,
@@ -34,6 +33,7 @@ import {
 import { CompleteActivityModal } from '@/components/minha-area/CompleteActivityModal';
 import { ProjetistaSection } from '@/components/minha-area/ProjetistaSection';
 import { ManagementDashboard } from '@/components/minha-area/ManagementDashboard';
+import { useTeamMembers } from '@/hooks/useDatabase';
 
 interface ChecklistItemFull {
   id: string;
@@ -73,12 +73,14 @@ export default function MinhaArea() {
   const { data: currentTeamMember, isLoading: isLoadingMember } = useCurrentTeamMember();
   const { areas: userFunctionalAreas, isLoading: isLoadingAreas } = useUserAreas(user?.id || null);
   const { getMemberAreaIds, getAreaName, getMemberPositions } = usePositions();
+  const { data: allTeamMembersData = [] } = useTeamMembers();
   
   const [selectedItem, setSelectedItem] = useState<ChecklistItemWithDetails | null>(null);
   const [completeModalOpen, setCompleteModalOpen] = useState(false);
   const [expandedContracts, setExpandedContracts] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<'my' | 'team'>('my');
   const [activeTab, setActiveTab] = useState<'activities' | 'indicators'>('activities');
+  const [teamFilterMemberId, setTeamFilterMemberId] = useState<string>('');
 
   // Check if user has management position (Gerencia or Gerente)
   const isManagement = useMemo(() => {
@@ -196,12 +198,36 @@ export default function MinhaArea() {
     });
   }, [allItems, currentTeamMember?.id, isAdmin, viewMode]);
 
+  // Active team members for filter dropdown
+  const activeTeamMembers = useMemo(() => {
+    return allTeamMembersData
+      .filter((m: any) => m.active)
+      .sort((a: any, b: any) => a.name.localeCompare(b.name));
+  }, [allTeamMembersData]);
+
   // Group items by contract/project
   const contractGroups = useMemo(() => {
     const groups = new Map<string, ContractGroup>();
 
+    // Determine which items to group - apply team member filter if active
+    const itemsToGroup = (viewMode === 'team' && isAdmin && teamFilterMemberId)
+      ? visibleItems.filter(item => {
+          const responsibleId = (item as any).project?.responsible_id;
+          const assignedProjetistaId = (item as any).checklist?.assigned_projetista_id;
+          const assignedLogisticaId = (item as any).checklist?.assigned_logistica_id;
+          const assignedCsId = (item as any).checklist?.assigned_cs_id;
+          const assignedTo = (item as any).assigned_to;
+          
+          return responsibleId === teamFilterMemberId ||
+            assignedProjetistaId === teamFilterMemberId ||
+            assignedLogisticaId === teamFilterMemberId ||
+            assignedCsId === teamFilterMemberId ||
+            assignedTo === teamFilterMemberId;
+        })
+      : visibleItems;
+
     // First, add all user's visible items
-    visibleItems.forEach(item => {
+    itemsToGroup.forEach(item => {
       const projectId = item.project?.id || 'unknown';
       
       if (!groups.has(projectId)) {
@@ -270,7 +296,7 @@ export default function MinhaArea() {
       if (a.activeCount !== b.activeCount) return b.activeCount - a.activeCount;
       return a.projectName.localeCompare(b.projectName);
     });
-  }, [visibleItems, allProjectItems]);
+  }, [visibleItems, allProjectItems, viewMode, isAdmin, teamFilterMemberId]);
 
   // Stats
   const totalActive = visibleItems.filter(item => item.status === 'active').length;
@@ -439,6 +465,31 @@ export default function MinhaArea() {
   function renderActivitiesContent() {
     return (
       <>
+        {/* Team Member Filter - only in team view */}
+        {viewMode === 'team' && isAdmin && (
+          <div className="flex items-center gap-3">
+            <User className="h-4 w-4 text-muted-foreground" />
+            <select
+              value={teamFilterMemberId}
+              onChange={(e) => setTeamFilterMemberId(e.target.value)}
+              className="input-flat text-sm max-w-xs"
+            >
+              <option value="">Todos os colaboradores</option>
+              {activeTeamMembers.map((m: any) => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
+            {teamFilterMemberId && (
+              <button
+                onClick={() => setTeamFilterMemberId('')}
+                className="text-xs text-muted-foreground hover:text-foreground underline"
+              >
+                Limpar
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Summary Cards */}
         <div className="grid grid-cols-2 gap-3">
           <Card className="border-border">
