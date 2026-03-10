@@ -197,12 +197,63 @@ export default function MinhaArea() {
     });
   }, [allItems, currentTeamMember?.id, isAdmin, viewMode]);
 
+  // Extract unique team members involved in team items (for the filter dropdown)
+  const teamMembersInContracts = useMemo(() => {
+    if (viewMode !== 'team' || !isAdmin) return [];
+    
+    const membersMap = new Map<string, string>();
+    
+    allItems.forEach(item => {
+      const responsibleId = (item as any).project?.responsible_id;
+      const assignedProjetistaId = (item as any).checklist?.assigned_projetista_id;
+      const assignedLogisticaId = (item as any).checklist?.assigned_logistica_id;
+      const assignedCsId = (item as any).checklist?.assigned_cs_id;
+      const assignedTo = (item as any).assigned_to;
+      const assignedMember = (item as any).assigned_member;
+      
+      // We need names - collect IDs and try to get names from assigned_member or project data
+      if (assignedMember?.id && assignedMember?.name) {
+        membersMap.set(assignedMember.id, assignedMember.name);
+      }
+      
+      // For responsible (commercial), we need to extract from project data
+      // We'll collect IDs and resolve names from allProjectItems later
+      if (responsibleId) membersMap.set(responsibleId, membersMap.get(responsibleId) || '');
+      if (assignedProjetistaId) membersMap.set(assignedProjetistaId, membersMap.get(assignedProjetistaId) || '');
+      if (assignedLogisticaId) membersMap.set(assignedLogisticaId, membersMap.get(assignedLogisticaId) || '');
+      if (assignedCsId) membersMap.set(assignedCsId, membersMap.get(assignedCsId) || '');
+      if (assignedTo) membersMap.set(assignedTo, membersMap.get(assignedTo) || '');
+    });
+    
+    return Array.from(membersMap.entries())
+      .filter(([_, name]) => name) // Only include members with resolved names
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [allItems, viewMode, isAdmin]);
+
   // Group items by contract/project
   const contractGroups = useMemo(() => {
     const groups = new Map<string, ContractGroup>();
 
+    // Determine which items to group - apply team member filter if active
+    const itemsToGroup = (viewMode === 'team' && isAdmin && teamFilterMemberId)
+      ? visibleItems.filter(item => {
+          const responsibleId = (item as any).project?.responsible_id;
+          const assignedProjetistaId = (item as any).checklist?.assigned_projetista_id;
+          const assignedLogisticaId = (item as any).checklist?.assigned_logistica_id;
+          const assignedCsId = (item as any).checklist?.assigned_cs_id;
+          const assignedTo = (item as any).assigned_to;
+          
+          return responsibleId === teamFilterMemberId ||
+            assignedProjetistaId === teamFilterMemberId ||
+            assignedLogisticaId === teamFilterMemberId ||
+            assignedCsId === teamFilterMemberId ||
+            assignedTo === teamFilterMemberId;
+        })
+      : visibleItems;
+
     // First, add all user's visible items
-    visibleItems.forEach(item => {
+    itemsToGroup.forEach(item => {
       const projectId = item.project?.id || 'unknown';
       
       if (!groups.has(projectId)) {
