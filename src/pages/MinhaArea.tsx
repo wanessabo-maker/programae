@@ -4,7 +4,6 @@ import { ptBR } from 'date-fns/locale';
 import { 
   CheckCircle2, 
   Clock, 
-  AlertTriangle, 
   FileText, 
   User, 
   Building2,
@@ -14,7 +13,7 @@ import {
   ChevronDown,
   Users,
   BarChart3,
-  Search
+  Filter
 } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent } from '@/components/ui/card';
