@@ -466,6 +466,31 @@ export default function MinhaArea() {
   function renderActivitiesContent() {
     return (
       <>
+        {/* Team Member Filter - only in team view */}
+        {viewMode === 'team' && isAdmin && (
+          <div className="flex items-center gap-3">
+            <User className="h-4 w-4 text-muted-foreground" />
+            <select
+              value={teamFilterMemberId}
+              onChange={(e) => setTeamFilterMemberId(e.target.value)}
+              className="input-flat text-sm max-w-xs"
+            >
+              <option value="">Todos os colaboradores</option>
+              {activeTeamMembers.map((m: any) => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
+            {teamFilterMemberId && (
+              <button
+                onClick={() => setTeamFilterMemberId('')}
+                className="text-xs text-muted-foreground hover:text-foreground underline"
+              >
+                Limpar
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Summary Cards */}
         <div className="grid grid-cols-2 gap-3">
           <Card className="border-border">
