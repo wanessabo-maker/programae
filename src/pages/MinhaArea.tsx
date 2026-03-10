@@ -79,6 +79,7 @@ export default function MinhaArea() {
   const [expandedContracts, setExpandedContracts] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<'my' | 'team'>('my');
   const [activeTab, setActiveTab] = useState<'activities' | 'indicators'>('activities');
+  const [teamFilterMemberId, setTeamFilterMemberId] = useState<string>('');
 
   // Check if user has management position (Gerencia or Gerente)
   const isManagement = useMemo(() => {
