@@ -164,7 +164,7 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
   // Check if the action type is changing TO venda (was not venda before)
   const oldActionType = action ? actionTypes.find(t => t.id === action.actionTypeId) : null;
   const wasVenda = oldActionType?.classification === 'venda';
-  const isChangingToVenda = isVenda && !wasVenda;
+  
 
   // Check if user can edit this action
   const canEdit = isAdmin || (currentTeamMember?.id && action?.consultantId === currentTeamMember.id);
