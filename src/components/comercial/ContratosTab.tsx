@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useQueryClient } from '@tanstack/react-query';
+import { useCurrentTeamMember } from '@/hooks/useCurrentTeamMember';
 
 type PeriodFilter = 'all' | 'month' | 'year' | 'custom';
 
@@ -21,6 +22,7 @@ export default function ContratosTab() {
   const { data: projects = [], isLoading } = useProjects();
   const { data: clients = [] } = useClients();
   const { teamMembers, professionals, actions, actionTypes } = useApp();
+  const { data: currentTeamMember } = useCurrentTeamMember();
   
   const queryClient = useQueryClient();
   
@@ -146,7 +148,7 @@ export default function ContratosTab() {
         // Create a new client and link to the project
         const { data: newClient, error: createError } = await supabase
           .from('clients')
-          .insert({ name: editClientName.trim(), contract_number: editContractNumber.trim() || null, status: 'active' })
+          .insert({ name: editClientName.trim(), contract_number: editContractNumber.trim() || null, status: 'active', created_by: currentTeamMember?.id || null })
           .select('id')
           .single();
         if (createError) throw createError;
