@@ -1315,12 +1315,12 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
 
           {/* Assigned Professionals for Checklist - Only for Venda */}
           {isVenda && (
-            <div className="border border-border rounded-md p-3 space-y-3 bg-muted/30">
+            <div className={`border rounded-md p-3 space-y-3 bg-muted/30 ${errors.assignedProjetistaId || errors.assignedLogisticaId ? 'border-red-500' : 'border-border'}`}>
               <label className="text-xs tracking-widest uppercase text-muted-foreground block">
-                Atribuir Responsáveis do Checklist
+                Atribuir Responsáveis do Checklist <span className="text-red-500">*</span>
               </label>
               <p className="text-xs text-muted-foreground mb-2">
-                Selecione os profissionais que serão responsáveis pelas etapas técnicas e de logística deste contrato.
+                Selecione os profissionais responsáveis pelas etapas técnicas e de logística deste contrato.
               </p>
               
               {/* Projetista Técnico */}
