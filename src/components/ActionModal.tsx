@@ -114,65 +114,9 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
   // User's areas based on their positions (for filtering action types)
   const [userAreaIds, setUserAreaIds] = useState<string[]>([]);
 
-  useEffect(() => {
-    const fetchPositionMembers = async () => {
-      try {
-        // Get positions by name pattern
-        const { data: positions } = await supabase
-          .from('positions')
-          .select('id, name')
-          .eq('is_active', true)
-          .or('name.ilike.%projetista técnico%,name.ilike.%logistica%,name.ilike.%logística%');
+  // Selected consultant's areas (for admin filtering action types by selected collaborator)
+  const [selectedConsultantAreaIds, setSelectedConsultantAreaIds] = useState<string[]>([]);
 
-        if (!positions || positions.length === 0) return;
-
-        // Get member assignments for these positions
-        const projetistaPos = positions.find(p => p.name.toLowerCase().includes('projetista técnico'));
-        const logisticaPos = positions.find(p => p.name.toLowerCase().includes('logistica') || p.name.toLowerCase().includes('logística'));
-
-        const positionIds = [projetistaPos?.id, logisticaPos?.id].filter(Boolean);
-        
-        if (positionIds.length === 0) return;
-
-        const { data: memberPositions } = await supabase
-          .from('team_member_positions')
-          .select('team_member_id, position_id')
-          .in('position_id', positionIds);
-
-        if (!memberPositions) return;
-
-        // Map to team members
-        const projetistaIds = memberPositions
-          .filter(mp => mp.position_id === projetistaPos?.id)
-          .map(mp => mp.team_member_id);
-        
-        const logisticaIds = memberPositions
-          .filter(mp => mp.position_id === logisticaPos?.id)
-          .map(mp => mp.team_member_id);
-
-        // Get member names
-        const allMemberIds = [...new Set([...projetistaIds, ...logisticaIds])];
-        if (allMemberIds.length === 0) return;
-
-        const { data: members } = await supabase
-          .from('team_members')
-          .select('id, name')
-          .in('id', allMemberIds)
-          .eq('active', true);
-
-        if (!members) return;
-
-        setProjetistaMembers(members.filter(m => projetistaIds.includes(m.id)));
-        setLogisticaMembers(members.filter(m => logisticaIds.includes(m.id)));
-      } catch (error) {
-        console.error('Error fetching position members:', error);
-      }
-    };
-
-    fetchPositionMembers();
-  }, []);
-
-  // Fetch user's areas based on their positions
   useEffect(() => {
     const fetchUserAreas = async () => {
       if (!currentTeamMember?.id) {
@@ -204,18 +148,22 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     fetchUserAreas();
   }, [currentTeamMember?.id]);
 
-  // Filter action types based on user's areas (admins see all)
+  // Filter action types based on the SELECTED consultant's areas (not the logged-in user)
   const filteredActionTypes = useMemo(() => {
-    if (isAdmin) {
+    // Determine which area IDs to use for filtering
+    const effectiveAreaIds = isAdmin ? selectedConsultantAreaIds : userAreaIds;
+    
+    // If no areas resolved (e.g. no consultant selected yet), show all
+    if (effectiveAreaIds.length === 0) {
       return actionTypes;
     }
 
-    // For non-admins: show action types that match user's areas OR have no area assigned
+    // Show action types that match the consultant's areas OR have no area assigned
     return actionTypes.filter(at => {
       if (!at.areaId) return true; // Action types without area are visible to everyone
-      return userAreaIds.includes(at.areaId);
+      return effectiveAreaIds.includes(at.areaId);
     });
-  }, [actionTypes, userAreaIds, isAdmin]);
+  }, [actionTypes, selectedConsultantAreaIds, userAreaIds, isAdmin]);
 
   // Check if current user is "Projetista de Apresentação" specifically
   // They should see Commercial Consultant field instead of Especificador
@@ -308,6 +256,42 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
       setForm(prev => ({ ...prev, consultantId: currentTeamMember.id }));
     }
   }, [open, isAdmin, currentTeamMember?.id, form.consultantId]);
+
+  // Fetch selected consultant's areas for filtering action types (admin flow)
+  useEffect(() => {
+    const fetchSelectedConsultantAreas = async () => {
+      const consultantId = form.consultantId;
+      if (!consultantId) {
+        setSelectedConsultantAreaIds([]);
+        return;
+      }
+
+      try {
+        const { data: memberPositions } = await supabase
+          .from('team_member_positions')
+          .select(`
+            position_id,
+            positions!inner(id, area_id)
+          `)
+          .eq('team_member_id', consultantId);
+
+        if (memberPositions) {
+          const areaIds = memberPositions
+            .map((mp: any) => mp.positions?.area_id)
+            .filter(Boolean);
+          setSelectedConsultantAreaIds([...new Set(areaIds)]);
+        } else {
+          setSelectedConsultantAreaIds([]);
+        }
+      } catch (error) {
+        console.error('Error fetching selected consultant areas:', error);
+        setSelectedConsultantAreaIds([]);
+      }
+    };
+
+    fetchSelectedConsultantAreas();
+  }, [form.consultantId]);
+
 
   const selectedActionType = actionTypes.find(t => t.id === form.actionTypeId);
   const consultantProfessionals = professionals.filter(p => p.consultantId === form.consultantId);
@@ -1089,6 +1073,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 onChange={(e) => {
                   handleFieldChange('consultantId', e.target.value);
                   handleFieldChange('professionalId', '');
+                  handleFieldChange('actionTypeId', '');
                 }}
                 className={`input-flat w-full text-card-foreground ${errors.consultantId ? 'border-destructive ring-1 ring-destructive' : ''}`}
               >
