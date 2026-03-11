@@ -1326,15 +1326,15 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
               {/* Projetista Técnico */}
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">
-                  Projetista Técnico
+                  Projetista Técnico <span className="text-red-500">*</span>
                 </label>
                 {projetistaMembers.length > 0 ? (
                   <select
                     value={form.assignedProjetistaId}
                     onChange={(e) => handleFieldChange('assignedProjetistaId', e.target.value)}
-                    className="input-flat w-full text-card-foreground"
+                    className={`input-flat w-full text-card-foreground ${errors.assignedProjetistaId ? 'border-red-500' : ''}`}
                   >
-                    <option value="">Selecione (opcional)</option>
+                    <option value="">Selecione um projetista</option>
                     {projetistaMembers.map((m) => (
                       <option key={m.id} value={m.id}>{m.name}</option>
                     ))}
