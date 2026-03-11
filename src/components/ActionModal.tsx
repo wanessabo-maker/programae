@@ -117,6 +117,9 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
   // Selected consultant's areas (for admin filtering action types by selected collaborator)
   const [selectedConsultantAreaIds, setSelectedConsultantAreaIds] = useState<string[]>([]);
 
+  // Whether the selected consultant (when admin) is a Projetista de Apresentação
+  const [isSelectedConsultantProjetista, setIsSelectedConsultantProjetista] = useState(false);
+
   useEffect(() => {
     const fetchUserAreas = async () => {
       if (!currentTeamMember?.id) {
@@ -257,12 +260,13 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     }
   }, [open, isAdmin, currentTeamMember?.id, form.consultantId]);
 
-  // Fetch selected consultant's areas for filtering action types (admin flow)
+  // Fetch selected consultant's areas and check if they are Projetista de Apresentação (admin flow)
   useEffect(() => {
     const fetchSelectedConsultantAreas = async () => {
       const consultantId = form.consultantId;
       if (!consultantId) {
         setSelectedConsultantAreaIds([]);
+        setIsSelectedConsultantProjetista(false);
         return;
       }
 
@@ -271,7 +275,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           .from('team_member_positions')
           .select(`
             position_id,
-            positions!inner(id, area_id)
+            positions!inner(id, area_id, name)
           `)
           .eq('team_member_id', consultantId);
 
@@ -280,12 +284,22 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             .map((mp: any) => mp.positions?.area_id)
             .filter(Boolean);
           setSelectedConsultantAreaIds([...new Set(areaIds)]);
+
+          // Check if this consultant is a Projetista de Apresentação
+          const isProjetista = memberPositions.some(
+            (mp: any) =>
+              mp.positions?.name?.toLowerCase().includes('projetista de apresentação') ||
+              mp.positions?.name?.toLowerCase().includes('projetista apresentação')
+          );
+          setIsSelectedConsultantProjetista(isProjetista);
         } else {
           setSelectedConsultantAreaIds([]);
+          setIsSelectedConsultantProjetista(false);
         }
       } catch (error) {
         console.error('Error fetching selected consultant areas:', error);
         setSelectedConsultantAreaIds([]);
+        setIsSelectedConsultantProjetista(false);
       }
     };
 
@@ -295,6 +309,9 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
 
   const selectedActionType = actionTypes.find(t => t.id === form.actionTypeId);
   const consultantProfessionals = professionals.filter(p => p.consultantId === form.consultantId);
+  
+  // Effective check: is the selected consultant (or logged-in user if not admin) a Projetista de Apresentação
+  const isEffectiveProjetista = isAdmin ? isSelectedConsultantProjetista : isUserFromProjetosArea;
   
   // Check if this is an "Apresentação de Projeto" action type
   const isApresentacaoProjeto = selectedActionType?.name?.toLowerCase().includes('apresentação') && 
@@ -362,12 +379,12 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     }
     
     // Environment count is required for Apresentação de Projeto ONLY for Projetista de Apresentação
-    if (isApresentacaoProjeto && isUserFromProjetosArea && (!form.environmentCount || (safeParseInt(form.environmentCount, { min: 1 }) === null))) {
+    if (isApresentacaoProjeto && isEffectiveProjetista && (!form.environmentCount || (safeParseInt(form.environmentCount, { min: 1 }) === null))) {
       newErrors.environmentCount = true;
     }
     
     // Commercial consultant is required for Projetista de Apresentação
-    if (isApresentacaoProjeto && isUserFromProjetosArea && !form.commercialConsultantId) {
+    if (isApresentacaoProjeto && isEffectiveProjetista && !form.commercialConsultantId) {
       newErrors.commercialConsultantId = true;
     }
     
@@ -510,7 +527,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
 
       // For Projetista de Apresentação: points = environment count (1 ambiente = 1 ponto)
       // For other users: use action type's configured points
-      const points = (isApresentacaoProjeto && isUserFromProjetosArea && form.environmentCount)
+      const points = (isApresentacaoProjeto && isEffectiveProjetista && form.environmentCount)
         ? (safeParseInt(form.environmentCount, { min: 0 }) ?? 0)
         : (selectedActionType?.programPoints || 0);
 
@@ -881,12 +898,12 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
       }
 
       // AUTOMATION: Create project environment record for Apresentação de Projeto (only for Projetista de Apresentação)
-      if (isApresentacaoProjeto && isUserFromProjetosArea && form.environmentCount && currentTeamMember?.id) {
+      if (isApresentacaoProjeto && isEffectiveProjetista && form.environmentCount && form.consultantId) {
         try {
           await createEnvironment.mutateAsync({
             environment_type: 'apresentacao',
             environment_count: safeParseInt(form.environmentCount, { min: 1 }) ?? 1,
-            projetista_id: currentTeamMember.id,
+            projetista_id: form.consultantId,
             consultant_id: form.commercialConsultantId || undefined, // Commercial consultant served
             project_id: projectId,
             action_id: actionId,
@@ -1091,7 +1108,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           </div>
 
           {/* For users from Projetos area: show Commercial Consultant selector */}
-          {isUserFromProjetosArea && form.consultantId && (
+          {isEffectiveProjetista && form.consultantId && (
             <div>
               <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.commercialConsultantId ? 'text-destructive' : 'text-muted-foreground'}`}>
                 Consultor Comercial Atendido *
@@ -1114,7 +1131,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           )}
 
           {/* Professional/Specifier Selection - Hide for users from Projetos area */}
-          {form.consultantId && !isUserFromProjetosArea && (
+          {form.consultantId && !isEffectiveProjetista && (
             <div>
               <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.professionalId ? 'text-destructive' : 'text-muted-foreground'}`}>
                 Especificador {isStrictValidationType ? '*' : ''}
@@ -1265,7 +1282,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           </div>
 
           {/* Environment Count - Only for Apresentação de Projeto AND only for Projetista de Apresentação */}
-          {isApresentacaoProjeto && isUserFromProjetosArea && (
+          {isApresentacaoProjeto && isEffectiveProjetista && (
             <div>
               <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.environmentCount ? 'text-destructive' : 'text-muted-foreground'}`}>
                 Quantidade de Ambientes *
@@ -1385,7 +1402,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             isApresentacao={isApresentacaoProjeto}
             isSeletiva={isSeletiva}
             enabledFields={selectedActionType?.enabledFields || []}
-            restrictToFoccoOnly={isUserFromProjetosArea}
+            restrictToFoccoOnly={isEffectiveProjetista}
           />
 
           <button 

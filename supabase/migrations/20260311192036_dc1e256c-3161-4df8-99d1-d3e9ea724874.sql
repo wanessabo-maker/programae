@@ -1,0 +1,1 @@
+UPDATE action_types SET requires_value = false WHERE name = 'Projeto de Apresentação' AND classification = 'projeto' AND requires_value = true;
