@@ -407,13 +407,14 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     // professionalId is optional - "Sem Especificador" is always allowed
     
     // Client Name, Age, and Profession are ALWAYS required for client-creating action types
-    if (isApresentacaoProjeto || isVenda || isSeletiva) {
+    // But NOT for Venda Aditivo (which only updates existing contract)
+    if ((isApresentacaoProjeto || (isVenda && !isVendaAditivo) || isSeletiva)) {
       if (!form.clientName.trim()) newErrors.clientName = true;
       if (!form.clientAge.trim()) newErrors.clientAge = true;
       if (!form.clientProfession.trim()) newErrors.clientProfession = true;
     }
     
-    // FOCCO number is required for Apresentação de Projeto, Venda, and Projeto
+    // FOCCO number is required for Apresentação de Projeto, Venda (including Aditivo), and Projeto
     if ((isApresentacaoProjeto || isVenda || isProjeto) && !form.foccoProjectNumber.trim()) {
       newErrors.foccoProjectNumber = true;
     }
@@ -433,8 +434,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
       newErrors.contractNumber = true;
     }
     
-    // For Venda, checklist assignment is mandatory
-    if (isVenda) {
+    // For Venda (but NOT Aditivo), checklist assignment is mandatory
+    if (isVenda && !isVendaAditivo) {
       if (!form.assignedProjetistaId) newErrors.assignedProjetistaId = true;
       if (!form.assignedLogisticaId) newErrors.assignedLogisticaId = true;
     }
