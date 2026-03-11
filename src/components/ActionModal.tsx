@@ -392,6 +392,12 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
       newErrors.contractNumber = true;
     }
     
+    // For Venda, checklist assignment is mandatory
+    if (isVenda) {
+      if (!form.assignedProjetistaId) newErrors.assignedProjetistaId = true;
+      if (!form.assignedLogisticaId) newErrors.assignedLogisticaId = true;
+    }
+    
     // For Venda, require client name if no FOCCO project exists
     if (isVenda && !form.foccoProjectNumber.trim() && !form.clientName.trim()) {
       newErrors.clientName = true;
