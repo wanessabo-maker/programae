@@ -972,6 +972,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                     profession: form.clientProfession || null,
                     professional_id: professionalId || null,
                     responsible_id: form.consultantId,
+                    created_by: form.consultantId,
                     status: 'closed',
                   });
                   
