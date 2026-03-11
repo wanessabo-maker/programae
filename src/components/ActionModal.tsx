@@ -527,7 +527,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
 
       // For Projetista de Apresentação: points = environment count (1 ambiente = 1 ponto)
       // For other users: use action type's configured points
-      const points = (isApresentacaoProjeto && isUserFromProjetosArea && form.environmentCount)
+      const points = (isApresentacaoProjeto && isEffectiveProjetista && form.environmentCount)
         ? (safeParseInt(form.environmentCount, { min: 0 }) ?? 0)
         : (selectedActionType?.programPoints || 0);
 
