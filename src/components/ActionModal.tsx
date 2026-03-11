@@ -1073,6 +1073,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 onChange={(e) => {
                   handleFieldChange('consultantId', e.target.value);
                   handleFieldChange('professionalId', '');
+                  handleFieldChange('actionTypeId', '');
                 }}
                 className={`input-flat w-full text-card-foreground ${errors.consultantId ? 'border-destructive ring-1 ring-destructive' : ''}`}
               >
