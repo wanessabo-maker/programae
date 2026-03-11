@@ -350,6 +350,9 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
   // Check if this is a "Venda" action type
   const isVenda = selectedActionType?.classification === 'venda';
   
+  // Check if this is a "Venda - Aditivo" (adds value to existing contract, no new checklist)
+  const isVendaAditivo = isVenda && selectedActionType?.name?.toLowerCase().includes('aditivo');
+  
   // Check if this is a "Seletiva" action type (e.g., Assinatura de Certificado de Garantia)
   const isSeletiva = selectedActionType?.classification === 'seletiva';
   
