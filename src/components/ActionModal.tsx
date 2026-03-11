@@ -350,6 +350,9 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
   // Check if this is a "Venda" action type
   const isVenda = selectedActionType?.classification === 'venda';
   
+  // Check if this is a "Venda - Aditivo" (adds value to existing contract, no new checklist)
+  const isVendaAditivo = isVenda && selectedActionType?.name?.toLowerCase().includes('aditivo');
+  
   // Check if this is a "Seletiva" action type (e.g., Assinatura de Certificado de Garantia)
   const isSeletiva = selectedActionType?.classification === 'seletiva';
   
@@ -404,13 +407,14 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     // professionalId is optional - "Sem Especificador" is always allowed
     
     // Client Name, Age, and Profession are ALWAYS required for client-creating action types
-    if (isApresentacaoProjeto || isVenda || isSeletiva) {
+    // But NOT for Venda Aditivo (which only updates existing contract)
+    if ((isApresentacaoProjeto || (isVenda && !isVendaAditivo) || isSeletiva)) {
       if (!form.clientName.trim()) newErrors.clientName = true;
       if (!form.clientAge.trim()) newErrors.clientAge = true;
       if (!form.clientProfession.trim()) newErrors.clientProfession = true;
     }
     
-    // FOCCO number is required for Apresentação de Projeto, Venda, and Projeto
+    // FOCCO number is required for Apresentação de Projeto, Venda (including Aditivo), and Projeto
     if ((isApresentacaoProjeto || isVenda || isProjeto) && !form.foccoProjectNumber.trim()) {
       newErrors.foccoProjectNumber = true;
     }
@@ -430,8 +434,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
       newErrors.contractNumber = true;
     }
     
-    // For Venda, checklist assignment is mandatory
-    if (isVenda) {
+    // For Venda (but NOT Aditivo), checklist assignment is mandatory
+    if (isVenda && !isVendaAditivo) {
       if (!form.assignedProjetistaId) newErrors.assignedProjetistaId = true;
       if (!form.assignedLogisticaId) newErrors.assignedLogisticaId = true;
     }
@@ -682,8 +686,63 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
         }
       }
 
-      // Handle Venda - update existing project or create new contract automatically
-      if (isVenda) {
+      // Handle Venda Aditivo - just update existing project value, no new checklist
+      if (isVendaAditivo) {
+        const foccoNumber = form.foccoProjectNumber.trim();
+        
+        try {
+          if (foccoNumber) {
+            const existingProject = await findProjectByFocco(foccoNumber);
+            
+            if (existingProject) {
+              projectId = existingProject.id;
+              clientId = existingProject.client_id || null;
+              
+              // Add the aditivo value to the existing closed_value
+              const aditivoValue = safeNumber(form.value, { min: 0 }) ?? 0;
+              const currentClosedValue = existingProject.closed_value ?? existingProject.estimated_value ?? 0;
+              const newClosedValue = Number(currentClosedValue) + aditivoValue;
+              
+              const { error: updateError } = await supabase
+                .from('projects')
+                .update({
+                  closed_value: newClosedValue,
+                  estimated_value: newClosedValue,
+                })
+                .eq('id', existingProject.id);
+              
+              if (updateError) {
+                console.error('Error updating project value for aditivo:', updateError);
+                toast.error('Erro ao atualizar valor do projeto');
+              } else {
+                // Save to value history
+                await supabase
+                  .from('project_value_history')
+                  .insert({
+                    project_id: existingProject.id,
+                    presented_value: newClosedValue,
+                    consultant_id: form.consultantId,
+                    notes: `Aditivo: +${aditivoValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`,
+                  });
+                
+                toast.success(`Aditivo de ${aditivoValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} adicionado ao FOCCO ${foccoNumber}!`);
+              }
+            } else {
+              toast.error(`Projeto FOCCO ${foccoNumber} não encontrado. Use "Venda" para criar um novo contrato.`);
+              setIsSubmitting(false);
+              return;
+            }
+          } else {
+            toast.error('Informe o número FOCCO do projeto para o aditivo');
+            setIsSubmitting(false);
+            return;
+          }
+        } catch (err) {
+          console.error('Error in aditivo flow:', err);
+        }
+      }
+      // Handle regular Venda - update existing project or create new contract automatically
+      else if (isVenda) {
         const foccoNumber = form.foccoProjectNumber.trim();
         
         try {
@@ -1352,7 +1411,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           )}
 
           {/* Assigned Professionals for Checklist - Only for Venda */}
-          {isVenda && (
+          {isVenda && !isVendaAditivo && (
             <div className={`border rounded-md p-3 space-y-3 bg-muted/30 ${errors.assignedProjetistaId || errors.assignedLogisticaId ? 'border-red-500' : 'border-border'}`}>
               <label className="text-xs tracking-widest uppercase text-muted-foreground block">
                 Atribuir Responsáveis do Checklist <span className="text-red-500">*</span>
