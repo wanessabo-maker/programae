@@ -379,12 +379,12 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     }
     
     // Environment count is required for Apresentação de Projeto ONLY for Projetista de Apresentação
-    if (isApresentacaoProjeto && isUserFromProjetosArea && (!form.environmentCount || (safeParseInt(form.environmentCount, { min: 1 }) === null))) {
+    if (isApresentacaoProjeto && isEffectiveProjetista && (!form.environmentCount || (safeParseInt(form.environmentCount, { min: 1 }) === null))) {
       newErrors.environmentCount = true;
     }
     
     // Commercial consultant is required for Projetista de Apresentação
-    if (isApresentacaoProjeto && isUserFromProjetosArea && !form.commercialConsultantId) {
+    if (isApresentacaoProjeto && isEffectiveProjetista && !form.commercialConsultantId) {
       newErrors.commercialConsultantId = true;
     }
     
