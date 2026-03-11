@@ -1349,15 +1349,15 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
               {/* Analista de Logística */}
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">
-                  Analista de Logística
+                  Analista de Logística <span className="text-red-500">*</span>
                 </label>
                 {logisticaMembers.length > 0 ? (
                   <select
                     value={form.assignedLogisticaId}
                     onChange={(e) => handleFieldChange('assignedLogisticaId', e.target.value)}
-                    className="input-flat w-full text-card-foreground"
+                    className={`input-flat w-full text-card-foreground ${errors.assignedLogisticaId ? 'border-red-500' : ''}`}
                   >
-                    <option value="">Selecione (opcional)</option>
+                    <option value="">Selecione um analista</option>
                     {logisticaMembers.map((m) => (
                       <option key={m.id} value={m.id}>{m.name}</option>
                     ))}
