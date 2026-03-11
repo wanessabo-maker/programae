@@ -566,6 +566,13 @@ export default function ContratosTab() {
           </div>
         </DialogContent>
       </Dialog>
+      {/* Delete Contract Dialog */}
+      <DeleteContractDialog
+        open={!!deleteProjectId}
+        onOpenChange={(open) => { if (!open) setDeleteProjectId(null); }}
+        projectId={deleteProjectId}
+        projectName={deleteProjectName}
+      />
     </div>
   );
 }
