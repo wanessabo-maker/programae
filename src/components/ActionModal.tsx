@@ -898,12 +898,12 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
       }
 
       // AUTOMATION: Create project environment record for Apresentação de Projeto (only for Projetista de Apresentação)
-      if (isApresentacaoProjeto && isUserFromProjetosArea && form.environmentCount && currentTeamMember?.id) {
+      if (isApresentacaoProjeto && isEffectiveProjetista && form.environmentCount && form.consultantId) {
         try {
           await createEnvironment.mutateAsync({
             environment_type: 'apresentacao',
             environment_count: safeParseInt(form.environmentCount, { min: 1 }) ?? 1,
-            projetista_id: currentTeamMember.id,
+            projetista_id: form.consultantId,
             consultant_id: form.commercialConsultantId || undefined, // Commercial consultant served
             project_id: projectId,
             action_id: actionId,
