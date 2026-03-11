@@ -37,6 +37,8 @@ export default function ContratosTab() {
   const [editContractNumber, setEditContractNumber] = useState('');
   const [editClientName, setEditClientName] = useState('');
   const [saving, setSaving] = useState(false);
+  const [deleteProjectId, setDeleteProjectId] = useState<string | null>(null);
+  const [deleteProjectName, setDeleteProjectName] = useState('');
 
   // Get only closed projects (closed_won stage)
   const closedProjects = useMemo(() => {
