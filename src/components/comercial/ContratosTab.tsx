@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useQueryClient } from '@tanstack/react-query';
+import { useCurrentTeamMember } from '@/hooks/useCurrentTeamMember';
 
 type PeriodFilter = 'all' | 'month' | 'year' | 'custom';
 
@@ -21,6 +22,7 @@ export default function ContratosTab() {
   const { data: projects = [], isLoading } = useProjects();
   const { data: clients = [] } = useClients();
   const { teamMembers, professionals, actions, actionTypes } = useApp();
+  const { data: currentTeamMember } = useCurrentTeamMember();
   
   const queryClient = useQueryClient();
   
