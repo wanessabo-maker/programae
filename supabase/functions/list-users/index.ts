@@ -16,13 +16,13 @@ const getCorsHeaders = (req: Request) => {
 };
 
 serve(async (req: Request) => {
-  // Handle CORS preflight
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: getCorsHeaders(req) });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Verify the requesting user is authenticated and is an admin
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(
@@ -31,7 +31,6 @@ serve(async (req: Request) => {
       );
     }
 
-    // Create client with user's token to verify they're authenticated
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -40,7 +39,6 @@ serve(async (req: Request) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    // Verify user is authenticated
     const { data: { user }, error: userError } = await userClient.auth.getUser();
     if (userError || !user) {
       return new Response(
@@ -49,7 +47,6 @@ serve(async (req: Request) => {
       );
     }
 
-    // Check if user is admin
     const { data: roles } = await userClient
       .from("user_roles")
       .select("role")
@@ -63,46 +60,38 @@ serve(async (req: Request) => {
       );
     }
 
-    // Use service role client to list all users
     const adminClient = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Get all users from auth.users
     const { data: { users }, error: listError } = await adminClient.auth.admin.listUsers();
     if (listError) {
       throw listError;
     }
 
-    // Get all user roles
     const { data: allRoles } = await adminClient
       .from("user_roles")
       .select("user_id, role");
 
-    // Get all team members with their user_id links
     const { data: teamMembers } = await adminClient
       .from("team_members")
       .select("id, name, user_id, area_id, active, areas(name)");
 
-    // Get all user area assignments (new dynamic system)
     const { data: allUserAreaAssignments } = await adminClient
       .from("user_area_assignments")
       .select("user_id, area_id, areas(id, name)");
 
-    // Get all areas for reference
     const { data: allAreas } = await adminClient
       .from("areas")
       .select("id, name")
       .order("name");
 
-    // Helper to get area name from areas relation
     const getAreaName = (areas: { name: string } | { name: string }[] | null): string | null => {
       if (!areas) return null;
       if (Array.isArray(areas)) return areas[0]?.name || null;
       return areas.name || null;
     };
 
-    // Map users with their roles, team member links, and area assignments
     const usersWithRoles = users.map((u) => {
       const linkedTeamMember = teamMembers?.find((tm) => tm.user_id === u.id);
       const userAreaAssignments = allUserAreaAssignments?.filter((ua) => ua.user_id === u.id) || [];
@@ -131,7 +120,6 @@ serve(async (req: Request) => {
       };
     });
 
-    // Also return available team members (those without user_id or active ones)
     const availableTeamMembers = teamMembers?.map((tm) => ({
       id: tm.id,
       name: tm.name,

@@ -16,8 +16,10 @@ const getCorsHeaders = (req: Request) => {
 };
 
 serve(async (req: Request) => {
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: getCorsHeaders(req) });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
@@ -41,7 +43,6 @@ serve(async (req: Request) => {
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Verify requesting user is authenticated
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -54,7 +55,6 @@ serve(async (req: Request) => {
       );
     }
 
-    // Prevent self-deletion
     if (user.id === userId) {
       return new Response(
         JSON.stringify({ error: "Cannot delete your own account" }),
@@ -62,7 +62,6 @@ serve(async (req: Request) => {
       );
     }
 
-    // Check if user is admin
     const { data: roles } = await userClient
       .from("user_roles")
       .select("role")
@@ -76,7 +75,6 @@ serve(async (req: Request) => {
       );
     }
 
-    // Use service role to delete user
     const adminClient = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
