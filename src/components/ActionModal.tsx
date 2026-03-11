@@ -403,6 +403,13 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     // professional (especificador) is required unless user is Projetista de Apresentação
     // professionalId is optional - "Sem Especificador" is always allowed
     
+    // Client Name, Age, and Profession are ALWAYS required for client-creating action types
+    if (isApresentacaoProjeto || isVenda || isSeletiva) {
+      if (!form.clientName.trim()) newErrors.clientName = true;
+      if (!form.clientAge.trim()) newErrors.clientAge = true;
+      if (!form.clientProfession.trim()) newErrors.clientProfession = true;
+    }
+    
     // FOCCO number is required for Apresentação de Projeto, Venda, and Projeto
     if ((isApresentacaoProjeto || isVenda || isProjeto) && !form.foccoProjectNumber.trim()) {
       newErrors.foccoProjectNumber = true;
@@ -427,11 +434,6 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     if (isVenda) {
       if (!form.assignedProjetistaId) newErrors.assignedProjetistaId = true;
       if (!form.assignedLogisticaId) newErrors.assignedLogisticaId = true;
-    }
-    
-    // For Venda, require client name if no FOCCO project exists
-    if (isVenda && !form.foccoProjectNumber.trim() && !form.clientName.trim()) {
-      newErrors.clientName = true;
     }
     
     // Validate all enabled fields (marked as required in action type configuration)
