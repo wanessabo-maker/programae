@@ -117,6 +117,9 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
   // Selected consultant's areas (for admin filtering action types by selected collaborator)
   const [selectedConsultantAreaIds, setSelectedConsultantAreaIds] = useState<string[]>([]);
 
+  // Whether the selected consultant (when admin) is a Projetista de Apresentação
+  const [isSelectedConsultantProjetista, setIsSelectedConsultantProjetista] = useState(false);
+
   useEffect(() => {
     const fetchUserAreas = async () => {
       if (!currentTeamMember?.id) {
