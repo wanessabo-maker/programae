@@ -1131,7 +1131,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           )}
 
           {/* Professional/Specifier Selection - Hide for users from Projetos area */}
-          {form.consultantId && !isUserFromProjetosArea && (
+          {form.consultantId && !isEffectiveProjetista && (
             <div>
               <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.professionalId ? 'text-destructive' : 'text-muted-foreground'}`}>
                 Especificador {isStrictValidationType ? '*' : ''}
