@@ -9,6 +9,7 @@ import { useProjects, Project } from '@/hooks/useProjects';
 import { useClients } from '@/hooks/useClients';
 import { useApp } from '@/contexts/AppContext';
 import { ContractChecklistView } from './ContractChecklistView';
+import { DeleteContractDialog } from './DeleteContractDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
