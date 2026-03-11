@@ -346,6 +346,16 @@ export default function ContratosTab() {
                       >
                         <Eye className="h-4 w-4" />
                       </button>
+                      <button
+                        onClick={() => {
+                          setDeleteProjectId(project.id);
+                          setDeleteProjectName(project.name || project.focco_project_number || 'Sem nome');
+                        }}
+                        className="p-1 hover:bg-destructive/10 rounded text-destructive/70 hover:text-destructive"
+                        title="Excluir contrato"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </td>
                   </tr>
                 );
