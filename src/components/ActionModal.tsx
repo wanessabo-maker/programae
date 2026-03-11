@@ -292,12 +292,6 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     fetchSelectedConsultantAreas();
   }, [form.consultantId]);
 
-  // Reset action type when consultant changes (areas may differ)
-  useEffect(() => {
-    if (form.consultantId) {
-      setForm(prev => ({ ...prev, actionTypeId: '' }));
-    }
-  }, [form.consultantId]);
 
   const selectedActionType = actionTypes.find(t => t.id === form.actionTypeId);
   const consultantProfessionals = professionals.filter(p => p.consultantId === form.consultantId);
