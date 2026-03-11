@@ -260,12 +260,13 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     }
   }, [open, isAdmin, currentTeamMember?.id, form.consultantId]);
 
-  // Fetch selected consultant's areas for filtering action types (admin flow)
+  // Fetch selected consultant's areas and check if they are Projetista de Apresentação (admin flow)
   useEffect(() => {
     const fetchSelectedConsultantAreas = async () => {
       const consultantId = form.consultantId;
       if (!consultantId) {
         setSelectedConsultantAreaIds([]);
+        setIsSelectedConsultantProjetista(false);
         return;
       }
 
@@ -274,7 +275,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           .from('team_member_positions')
           .select(`
             position_id,
-            positions!inner(id, area_id)
+            positions!inner(id, area_id, name)
           `)
           .eq('team_member_id', consultantId);
 
@@ -283,12 +284,22 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             .map((mp: any) => mp.positions?.area_id)
             .filter(Boolean);
           setSelectedConsultantAreaIds([...new Set(areaIds)]);
+
+          // Check if this consultant is a Projetista de Apresentação
+          const isProjetista = memberPositions.some(
+            (mp: any) =>
+              mp.positions?.name?.toLowerCase().includes('projetista de apresentação') ||
+              mp.positions?.name?.toLowerCase().includes('projetista apresentação')
+          );
+          setIsSelectedConsultantProjetista(isProjetista);
         } else {
           setSelectedConsultantAreaIds([]);
+          setIsSelectedConsultantProjetista(false);
         }
       } catch (error) {
         console.error('Error fetching selected consultant areas:', error);
         setSelectedConsultantAreaIds([]);
+        setIsSelectedConsultantProjetista(false);
       }
     };
 
