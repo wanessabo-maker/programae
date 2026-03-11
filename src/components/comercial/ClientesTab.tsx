@@ -53,14 +53,10 @@ export default function ClientesTab() {
   const { actions, actionTypes, teamMembers, professionals } = useApp();
   const updateClientMutation = useUpdateClient();
 
-  // Get clients linked to projects (from "Apresentação de Projeto" actions)
+  // Show all clients (no longer filtering by project linkage)
   const funnelClients = useMemo(() => {
-    // Only show clients that are linked to projects (automated funnel)
-    const clientsWithProjects = clients.filter(client => {
-      return projects.some(p => p.client_id === client.id);
-    });
-    return clientsWithProjects;
-  }, [clients, projects]);
+    return clients;
+  }, [clients]);
 
   // Status counts for funnel visualization
   const statusCounts = useMemo(() => {
