@@ -148,7 +148,7 @@ export default function ContratosTab() {
         // Create a new client and link to the project
         const { data: newClient, error: createError } = await supabase
           .from('clients')
-          .insert({ name: editClientName.trim(), contract_number: editContractNumber.trim() || null, status: 'active' })
+          .insert({ name: editClientName.trim(), contract_number: editContractNumber.trim() || null, status: 'active', created_by: currentTeamMember?.id || null })
           .select('id')
           .single();
         if (createError) throw createError;
