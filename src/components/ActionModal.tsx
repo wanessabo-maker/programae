@@ -257,6 +257,48 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     }
   }, [open, isAdmin, currentTeamMember?.id, form.consultantId]);
 
+  // Fetch selected consultant's areas for filtering action types (admin flow)
+  useEffect(() => {
+    const fetchSelectedConsultantAreas = async () => {
+      const consultantId = form.consultantId;
+      if (!consultantId) {
+        setSelectedConsultantAreaIds([]);
+        return;
+      }
+
+      try {
+        const { data: memberPositions } = await supabase
+          .from('team_member_positions')
+          .select(`
+            position_id,
+            positions!inner(id, area_id)
+          `)
+          .eq('team_member_id', consultantId);
+
+        if (memberPositions) {
+          const areaIds = memberPositions
+            .map((mp: any) => mp.positions?.area_id)
+            .filter(Boolean);
+          setSelectedConsultantAreaIds([...new Set(areaIds)]);
+        } else {
+          setSelectedConsultantAreaIds([]);
+        }
+      } catch (error) {
+        console.error('Error fetching selected consultant areas:', error);
+        setSelectedConsultantAreaIds([]);
+      }
+    };
+
+    fetchSelectedConsultantAreas();
+  }, [form.consultantId]);
+
+  // Reset action type when consultant changes (areas may differ)
+  useEffect(() => {
+    if (form.consultantId) {
+      setForm(prev => ({ ...prev, actionTypeId: '' }));
+    }
+  }, [form.consultantId]);
+
   const selectedActionType = actionTypes.find(t => t.id === form.actionTypeId);
   const consultantProfessionals = professionals.filter(p => p.consultantId === form.consultantId);
   
