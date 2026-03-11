@@ -392,6 +392,12 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
       newErrors.contractNumber = true;
     }
     
+    // For Venda, checklist assignment is mandatory
+    if (isVenda) {
+      if (!form.assignedProjetistaId) newErrors.assignedProjetistaId = true;
+      if (!form.assignedLogisticaId) newErrors.assignedLogisticaId = true;
+    }
+    
     // For Venda, require client name if no FOCCO project exists
     if (isVenda && !form.foccoProjectNumber.trim() && !form.clientName.trim()) {
       newErrors.clientName = true;
@@ -1309,26 +1315,26 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
 
           {/* Assigned Professionals for Checklist - Only for Venda */}
           {isVenda && (
-            <div className="border border-border rounded-md p-3 space-y-3 bg-muted/30">
+            <div className={`border rounded-md p-3 space-y-3 bg-muted/30 ${errors.assignedProjetistaId || errors.assignedLogisticaId ? 'border-red-500' : 'border-border'}`}>
               <label className="text-xs tracking-widest uppercase text-muted-foreground block">
-                Atribuir Responsáveis do Checklist
+                Atribuir Responsáveis do Checklist <span className="text-red-500">*</span>
               </label>
               <p className="text-xs text-muted-foreground mb-2">
-                Selecione os profissionais que serão responsáveis pelas etapas técnicas e de logística deste contrato.
+                Selecione os profissionais responsáveis pelas etapas técnicas e de logística deste contrato.
               </p>
               
               {/* Projetista Técnico */}
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">
-                  Projetista Técnico
+                  Projetista Técnico <span className="text-red-500">*</span>
                 </label>
                 {projetistaMembers.length > 0 ? (
                   <select
                     value={form.assignedProjetistaId}
                     onChange={(e) => handleFieldChange('assignedProjetistaId', e.target.value)}
-                    className="input-flat w-full text-card-foreground"
+                    className={`input-flat w-full text-card-foreground ${errors.assignedProjetistaId ? 'border-red-500' : ''}`}
                   >
-                    <option value="">Selecione (opcional)</option>
+                    <option value="">Selecione um projetista</option>
                     {projetistaMembers.map((m) => (
                       <option key={m.id} value={m.id}>{m.name}</option>
                     ))}
@@ -1343,15 +1349,15 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
               {/* Analista de Logística */}
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">
-                  Analista de Logística
+                  Analista de Logística <span className="text-red-500">*</span>
                 </label>
                 {logisticaMembers.length > 0 ? (
                   <select
                     value={form.assignedLogisticaId}
                     onChange={(e) => handleFieldChange('assignedLogisticaId', e.target.value)}
-                    className="input-flat w-full text-card-foreground"
+                    className={`input-flat w-full text-card-foreground ${errors.assignedLogisticaId ? 'border-red-500' : ''}`}
                   >
-                    <option value="">Selecione (opcional)</option>
+                    <option value="">Selecione um analista</option>
                     {logisticaMembers.map((m) => (
                       <option key={m.id} value={m.id}>{m.name}</option>
                     ))}
