@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { format, parseISO, startOfMonth, endOfMonth, startOfYear, endOfYear, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Eye, FileText, Calendar, TrendingUp, Filter, User, DollarSign, ListChecks, Pencil } from 'lucide-react';
+import { Eye, FileText, Calendar, TrendingUp, Filter, User, DollarSign, ListChecks, Pencil, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -9,6 +9,7 @@ import { useProjects, Project } from '@/hooks/useProjects';
 import { useClients } from '@/hooks/useClients';
 import { useApp } from '@/contexts/AppContext';
 import { ContractChecklistView } from './ContractChecklistView';
+import { DeleteContractDialog } from './DeleteContractDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
@@ -36,6 +37,8 @@ export default function ContratosTab() {
   const [editContractNumber, setEditContractNumber] = useState('');
   const [editClientName, setEditClientName] = useState('');
   const [saving, setSaving] = useState(false);
+  const [deleteProjectId, setDeleteProjectId] = useState<string | null>(null);
+  const [deleteProjectName, setDeleteProjectName] = useState('');
 
   // Get only closed projects (closed_won stage)
   const closedProjects = useMemo(() => {
@@ -343,6 +346,16 @@ export default function ContratosTab() {
                       >
                         <Eye className="h-4 w-4" />
                       </button>
+                      <button
+                        onClick={() => {
+                          setDeleteProjectId(project.id);
+                          setDeleteProjectName(project.name || project.focco_project_number || 'Sem nome');
+                        }}
+                        className="p-1 hover:bg-destructive/10 rounded text-destructive/70 hover:text-destructive"
+                        title="Excluir contrato"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </td>
                   </tr>
                 );
@@ -553,6 +566,13 @@ export default function ContratosTab() {
           </div>
         </DialogContent>
       </Dialog>
+      {/* Delete Contract Dialog */}
+      <DeleteContractDialog
+        open={!!deleteProjectId}
+        onOpenChange={(open) => { if (!open) setDeleteProjectId(null); }}
+        projectId={deleteProjectId}
+        projectName={deleteProjectName}
+      />
     </div>
   );
 }
