@@ -1282,7 +1282,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           </div>
 
           {/* Environment Count - Only for Apresentação de Projeto AND only for Projetista de Apresentação */}
-          {isApresentacaoProjeto && isUserFromProjetosArea && (
+          {isApresentacaoProjeto && isEffectiveProjetista && (
             <div>
               <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.environmentCount ? 'text-destructive' : 'text-muted-foreground'}`}>
                 Quantidade de Ambientes *
