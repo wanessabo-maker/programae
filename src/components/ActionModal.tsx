@@ -292,6 +292,36 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
               mp.positions?.name?.toLowerCase().includes('projetista apresentação')
           );
           setIsSelectedConsultantProjetista(isProjetista);
+
+          // If selected consultant is a projetista, fetch commercial consultants for the dropdown
+          if (isProjetista && commercialConsultants.length === 0) {
+            const { data: comercialPosition } = await supabase
+              .from('positions')
+              .select('id')
+              .eq('is_active', true)
+              .ilike('name', '%consultor comercial%')
+              .not('name', 'ilike', '%engenharia%');
+
+            if (comercialPosition && comercialPosition.length > 0) {
+              const comercialPositionIds = comercialPosition.map(p => p.id);
+              const { data: comercialMemberPositions } = await supabase
+                .from('team_member_positions')
+                .select('team_member_id')
+                .in('position_id', comercialPositionIds);
+
+              if (comercialMemberPositions && comercialMemberPositions.length > 0) {
+                const comercialMemberIds = [...new Set(comercialMemberPositions.map(mp => mp.team_member_id))];
+                const { data: comercialMembers } = await supabase
+                  .from('team_members')
+                  .select('id, name')
+                  .in('id', comercialMemberIds)
+                  .eq('active', true)
+                  .order('name');
+
+                setCommercialConsultants(comercialMembers || []);
+              }
+            }
+          }
         } else {
           setSelectedConsultantAreaIds([]);
           setIsSelectedConsultantProjetista(false);
