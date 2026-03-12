@@ -93,6 +93,16 @@ export default function MinhaArea() {
     );
   }, [currentTeamMember?.id, getMemberPositions]);
 
+  // Check if user is a Projetista Técnico
+  const isProjetistaTecnico = useMemo(() => {
+    if (!currentTeamMember?.id) return false;
+    const memberPositions = getMemberPositions(currentTeamMember.id);
+    return memberPositions.some(p => 
+      p.name.toLowerCase().includes('projetista técnico') || 
+      p.name.toLowerCase().includes('projetista tecnico')
+    );
+  }, [currentTeamMember?.id, getMemberPositions]);
+
   // Get user's areas from positions
   const userAreaNames = useMemo(() => {
     if (!currentTeamMember?.id) return [];
