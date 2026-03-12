@@ -1426,11 +1426,11 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             </div>
           )}
 
-          {/* Value (for sales) */}
-          {selectedActionType?.requiresValue && (
+          {/* Value (for sales or Projetista Técnico) */}
+          {(selectedActionType?.requiresValue || (isProjeto && isEffectiveProjetistaTecnico)) && (
             <div>
               <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.value ? 'text-destructive' : 'text-muted-foreground'}`}>
-                Valor da Venda *
+                {(isProjeto && isEffectiveProjetistaTecnico) ? 'Valor (R$)' : 'Valor da Venda *'}
               </label>
               <input
                 type="number"
