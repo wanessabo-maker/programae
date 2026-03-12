@@ -343,6 +343,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
         } else {
           setSelectedConsultantAreaIds([]);
           setIsSelectedConsultantProjetista(false);
+          setIsSelectedConsultantProjetistaTecnico(false);
         }
       } catch (error) {
         console.error('Error fetching selected consultant areas:', error);
