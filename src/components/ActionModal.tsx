@@ -103,6 +103,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
 
   // Check if current user is a Projetista (from Projetos area - should see consultant selector instead of specifier)
   const [isUserFromProjetosArea, setIsUserFromProjetosArea] = useState(false);
+  const [isUserProjetistaTecnico, setIsUserProjetistaTecnico] = useState(false);
 
   // Commercial consultants for selection by Projetistas
   const [commercialConsultants, setCommercialConsultants] = useState<{ id: string; name: string }[]>([]);
@@ -119,6 +120,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
 
   // Whether the selected consultant (when admin) is a Projetista de Apresentação
   const [isSelectedConsultantProjetista, setIsSelectedConsultantProjetista] = useState(false);
+  const [isSelectedConsultantProjetistaTecnico, setIsSelectedConsultantProjetistaTecnico] = useState(false);
 
   useEffect(() => {
     const fetchUserAreas = async () => {
@@ -187,7 +189,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           `)
           .eq('team_member_id', currentTeamMember.id);
 
-        if (memberPositions) {
+          if (memberPositions) {
           // Check if user has "Projetista de Apresentação" position specifically
           const isProjetistaApresentacao = memberPositions.some(
             (mp: any) => 
@@ -196,8 +198,16 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           );
           setIsUserFromProjetosArea(isProjetistaApresentacao);
 
-          // If is Projetista de Apresentação, fetch commercial consultants
-          if (isProjetistaApresentacao) {
+          // Check if user has "Projetista Técnico" position
+          const isProjetistaTec = memberPositions.some(
+            (mp: any) => 
+              mp.positions?.name?.toLowerCase().includes('projetista técnico') ||
+              mp.positions?.name?.toLowerCase().includes('projetista tecnico')
+          );
+          setIsUserProjetistaTecnico(isProjetistaTec);
+
+          // If is Projetista de Apresentação or Projetista Técnico, fetch commercial consultants
+          if (isProjetistaApresentacao || isProjetistaTec) {
             // Get "Consultor Comercial" position specifically
             const { data: comercialPosition } = await supabase
               .from('positions')
@@ -293,8 +303,16 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           );
           setIsSelectedConsultantProjetista(isProjetista);
 
-          // If selected consultant is a projetista, fetch commercial consultants for the dropdown
-          if (isProjetista && commercialConsultants.length === 0) {
+          // Check if this consultant is a Projetista Técnico
+          const isProjetistaTec = memberPositions.some(
+            (mp: any) =>
+              mp.positions?.name?.toLowerCase().includes('projetista técnico') ||
+              mp.positions?.name?.toLowerCase().includes('projetista tecnico')
+          );
+          setIsSelectedConsultantProjetistaTecnico(isProjetistaTec);
+
+          // If selected consultant is a projetista (apresentação or técnico), fetch commercial consultants for the dropdown
+          if ((isProjetista || isProjetistaTec) && commercialConsultants.length === 0) {
             const { data: comercialPosition } = await supabase
               .from('positions')
               .select('id')
@@ -325,11 +343,13 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
         } else {
           setSelectedConsultantAreaIds([]);
           setIsSelectedConsultantProjetista(false);
+          setIsSelectedConsultantProjetistaTecnico(false);
         }
       } catch (error) {
         console.error('Error fetching selected consultant areas:', error);
         setSelectedConsultantAreaIds([]);
         setIsSelectedConsultantProjetista(false);
+        setIsSelectedConsultantProjetistaTecnico(false);
       }
     };
 
@@ -342,6 +362,9 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
   
   // Effective check: is the selected consultant (or logged-in user if not admin) a Projetista de Apresentação
   const isEffectiveProjetista = isAdmin ? isSelectedConsultantProjetista : isUserFromProjetosArea;
+  
+  // Effective check: is the selected consultant (or logged-in user if not admin) a Projetista Técnico
+  const isEffectiveProjetistaTecnico = isAdmin ? isSelectedConsultantProjetistaTecnico : isUserProjetistaTecnico;
   
   // Check if this is an "Apresentação de Projeto" action type
   const isApresentacaoProjeto = selectedActionType?.name?.toLowerCase().includes('apresentação') && 
@@ -419,13 +442,15 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
       newErrors.foccoProjectNumber = true;
     }
     
-    // Environment count is required for Apresentação de Projeto ONLY for Projetista de Apresentação
-    if (isApresentacaoProjeto && isEffectiveProjetista && (!form.environmentCount || (safeParseInt(form.environmentCount, { min: 1 }) === null))) {
+    // Environment count is required for Apresentação de Projeto (Projetista de Apresentação) OR Projeto Técnico (Projetista Técnico)
+    const requiresEnvironment = (isApresentacaoProjeto && isEffectiveProjetista) || (isProjeto && isEffectiveProjetistaTecnico);
+    if (requiresEnvironment && (!form.environmentCount || (safeParseInt(form.environmentCount, { min: 1 }) === null))) {
       newErrors.environmentCount = true;
     }
     
-    // Commercial consultant is required for Projetista de Apresentação
-    if (isApresentacaoProjeto && isEffectiveProjetista && !form.commercialConsultantId) {
+    // Commercial consultant is required for Projetista de Apresentação or Projetista Técnico
+    const requiresCommercialConsultant = (isApresentacaoProjeto && isEffectiveProjetista) || (isProjeto && isEffectiveProjetistaTecnico);
+    if (requiresCommercialConsultant && !form.commercialConsultantId) {
       newErrors.commercialConsultantId = true;
     }
     
@@ -561,9 +586,12 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
         }
       }
 
-      // For Projetista de Apresentação: points = environment count (1 ambiente = 1 ponto)
+      // For Projetista de Apresentação or Projetista Técnico: points = environment count (1 ambiente = 1 ponto)
       // For other users: use action type's configured points
-      const points = (isApresentacaoProjeto && isEffectiveProjetista && form.environmentCount)
+      const isProjetistaEnvironmentAction = 
+        (isApresentacaoProjeto && isEffectiveProjetista && form.environmentCount) ||
+        (isProjeto && isEffectiveProjetistaTecnico && form.environmentCount);
+      const points = isProjetistaEnvironmentAction
         ? (safeParseInt(form.environmentCount, { min: 0 }) ?? 0)
         : (selectedActionType?.programPoints || 0);
 
@@ -988,11 +1016,16 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
         });
       }
 
-      // AUTOMATION: Create project environment record for Apresentação de Projeto (only for Projetista de Apresentação)
-      if (isApresentacaoProjeto && isEffectiveProjetista && form.environmentCount && form.consultantId) {
+      // AUTOMATION: Create project environment record for Projetista de Apresentação or Projetista Técnico
+      const shouldCreateEnvironment = 
+        (isApresentacaoProjeto && isEffectiveProjetista && form.environmentCount && form.consultantId) ||
+        (isProjeto && isEffectiveProjetistaTecnico && form.environmentCount && form.consultantId);
+      
+      if (shouldCreateEnvironment) {
+        const envType = (isProjeto && isEffectiveProjetistaTecnico) ? 'tecnico' : 'apresentacao';
         try {
           await createEnvironment.mutateAsync({
-            environment_type: 'apresentacao',
+            environment_type: envType,
             environment_count: safeParseInt(form.environmentCount, { min: 1 }) ?? 1,
             projetista_id: form.consultantId,
             consultant_id: form.commercialConsultantId || undefined, // Commercial consultant served
@@ -1199,7 +1232,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           </div>
 
           {/* For users from Projetos area: show Commercial Consultant selector */}
-          {isEffectiveProjetista && form.consultantId && (
+          {(isEffectiveProjetista || isEffectiveProjetistaTecnico) && form.consultantId && (
             <div>
               <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.commercialConsultantId ? 'text-destructive' : 'text-muted-foreground'}`}>
                 Consultor Comercial Atendido *
@@ -1222,7 +1255,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           )}
 
           {/* Professional/Specifier Selection - Hide for users from Projetos area */}
-          {form.consultantId && !isEffectiveProjetista && (
+          {form.consultantId && !isEffectiveProjetista && !isEffectiveProjetistaTecnico && (
             <div>
               <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.professionalId ? 'text-destructive' : 'text-muted-foreground'}`}>
                 Especificador {isStrictValidationType ? '*' : ''}
@@ -1372,8 +1405,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             {errors.date && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
           </div>
 
-          {/* Environment Count - Only for Apresentação de Projeto AND only for Projetista de Apresentação */}
-          {isApresentacaoProjeto && isEffectiveProjetista && (
+          {/* Environment Count - For Projetista de Apresentação (Apresentação) or Projetista Técnico (Projeto Técnico) */}
+          {((isApresentacaoProjeto && isEffectiveProjetista) || (isProjeto && isEffectiveProjetistaTecnico)) && (
             <div>
               <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.environmentCount ? 'text-destructive' : 'text-muted-foreground'}`}>
                 Quantidade de Ambientes *
@@ -1388,7 +1421,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
               />
               {errors.environmentCount && <span className="text-xs text-destructive mt-1">Campo obrigatório (mínimo 1)</span>}
               <p className="text-xs text-muted-foreground mt-1">
-                Informe o número de ambientes projetados nesta apresentação
+                Informe o número de ambientes projetados
               </p>
             </div>
           )}
@@ -1493,7 +1526,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             isApresentacao={isApresentacaoProjeto}
             isSeletiva={isSeletiva}
             enabledFields={selectedActionType?.enabledFields || []}
-            restrictToFoccoOnly={isEffectiveProjetista}
+            restrictToFoccoOnly={isEffectiveProjetista || isEffectiveProjetistaTecnico}
           />
 
           <button 
