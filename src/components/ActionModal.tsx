@@ -311,8 +311,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           );
           setIsSelectedConsultantProjetistaTecnico(isProjetistaTec);
 
-          // If selected consultant is a projetista, fetch commercial consultants for the dropdown
-          if (isProjetista && commercialConsultants.length === 0) {
+          // If selected consultant is a projetista (apresentação or técnico), fetch commercial consultants for the dropdown
+          if ((isProjetista || isProjetistaTec) && commercialConsultants.length === 0) {
             const { data: comercialPosition } = await supabase
               .from('positions')
               .select('id')
