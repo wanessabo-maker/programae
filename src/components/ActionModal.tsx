@@ -1232,7 +1232,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           </div>
 
           {/* For users from Projetos area: show Commercial Consultant selector */}
-          {isEffectiveProjetista && form.consultantId && (
+          {(isEffectiveProjetista || isEffectiveProjetistaTecnico) && form.consultantId && (
             <div>
               <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.commercialConsultantId ? 'text-destructive' : 'text-muted-foreground'}`}>
                 Consultor Comercial Atendido *
