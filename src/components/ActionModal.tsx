@@ -1016,11 +1016,16 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
         });
       }
 
-      // AUTOMATION: Create project environment record for Apresentação de Projeto (only for Projetista de Apresentação)
-      if (isApresentacaoProjeto && isEffectiveProjetista && form.environmentCount && form.consultantId) {
+      // AUTOMATION: Create project environment record for Projetista de Apresentação or Projetista Técnico
+      const shouldCreateEnvironment = 
+        (isApresentacaoProjeto && isEffectiveProjetista && form.environmentCount && form.consultantId) ||
+        (isProjeto && isEffectiveProjetistaTecnico && form.environmentCount && form.consultantId);
+      
+      if (shouldCreateEnvironment) {
+        const envType = (isProjeto && isEffectiveProjetistaTecnico) ? 'tecnico' : 'apresentacao';
         try {
           await createEnvironment.mutateAsync({
-            environment_type: 'apresentacao',
+            environment_type: envType,
             environment_count: safeParseInt(form.environmentCount, { min: 1 }) ?? 1,
             projetista_id: form.consultantId,
             consultant_id: form.commercialConsultantId || undefined, // Commercial consultant served
