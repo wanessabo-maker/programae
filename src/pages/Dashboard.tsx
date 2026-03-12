@@ -461,13 +461,37 @@ export default function Dashboard() {
           <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors">
             <div className="flex items-center gap-3">
               {actionsOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-              <span className="text-sm tracking-widest uppercase font-medium">Ações do Mês</span>
+              <span className="text-sm tracking-widest uppercase font-medium">
+                {isAdmin ? 'Ações' : 'Ações do Mês'}
+              </span>
             </div>
             <span className="text-xs text-muted-foreground">{currentMonthActions.length} ações</span>
           </CollapsibleTrigger>
           
           <CollapsibleContent>
             <div className="p-4 pt-0 space-y-4">
+
+              {/* Month Navigator (Admin only) */}
+              {isAdmin && (
+                <div className="flex items-center gap-4 pt-2">
+                  <button
+                    onClick={() => setActionsMonthOffset(o => o - 1)}
+                    className="p-1 hover:opacity-70"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <span className="text-sm tracking-widest uppercase min-w-[180px] text-center">
+                    {selectedActionsMonthLabel}
+                  </span>
+                  <button
+                    onClick={() => setActionsMonthOffset(o => Math.min(o + 1, 0))}
+                    className="p-1 hover:opacity-70"
+                    disabled={actionsMonthOffset >= 0}
+                  >
+                    <ChevronRight className={`w-5 h-5 ${actionsMonthOffset >= 0 ? 'opacity-30' : ''}`} />
+                  </button>
+                </div>
+              )}
 
               {/* Team Member Filter */}
               <div className="flex items-center gap-3 pt-2">
