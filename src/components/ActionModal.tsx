@@ -206,8 +206,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           );
           setIsUserProjetistaTecnico(isProjetistaTec);
 
-          // If is Projetista de Apresentação, fetch commercial consultants
-          if (isProjetistaApresentacao) {
+          // If is Projetista de Apresentação or Projetista Técnico, fetch commercial consultants
+          if (isProjetistaApresentacao || isProjetistaTec) {
             // Get "Consultor Comercial" position specifically
             const { data: comercialPosition } = await supabase
               .from('positions')
