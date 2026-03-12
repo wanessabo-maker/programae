@@ -489,67 +489,6 @@ export function useAllTeamChecklistItems(isAdmin: boolean) {
   });
 }
 
-...
-        .select('*')
-        .eq('is_active', true)
-        .order('step_order', { ascending: true });
-
-      if (templatesError) throw templatesError;
-      if (!templates?.length) throw new Error('No checklist templates found');
-
-      // Create the main checklist
-      const { data: checklist, error: checklistError } = await supabase
-        .from('contract_checklists')
-        .insert({
-          project_id: projectId,
-          workflow_status: 'formalizacao',
-          current_step: 1,
-        })
-        .select()
-        .single();
-
-      if (checklistError) throw checklistError;
-
-      // Create all checklist items
-      const today = new Date();
-      const items = templates.map((template, index) => {
-        let dueDate = null;
-        if (template.default_sla_days) {
-          const date = new Date(today);
-          date.setDate(date.getDate() + template.default_sla_days);
-          dueDate = date.toISOString().split('T')[0];
-        }
-
-        return {
-          checklist_id: checklist.id,
-          template_id: template.id,
-          step_order: template.step_order,
-          name: template.name,
-          responsible_area: template.responsible_area,
-          status: index === 0 ? 'active' : 'blocked',
-          due_date: dueDate,
-        };
-      });
-
-      const { error: itemsError } = await supabase
-        .from('checklist_items')
-        .insert(items);
-
-      if (itemsError) throw itemsError;
-
-      return checklist;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contract-checklist'] });
-      queryClient.invalidateQueries({ queryKey: ['my-active-checklist-items'] });
-    },
-    onError: (error) => {
-      console.error('Error creating checklist:', error);
-      toast.error('Erro ao criar checklist do contrato');
-    },
-  });
-}
-
 // Complete a checklist item and activate the next one
 export function useCompleteChecklistItem() {
   const queryClient = useQueryClient();
