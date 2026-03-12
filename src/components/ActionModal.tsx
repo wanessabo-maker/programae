@@ -120,6 +120,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
 
   // Whether the selected consultant (when admin) is a Projetista de Apresentação
   const [isSelectedConsultantProjetista, setIsSelectedConsultantProjetista] = useState(false);
+  const [isSelectedConsultantProjetistaTecnico, setIsSelectedConsultantProjetistaTecnico] = useState(false);
 
   useEffect(() => {
     const fetchUserAreas = async () => {
