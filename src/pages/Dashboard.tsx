@@ -329,15 +329,33 @@ export default function Dashboard() {
     return grouped;
   }, [consultantMetrics]);
 
-  // Current month actions with optional team member filter
+  // Selected month for actions view
+  const selectedActionsDate = useMemo(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + actionsMonthOffset);
+    return d;
+  }, [actionsMonthOffset]);
+
+  const selectedActionsMonthLabel = format(selectedActionsDate, "MMMM 'de' yyyy", { locale: ptBR });
+
+  const isCurrentMonth = actionsMonthOffset === 0;
+
+  // Actions for the selected month with optional team member filter
   const currentMonthActions = useMemo(() => {
-    // Filter actions from current month
-    const thisMonthActions = actions.filter(a => isThisMonth(parseISO(a.date)));
+    const targetYear = selectedActionsDate.getFullYear();
+    const targetMonth = selectedActionsDate.getMonth();
+
+    const monthActions = actions.filter(a => {
+      // Non-admins can only see current month
+      if (!isAdmin && actionsMonthOffset !== 0) return false;
+      const d = parseISO(a.date);
+      return d.getFullYear() === targetYear && d.getMonth() === targetMonth;
+    });
     
     // Apply team member filter if selected
     const filteredActions = actionsFilter === 'all' 
-      ? thisMonthActions 
-      : thisMonthActions.filter(a => a.consultantId === actionsFilter);
+      ? monthActions 
+      : monthActions.filter(a => a.consultantId === actionsFilter);
     
     return [...filteredActions]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -352,7 +370,7 @@ export default function Dashboard() {
           actionTypeName: actionType?.name || '-',
         };
       });
-  }, [actions, teamMembers, professionals, actionTypes, actionsFilter]);
+  }, [actions, teamMembers, professionals, actionTypes, actionsFilter, selectedActionsDate, isAdmin, actionsMonthOffset]);
 
   // Team members available for filter (respecting permissions)
   const availableTeamMembersForFilter = useMemo(() => {
