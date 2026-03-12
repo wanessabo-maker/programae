@@ -28,6 +28,7 @@ export default function Dashboard() {
   const [deletingActionId, setDeletingActionId] = useState<string | null>(null);
   const [actionsFilter, setActionsFilter] = useState<string>('all');
   const [showTimeoutMessage, setShowTimeoutMessage] = useState(false);
+  const [actionsMonthOffset, setActionsMonthOffset] = useState(0); // 0 = current month, -1 = last month, etc.
   
   // Context hooks
   const { isAdmin } = useAuthContext();
