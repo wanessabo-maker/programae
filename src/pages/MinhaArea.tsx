@@ -32,6 +32,7 @@ import {
 } from '@/hooks/useChecklist';
 import { CompleteActivityModal } from '@/components/minha-area/CompleteActivityModal';
 import { ProjetistaSection } from '@/components/minha-area/ProjetistaSection';
+import { ProjetistaTecnicoProjects } from '@/components/minha-area/ProjetistaTecnicoProjects';
 import { ManagementDashboard } from '@/components/minha-area/ManagementDashboard';
 import { useTeamMembers } from '@/hooks/useDatabase';
 
@@ -89,6 +90,16 @@ export default function MinhaArea() {
     return memberPositions.some(p => 
       p.name.toLowerCase().includes('gerencia') || 
       p.name.toLowerCase().includes('gerente')
+    );
+  }, [currentTeamMember?.id, getMemberPositions]);
+
+  // Check if user is a Projetista Técnico
+  const isProjetistaTecnico = useMemo(() => {
+    if (!currentTeamMember?.id) return false;
+    const memberPositions = getMemberPositions(currentTeamMember.id);
+    return memberPositions.some(p => 
+      p.name.toLowerCase().includes('projetista técnico') || 
+      p.name.toLowerCase().includes('projetista tecnico')
     );
   }, [currentTeamMember?.id, getMemberPositions]);
 
@@ -531,6 +542,11 @@ export default function MinhaArea() {
             teamMemberId={currentTeamMember.id} 
             teamMemberName={currentTeamMember.name} 
           />
+        )}
+
+        {/* Projetista Técnico Projects - show project cards for assigned technical projects */}
+        {viewMode === 'my' && currentTeamMember?.id && isProjetistaTecnico && (
+          <ProjetistaTecnicoProjects teamMemberId={currentTeamMember.id} />
         )}
 
         {/* Contract Groups */}
