@@ -1405,8 +1405,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             {errors.date && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
           </div>
 
-          {/* Environment Count - Only for Apresentação de Projeto AND only for Projetista de Apresentação */}
-          {isApresentacaoProjeto && isEffectiveProjetista && (
+          {/* Environment Count - For Projetista de Apresentação (Apresentação) or Projetista Técnico (Projeto Técnico) */}
+          {((isApresentacaoProjeto && isEffectiveProjetista) || (isProjeto && isEffectiveProjetistaTecnico)) && (
             <div>
               <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.environmentCount ? 'text-destructive' : 'text-muted-foreground'}`}>
                 Quantidade de Ambientes *
@@ -1421,7 +1421,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
               />
               {errors.environmentCount && <span className="text-xs text-destructive mt-1">Campo obrigatório (mínimo 1)</span>}
               <p className="text-xs text-muted-foreground mt-1">
-                Informe o número de ambientes projetados nesta apresentação
+                Informe o número de ambientes projetados
               </p>
             </div>
           )}
