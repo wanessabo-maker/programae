@@ -338,7 +338,7 @@ export default function Dashboard() {
 
   const selectedActionsMonthLabel = format(selectedActionsDate, "MMMM 'de' yyyy", { locale: ptBR });
 
-  const isCurrentMonth = actionsMonthOffset === 0;
+  
 
   // Actions for the selected month with optional team member filter
   const currentMonthActions = useMemo(() => {
