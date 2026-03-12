@@ -544,6 +544,11 @@ export default function MinhaArea() {
           />
         )}
 
+        {/* Projetista Técnico Projects - show project cards for assigned technical projects */}
+        {viewMode === 'my' && currentTeamMember?.id && isProjetistaTecnico && (
+          <ProjetistaTecnicoProjects teamMemberId={currentTeamMember.id} />
+        )}
+
         {/* Contract Groups */}
         <div className="space-y-4">
           <h2 className="text-xs tracking-widest uppercase text-muted-foreground font-medium">
