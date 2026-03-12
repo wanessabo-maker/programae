@@ -489,15 +489,7 @@ export function useAllTeamChecklistItems(isAdmin: boolean) {
   });
 }
 
-// Create checklist for a project (called when sale is registered)
-export function useCreateChecklist() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (projectId: string) => {
-      // First, fetch templates
-      const { data: templates, error: templatesError } = await supabase
-        .from('checklist_templates')
+...
         .select('*')
         .eq('is_active', true)
         .order('step_order', { ascending: true });
