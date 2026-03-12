@@ -303,6 +303,14 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           );
           setIsSelectedConsultantProjetista(isProjetista);
 
+          // Check if this consultant is a Projetista Técnico
+          const isProjetistaTec = memberPositions.some(
+            (mp: any) =>
+              mp.positions?.name?.toLowerCase().includes('projetista técnico') ||
+              mp.positions?.name?.toLowerCase().includes('projetista tecnico')
+          );
+          setIsSelectedConsultantProjetistaTecnico(isProjetistaTec);
+
           // If selected consultant is a projetista, fetch commercial consultants for the dropdown
           if (isProjetista && commercialConsultants.length === 0) {
             const { data: comercialPosition } = await supabase
