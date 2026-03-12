@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, Trash2, Pencil, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, Pencil, ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useCurrentTeamMember } from '@/hooks/useCurrentTeamMember';
@@ -28,6 +28,7 @@ export default function Dashboard() {
   const [deletingActionId, setDeletingActionId] = useState<string | null>(null);
   const [actionsFilter, setActionsFilter] = useState<string>('all');
   const [showTimeoutMessage, setShowTimeoutMessage] = useState(false);
+  const [actionsMonthOffset, setActionsMonthOffset] = useState(0); // 0 = current month, -1 = last month, etc.
   
   // Context hooks
   const { isAdmin } = useAuthContext();
@@ -328,15 +329,33 @@ export default function Dashboard() {
     return grouped;
   }, [consultantMetrics]);
 
-  // Current month actions with optional team member filter
+  // Selected month for actions view
+  const selectedActionsDate = useMemo(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + actionsMonthOffset);
+    return d;
+  }, [actionsMonthOffset]);
+
+  const selectedActionsMonthLabel = format(selectedActionsDate, "MMMM 'de' yyyy", { locale: ptBR });
+
+  
+
+  // Actions for the selected month with optional team member filter
   const currentMonthActions = useMemo(() => {
-    // Filter actions from current month
-    const thisMonthActions = actions.filter(a => isThisMonth(parseISO(a.date)));
+    const targetYear = selectedActionsDate.getFullYear();
+    const targetMonth = selectedActionsDate.getMonth();
+
+    const monthActions = actions.filter(a => {
+      // Non-admins can only see current month
+      if (!isAdmin && actionsMonthOffset !== 0) return false;
+      const d = parseISO(a.date);
+      return d.getFullYear() === targetYear && d.getMonth() === targetMonth;
+    });
     
     // Apply team member filter if selected
     const filteredActions = actionsFilter === 'all' 
-      ? thisMonthActions 
-      : thisMonthActions.filter(a => a.consultantId === actionsFilter);
+      ? monthActions 
+      : monthActions.filter(a => a.consultantId === actionsFilter);
     
     return [...filteredActions]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -351,7 +370,7 @@ export default function Dashboard() {
           actionTypeName: actionType?.name || '-',
         };
       });
-  }, [actions, teamMembers, professionals, actionTypes, actionsFilter]);
+  }, [actions, teamMembers, professionals, actionTypes, actionsFilter, selectedActionsDate, isAdmin, actionsMonthOffset]);
 
   // Team members available for filter (respecting permissions)
   const availableTeamMembersForFilter = useMemo(() => {
@@ -442,13 +461,37 @@ export default function Dashboard() {
           <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors">
             <div className="flex items-center gap-3">
               {actionsOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-              <span className="text-sm tracking-widest uppercase font-medium">Ações do Mês</span>
+              <span className="text-sm tracking-widest uppercase font-medium">
+                {isAdmin ? 'Ações' : 'Ações do Mês'}
+              </span>
             </div>
             <span className="text-xs text-muted-foreground">{currentMonthActions.length} ações</span>
           </CollapsibleTrigger>
           
           <CollapsibleContent>
             <div className="p-4 pt-0 space-y-4">
+
+              {/* Month Navigator (Admin only) */}
+              {isAdmin && (
+                <div className="flex items-center gap-4 pt-2">
+                  <button
+                    onClick={() => setActionsMonthOffset(o => o - 1)}
+                    className="p-1 hover:opacity-70"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <span className="text-sm tracking-widest uppercase min-w-[180px] text-center">
+                    {selectedActionsMonthLabel}
+                  </span>
+                  <button
+                    onClick={() => setActionsMonthOffset(o => Math.min(o + 1, 0))}
+                    className="p-1 hover:opacity-70"
+                    disabled={actionsMonthOffset >= 0}
+                  >
+                    <ChevronRight className={`w-5 h-5 ${actionsMonthOffset >= 0 ? 'opacity-30' : ''}`} />
+                  </button>
+                </div>
+              )}
 
               {/* Team Member Filter */}
               <div className="flex items-center gap-3 pt-2">
