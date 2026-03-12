@@ -32,6 +32,7 @@ import {
 } from '@/hooks/useChecklist';
 import { CompleteActivityModal } from '@/components/minha-area/CompleteActivityModal';
 import { ProjetistaSection } from '@/components/minha-area/ProjetistaSection';
+import { ProjetistaTecnicoProjects } from '@/components/minha-area/ProjetistaTecnicoProjects';
 import { ManagementDashboard } from '@/components/minha-area/ManagementDashboard';
 import { useTeamMembers } from '@/hooks/useDatabase';
 
