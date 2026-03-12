@@ -103,6 +103,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
 
   // Check if current user is a Projetista (from Projetos area - should see consultant selector instead of specifier)
   const [isUserFromProjetosArea, setIsUserFromProjetosArea] = useState(false);
+  const [isUserProjetistaTecnico, setIsUserProjetistaTecnico] = useState(false);
 
   // Commercial consultants for selection by Projetistas
   const [commercialConsultants, setCommercialConsultants] = useState<{ id: string; name: string }[]>([]);
