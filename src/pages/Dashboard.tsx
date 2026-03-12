@@ -16,8 +16,9 @@ import {
   LoadingTimeoutMessage,
   MetricCardSkeleton 
 } from '@/components/dashboard/DashboardSkeletons';
-import { format, parseISO, isThisMonth } from 'date-fns';
+import { format, parseISO, isThisMonth, getMonth, getYear, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { ChevronLeft as ChevronLeftIcon } from 'lucide-react';
 import { Action } from '@/types';
 
 export default function Dashboard() {
