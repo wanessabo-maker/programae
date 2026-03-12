@@ -189,7 +189,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           `)
           .eq('team_member_id', currentTeamMember.id);
 
-        if (memberPositions) {
+          if (memberPositions) {
           // Check if user has "Projetista de Apresentação" position specifically
           const isProjetistaApresentacao = memberPositions.some(
             (mp: any) => 
@@ -197,6 +197,14 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
               mp.positions?.name?.toLowerCase().includes('projetista apresentação')
           );
           setIsUserFromProjetosArea(isProjetistaApresentacao);
+
+          // Check if user has "Projetista Técnico" position
+          const isProjetistaTec = memberPositions.some(
+            (mp: any) => 
+              mp.positions?.name?.toLowerCase().includes('projetista técnico') ||
+              mp.positions?.name?.toLowerCase().includes('projetista tecnico')
+          );
+          setIsUserProjetistaTecnico(isProjetistaTec);
 
           // If is Projetista de Apresentação, fetch commercial consultants
           if (isProjetistaApresentacao) {
