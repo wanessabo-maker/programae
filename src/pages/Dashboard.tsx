@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, Trash2, Pencil, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, Trash2, Pencil, ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useCurrentTeamMember } from '@/hooks/useCurrentTeamMember';
