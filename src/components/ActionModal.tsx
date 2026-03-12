@@ -1526,7 +1526,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             isApresentacao={isApresentacaoProjeto}
             isSeletiva={isSeletiva}
             enabledFields={selectedActionType?.enabledFields || []}
-            restrictToFoccoOnly={isEffectiveProjetista}
+            restrictToFoccoOnly={isEffectiveProjetista || isEffectiveProjetistaTecnico}
           />
 
           <button 
