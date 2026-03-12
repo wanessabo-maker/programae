@@ -442,13 +442,15 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
       newErrors.foccoProjectNumber = true;
     }
     
-    // Environment count is required for Apresentação de Projeto ONLY for Projetista de Apresentação
-    if (isApresentacaoProjeto && isEffectiveProjetista && (!form.environmentCount || (safeParseInt(form.environmentCount, { min: 1 }) === null))) {
+    // Environment count is required for Apresentação de Projeto (Projetista de Apresentação) OR Projeto Técnico (Projetista Técnico)
+    const requiresEnvironment = (isApresentacaoProjeto && isEffectiveProjetista) || (isProjeto && isEffectiveProjetistaTecnico);
+    if (requiresEnvironment && (!form.environmentCount || (safeParseInt(form.environmentCount, { min: 1 }) === null))) {
       newErrors.environmentCount = true;
     }
     
-    // Commercial consultant is required for Projetista de Apresentação
-    if (isApresentacaoProjeto && isEffectiveProjetista && !form.commercialConsultantId) {
+    // Commercial consultant is required for Projetista de Apresentação or Projetista Técnico
+    const requiresCommercialConsultant = (isApresentacaoProjeto && isEffectiveProjetista) || (isProjeto && isEffectiveProjetistaTecnico);
+    if (requiresCommercialConsultant && !form.commercialConsultantId) {
       newErrors.commercialConsultantId = true;
     }
     
