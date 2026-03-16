@@ -370,20 +370,38 @@ export default function ProgramaEMais() {
       {/* How to earn */}
       <section>
         <h2 className="title-section mb-4">Como Ganhar Créditos</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {pointsInfo.map((action) => (
-            <div key={action.id} className="card-flat">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 border border-black flex items-center justify-center">
-                  <Award className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="text-lg font-light">+{action.programPoints}</div>
-                  <div className="text-xs text-muted-foreground uppercase">{action.name}</div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {pointsInfo.map((action) => {
+            const hasBonus = action.bonusPointsWithProfessional && 
+              action.bonusPointsWithProfessional > 0 &&
+              ['relacionamento', 'venda'].includes(action.classification);
+            
+            return (
+              <div key={action.id} className="card-flat">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 border border-black flex items-center justify-center">
+                    <Award className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-lg font-light">+{action.programPoints}</span>
+                      {hasBonus && (
+                        <span className="text-sm text-success font-medium">
+                          +{action.bonusPointsWithProfessional}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground uppercase truncate">{action.name}</div>
+                    {hasBonus && (
+                      <div className="text-[10px] text-success/80 mt-0.5">
+                        c/ especificador
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
