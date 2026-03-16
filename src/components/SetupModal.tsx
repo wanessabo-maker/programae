@@ -750,7 +750,7 @@ const TiposAcaoTab = () => {
                     <div className="flex items-center gap-4 flex-wrap">
                       <span className="text-sm font-medium">{type.name}</span>
                       <span className="text-xs text-muted-foreground uppercase">{classLabels[type.classification]}</span>
-                      <span className="text-xs text-muted-foreground">{type.programPoints} pts</span>
+                      <span className="text-xs text-muted-foreground">{type.programPoints} pts{type.bonusPointsWithProfessional ? ` (+${type.bonusPointsWithProfessional} c/ espec.)` : ''}</span>
                       <span className="text-xs px-2 py-0.5 bg-muted rounded-sm text-muted-foreground">
                         Validade: {getValidityLabel()}
                       </span>
