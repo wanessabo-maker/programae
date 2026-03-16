@@ -504,6 +504,7 @@ const TiposAcaoTab = () => {
       additionalFields: false,
       enabledFields: [],
       programPoints: 0,
+      bonusPointsWithProfessional: 0,
       creditValidityType: 'global',
       creditValidityDays: undefined,
       areaId: ''
