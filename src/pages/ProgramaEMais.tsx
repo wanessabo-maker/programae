@@ -394,7 +394,7 @@ export default function ProgramaEMais() {
                     <div className="text-xs text-muted-foreground uppercase truncate">{action.name}</div>
                     {hasBonus && (
                       <div className="text-[10px] text-success/80 mt-0.5">
-                        c/ especificador
+                        quando a ação tem especificador
                       </div>
                     )}
                   </div>
