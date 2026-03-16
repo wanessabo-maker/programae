@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           additional_fields: boolean | null
           area_id: string | null
+          bonus_points_with_professional: number | null
           classification: string
           created_at: string | null
           credit_validity_days: number | null
@@ -32,6 +33,7 @@ export type Database = {
         Insert: {
           additional_fields?: boolean | null
           area_id?: string | null
+          bonus_points_with_professional?: number | null
           classification: string
           created_at?: string | null
           credit_validity_days?: number | null
@@ -46,6 +48,7 @@ export type Database = {
         Update: {
           additional_fields?: boolean | null
           area_id?: string | null
+          bonus_points_with_professional?: number | null
           classification?: string
           created_at?: string | null
           credit_validity_days?: number | null

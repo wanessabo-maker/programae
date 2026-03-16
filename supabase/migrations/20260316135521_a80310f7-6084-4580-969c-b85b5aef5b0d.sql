@@ -1,0 +1,1 @@
+ALTER TABLE public.action_types ADD COLUMN bonus_points_with_professional integer DEFAULT 0;
