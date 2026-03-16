@@ -681,6 +681,29 @@ const TiposAcaoTab = () => {
         ...form,
         programPoints: Number(e.target.value)
       })} placeholder="Pontos E+" className="input-flat w-full text-card-foreground" />
+
+          {/* Bonus points with professional - only for relacionamento/venda */}
+          {['relacionamento', 'venda'].includes(form.classification) && (
+            <div className="space-y-1">
+              <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                Bônus com Especificador (pontos extras)
+              </label>
+              <input 
+                type="number" 
+                value={form.bonusPointsWithProfessional || ''} 
+                onChange={e => setForm({
+                  ...form,
+                  bonusPointsWithProfessional: Number(e.target.value)
+                })} 
+                placeholder="Ex: 2 (pontos extras quando tem especificador)" 
+                min="0"
+                className="input-flat w-full text-card-foreground" 
+              />
+              <p className="text-xs text-muted-foreground">
+                Pontos adicionais quando a ação é registrada com um especificador vinculado
+              </p>
+            </div>
+          )}
           
           {/* Credit Validity Settings */}
           <div className="border-t border-border pt-3 mt-3 space-y-2">
