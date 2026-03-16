@@ -255,6 +255,7 @@ export function useUpdateActionType() {
       additional_fields?: boolean;
       enabled_fields?: string[];
       points?: number;
+      bonus_points_with_professional?: number;
       credit_validity_type?: string;
       credit_validity_days?: number | null;
       area_id?: string | null;

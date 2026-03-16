@@ -566,6 +566,7 @@ const TiposAcaoTab = () => {
         additionalFields: type.additionalFields,
         enabledFields: type.enabledFields || [],
         programPoints: type.programPoints,
+        bonusPointsWithProfessional: type.bonusPointsWithProfessional ?? 0,
         creditValidityType: type.creditValidityType,
         creditValidityDays: type.creditValidityDays,
         areaId: type.areaId || ''
