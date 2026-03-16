@@ -145,6 +145,7 @@ function transformActionType(dbType: {
     additionalFields: dbType.additional_fields ?? false,
     enabledFields: (dbType.enabled_fields || []) as ActionType['enabledFields'],
     programPoints: dbType.points ?? 0,
+    bonusPointsWithProfessional: (dbType as any).bonus_points_with_professional ?? 0,
     creditValidityType: (dbType.credit_validity_type as ActionType['creditValidityType']) ?? 'global',
     creditValidityDays: dbType.credit_validity_days ?? undefined,
     areaId: dbType.area_id ?? undefined,
