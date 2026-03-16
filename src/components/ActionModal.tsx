@@ -591,9 +591,15 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
       const isProjetistaEnvironmentAction = 
         (isApresentacaoProjeto && isEffectiveProjetista && form.environmentCount) ||
         (isProjeto && isEffectiveProjetistaTecnico && form.environmentCount);
-      const points = isProjetistaEnvironmentAction
+      // Calculate points: base + bonus if professional is linked (for relacionamento/venda)
+      const basePoints = isProjetistaEnvironmentAction
         ? (safeParseInt(form.environmentCount, { min: 0 }) ?? 0)
         : (selectedActionType?.programPoints || 0);
+      const hasProfessionalBonus = professionalId && 
+        selectedActionType?.bonusPointsWithProfessional && 
+        selectedActionType.bonusPointsWithProfessional > 0 &&
+        ['relacionamento', 'venda'].includes(selectedActionType?.classification || '');
+      const points = basePoints + (hasProfessionalBonus ? selectedActionType.bonusPointsWithProfessional : 0);
 
       // Handle automatic project/client creation for Apresentação de Projeto
       let projectId: string | undefined = undefined;

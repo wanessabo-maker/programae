@@ -474,6 +474,7 @@ const TiposAcaoTab = () => {
     additionalFields: false,
     enabledFields: [] as AdditionalFieldKey[],
     programPoints: 0,
+    bonusPointsWithProfessional: 0,
     creditValidityType: 'global' as 'global' | 'mensal' | 'anual' | 'dias' | 'personalizado' | 'sem_validade',
     creditValidityDays: undefined as number | undefined,
     areaId: '' as string
@@ -503,6 +504,7 @@ const TiposAcaoTab = () => {
       additionalFields: false,
       enabledFields: [],
       programPoints: 0,
+      bonusPointsWithProfessional: 0,
       creditValidityType: 'global',
       creditValidityDays: undefined,
       areaId: ''
@@ -564,6 +566,7 @@ const TiposAcaoTab = () => {
         additionalFields: type.additionalFields,
         enabledFields: type.enabledFields || [],
         programPoints: type.programPoints,
+        bonusPointsWithProfessional: type.bonusPointsWithProfessional ?? 0,
         creditValidityType: type.creditValidityType,
         creditValidityDays: type.creditValidityDays,
         areaId: type.areaId || ''
@@ -678,6 +681,29 @@ const TiposAcaoTab = () => {
         ...form,
         programPoints: Number(e.target.value)
       })} placeholder="Pontos E+" className="input-flat w-full text-card-foreground" />
+
+          {/* Bonus points with professional - only for relacionamento/venda */}
+          {['relacionamento', 'venda'].includes(form.classification) && (
+            <div className="space-y-1">
+              <label className="text-xs uppercase tracking-widest text-muted-foreground">
+                Bônus com Especificador (pontos extras)
+              </label>
+              <input 
+                type="number" 
+                value={form.bonusPointsWithProfessional || ''} 
+                onChange={e => setForm({
+                  ...form,
+                  bonusPointsWithProfessional: Number(e.target.value)
+                })} 
+                placeholder="Ex: 2 (pontos extras quando tem especificador)" 
+                min="0"
+                className="input-flat w-full text-card-foreground" 
+              />
+              <p className="text-xs text-muted-foreground">
+                Pontos adicionais quando a ação é registrada com um especificador vinculado
+              </p>
+            </div>
+          )}
           
           {/* Credit Validity Settings */}
           <div className="border-t border-border pt-3 mt-3 space-y-2">
@@ -724,7 +750,7 @@ const TiposAcaoTab = () => {
                     <div className="flex items-center gap-4 flex-wrap">
                       <span className="text-sm font-medium">{type.name}</span>
                       <span className="text-xs text-muted-foreground uppercase">{classLabels[type.classification]}</span>
-                      <span className="text-xs text-muted-foreground">{type.programPoints} pts</span>
+                      <span className="text-xs text-muted-foreground">{type.programPoints} pts{type.bonusPointsWithProfessional ? ` (+${type.bonusPointsWithProfessional} c/ espec.)` : ''}</span>
                       <span className="text-xs px-2 py-0.5 bg-muted rounded-sm text-muted-foreground">
                         Validade: {getValidityLabel()}
                       </span>

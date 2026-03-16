@@ -36,6 +36,7 @@ export interface ActionType {
   additionalFields: boolean;
   enabledFields: AdditionalFieldKey[]; // Which specific fields are enabled
   programPoints: number;
+  bonusPointsWithProfessional: number; // Extra points when action has a professional (especificador)
   creditValidityType: 'global' | 'mensal' | 'anual' | 'dias' | 'personalizado' | 'sem_validade';
   creditValidityDays?: number;
   areaId?: string; // Reference to area this action type belongs to
