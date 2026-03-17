@@ -656,9 +656,11 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
 
       // For Projetista de Apresentação or Projetista Técnico: points = environment count (1 ambiente = 1 ponto)
       // For other users: use action type's configured points
-      const isProjetistaEnvironmentAction = 
+      // BUT only if the action type has points configured (points > 0) — e.g. "Reforma" has 0 points and should NOT score
+      const actionTypeHasPoints = (selectedActionType?.programPoints || 0) > 0;
+      const isProjetistaEnvironmentAction = actionTypeHasPoints && (
         (isApresentacaoProjeto && isEffectiveProjetista && form.environmentCount) ||
-        (isProjeto && isEffectiveProjetistaTecnico && form.environmentCount);
+        (isProjeto && isEffectiveProjetistaTecnico && form.environmentCount));
       // Calculate points: base + bonus if professional is linked (for relacionamento/venda)
       const basePoints = isProjetistaEnvironmentAction
         ? (safeParseInt(form.environmentCount, { min: 0 }) ?? 0)
