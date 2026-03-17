@@ -67,11 +67,14 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
           .from('positions')
           .select('id, name')
           .eq('is_active', true)
-          .or('name.ilike.%projetista técnico%,name.ilike.%logistica%,name.ilike.%logística%');
+          .or('name.ilike.%projetista técnico%,name.ilike.%projetista tecnico%,name.ilike.%logistica%,name.ilike.%logística%');
 
         if (!positions || positions.length === 0) return;
 
-        const projetistaPos = positions.find(p => p.name.toLowerCase().includes('projetista técnico'));
+        const projetistaPos = positions.find(p => 
+          p.name.toLowerCase().includes('projetista técnico') || 
+          p.name.toLowerCase().includes('projetista tecnico')
+        );
         const logisticaPos = positions.find(p => p.name.toLowerCase().includes('logistica') || p.name.toLowerCase().includes('logística'));
 
         const positionIds = [projetistaPos?.id, logisticaPos?.id].filter(Boolean);
