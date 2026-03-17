@@ -488,12 +488,21 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     // professional (especificador) is required unless user is Projetista de Apresentação
     // professionalId is optional - "Sem Especificador" is always allowed
     
-    // Client Name, Age, and Profession are ALWAYS required for client-creating action types
+    // Client Name, Age, and Profession are required for client-creating action types
     // But NOT for Venda Aditivo (which only updates existing contract)
+    // Only validate fields that are actually enabled/visible in the form
     if ((isApresentacaoProjeto || (isVenda && !isVendaAditivo) || isSeletiva)) {
-      if (!form.clientName.trim()) newErrors.clientName = true;
-      if (!form.clientAge.trim()) newErrors.clientAge = true;
-      if (!form.clientProfession.trim()) newErrors.clientProfession = true;
+      const ef = selectedActionType?.enabledFields || [];
+      const hasEnabledFields = ef.length > 0;
+      if (!hasEnabledFields || ef.includes('clientName' as any)) {
+        if (!form.clientName.trim()) newErrors.clientName = true;
+      }
+      if (!hasEnabledFields || ef.includes('clientAge' as any)) {
+        if (!form.clientAge.trim()) newErrors.clientAge = true;
+      }
+      if (!hasEnabledFields || ef.includes('clientProfession' as any)) {
+        if (!form.clientProfession.trim()) newErrors.clientProfession = true;
+      }
     }
     
     // FOCCO number is required for Apresentação de Projeto, Venda (including Aditivo), and Projeto
