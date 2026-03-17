@@ -112,6 +112,65 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
   const [projetistaMembers, setProjetistaMembers] = useState<{ id: string; name: string }[]>([]);
   const [logisticaMembers, setLogisticaMembers] = useState<{ id: string; name: string }[]>([]);
 
+  useEffect(() => {
+    const fetchPositionMembers = async () => {
+      try {
+        const { data: positions } = await supabase
+          .from('positions')
+          .select('id, name')
+          .eq('is_active', true)
+          .or('name.ilike.%projetista técnico%,name.ilike.%projetista tecnico%,name.ilike.%logistica%,name.ilike.%logística%');
+
+        if (!positions || positions.length === 0) return;
+
+        const projetistaPos = positions.find(p => 
+          p.name.toLowerCase().includes('projetista técnico') || 
+          p.name.toLowerCase().includes('projetista tecnico')
+        );
+        const logisticaPos = positions.find(p => 
+          p.name.toLowerCase().includes('logistica') || 
+          p.name.toLowerCase().includes('logística')
+        );
+
+        const positionIds = [projetistaPos?.id, logisticaPos?.id].filter(Boolean);
+        if (positionIds.length === 0) return;
+
+        const { data: memberPositions } = await supabase
+          .from('team_member_positions')
+          .select('team_member_id, position_id')
+          .in('position_id', positionIds);
+
+        if (!memberPositions) return;
+
+        const projetistaIds = memberPositions
+          .filter(mp => mp.position_id === projetistaPos?.id)
+          .map(mp => mp.team_member_id);
+        
+        const logisticaIds = memberPositions
+          .filter(mp => mp.position_id === logisticaPos?.id)
+          .map(mp => mp.team_member_id);
+
+        const allMemberIds = [...new Set([...projetistaIds, ...logisticaIds])];
+        if (allMemberIds.length === 0) return;
+
+        const { data: members } = await supabase
+          .from('team_members')
+          .select('id, name')
+          .in('id', allMemberIds)
+          .eq('active', true);
+
+        if (!members) return;
+
+        setProjetistaMembers(members.filter(m => projetistaIds.includes(m.id)));
+        setLogisticaMembers(members.filter(m => logisticaIds.includes(m.id)));
+      } catch (error) {
+        console.error('Error fetching position members:', error);
+      }
+    };
+
+    fetchPositionMembers();
+  }, []);
+
   // User's areas based on their positions (for filtering action types)
   const [userAreaIds, setUserAreaIds] = useState<string[]>([]);
 
