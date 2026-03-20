@@ -376,8 +376,13 @@ export default function ProjetosTab() {
               ) : (
                 filteredProjects.map(project => {
                   const stageInfo = ACTIVE_STAGES.find(s => s.id === project.stage) || ACTIVE_STAGES[0];
-                  const professional = professionals.find(p => p.id === project.professional_id);
                   const consultant = teamMembers.find(m => m.id === project.responsible_id);
+                  const timeline = projectTimeline[project.id];
+
+                  const formatDays = (days: number | null | undefined) => {
+                    if (days === null || days === undefined) return <span className="text-muted-foreground">—</span>;
+                    return <span className={`font-mono font-medium ${days > 30 ? 'text-destructive' : days > 15 ? 'text-amber-600 dark:text-amber-400' : 'text-green-600 dark:text-green-400'}`}>{days}d</span>;
+                  };
                   
                   return (
                     <tr key={project.id} className="border-t border-border hover:bg-muted/30">
@@ -393,20 +398,14 @@ export default function ProjetosTab() {
                         </div>
                       </td>
                       <td className="p-3 text-sm">{project.clients?.name || '-'}</td>
-                      <td className="p-3 text-sm">{professional?.name || '-'}</td>
                       <td className="p-3 text-sm">{consultant?.name || '-'}</td>
                       <td className="p-3">
                         <Badge className={`${stageInfo.color} border-0`}>{stageInfo.name}</Badge>
                       </td>
                       <td className="p-3 text-right text-sm">{formatCurrency(project.estimated_value)}</td>
-                      <td className="p-3 text-sm">
-                        {project.expected_delivery && (
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
-                            {new Date(project.expected_delivery).toLocaleDateString('pt-BR')}
-                          </span>
-                        )}
-                      </td>
+                      <td className="p-3 text-center text-sm">{formatDays(timeline?.diasEntregaApres)}</td>
+                      <td className="p-3 text-center text-sm">{formatDays(timeline?.diasApresFech)}</td>
+                      <td className="p-3 text-center text-sm">{formatDays(timeline?.diasTotal)}</td>
                       <td className="p-3">
                         <div className="flex justify-center gap-1">
                           <button
@@ -418,7 +417,7 @@ export default function ProjetosTab() {
                           </button>
                           <button
                             onClick={() => handleOpenLostModal(project)}
-                            className="p-1.5 hover:bg-red-500/20 rounded text-red-600"
+                            className="p-1.5 hover:bg-destructive/20 rounded text-destructive"
                             title="Marcar como Perdido"
                           >
                             <XCircle className="w-4 h-4" />
