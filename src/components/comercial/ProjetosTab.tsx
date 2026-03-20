@@ -1,13 +1,16 @@
 import { useState, useMemo } from 'react';
-import { Search, Folder, Edit2, Trash2, Calendar, DollarSign, User, ArrowRight, XCircle } from 'lucide-react';
+import { Search, Folder, Edit2, Trash2, Calendar, DollarSign, User, ArrowRight, XCircle, Clock } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useProjects, useUpdateProject, useDeleteProject, PROJECT_STAGES, Project } from '@/hooks/useProjects';
 import { useClients, useUpdateClient } from '@/hooks/useClients';
 import { useProfessionals, useTeamMembers } from '@/hooks/useDatabase';
+import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { ProjectValueHistory } from '@/components/ProjectValueHistory';
+import { differenceInDays, parseISO } from 'date-fns';
 
 interface ProjectFormData {
   name: string;
