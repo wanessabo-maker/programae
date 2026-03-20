@@ -9,7 +9,8 @@ import {
   Users,
   PenTool,
   Ruler,
-  Hammer
+  Hammer,
+  FileText
 } from 'lucide-react';
 import { FoccoProjectsTable } from '@/components/FoccoProjectsTable';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
