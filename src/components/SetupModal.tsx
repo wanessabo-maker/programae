@@ -500,7 +500,7 @@ const TiposAcaoTab = () => {
       name: '',
       classification: 'relacionamento',
       impactsMetas: [],
-      requiresValue: false,
+      requiresValue: 'nenhum',
       additionalFields: false,
       enabledFields: [],
       programPoints: 0,
