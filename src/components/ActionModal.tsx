@@ -1509,7 +1509,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           {((selectedActionType?.requiresValue && selectedActionType.requiresValue !== 'nenhum') || (isProjeto && isEffectiveProjetistaTecnico)) && (
             <div>
               <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.value ? 'text-destructive' : 'text-muted-foreground'}`}>
-                {(isProjeto && isEffectiveProjetistaTecnico) ? 'Valor (R$)' : selectedActionType?.requiresValue === 'quantitativo' ? 'Quantidade (un) *' : 'Valor da Venda (R$) *'}
+                {(isProjeto && isEffectiveProjetistaTecnico) ? 'Valor (R$)' : selectedActionType?.requiresValue === 'ambientes' ? 'Quantidade de Ambientes *' : 'Valor da Venda (R$) *'}
               </label>
               <input
                 type="number"
