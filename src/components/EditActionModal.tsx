@@ -179,7 +179,7 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
     if (!form.actionTypeId) newErrors.actionTypeId = true;
     if (!form.date) newErrors.date = true;
     
-    if (selectedActionType?.requiresValue && !form.value) {
+    if (selectedActionType?.requiresValue && selectedActionType.requiresValue !== 'nenhum' && !form.value) {
       newErrors.value = true;
     }
 
