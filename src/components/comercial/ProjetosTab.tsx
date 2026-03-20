@@ -1,13 +1,15 @@
 import { useState, useMemo } from 'react';
-import { Search, Folder, Edit2, Trash2, Calendar, DollarSign, User, ArrowRight, XCircle } from 'lucide-react';
+import { Search, Folder, Edit2, Trash2, Calendar, XCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { useProjects, useUpdateProject, useDeleteProject, PROJECT_STAGES, Project } from '@/hooks/useProjects';
 import { useClients, useUpdateClient } from '@/hooks/useClients';
 import { useProfessionals, useTeamMembers } from '@/hooks/useDatabase';
+import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { ProjectValueHistory } from '@/components/ProjectValueHistory';
+import { differenceInDays, parseISO } from 'date-fns';
 
 interface ProjectFormData {
   name: string;
@@ -60,6 +62,79 @@ export default function ProjetosTab() {
   const updateClient = useUpdateClient();
 
   const activeTeamMembers = teamMembers.filter(m => m.active);
+
+  // Fetch actions linked to projects (presentations and sales)
+  const { data: projectActions = [] } = useQuery({
+    queryKey: ['project-timeline-actions'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('actions')
+        .select('id, project_id, focco_project_number, action_date, action_type_id, action_types(name, classification)')
+        .not('project_id', 'is', null);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Fetch project_environments (presentation deliveries)
+  const { data: projectEnvs = [] } = useQuery({
+    queryKey: ['project-timeline-envs'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('project_environments')
+        .select('id, project_id, environment_type, competence_month, created_at')
+        .eq('environment_type', 'apresentacao');
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Build timeline map per project
+  const projectTimeline = useMemo(() => {
+    const map: Record<string, {
+      entregaApresentacao: string | null;
+      apresentacaoComercial: string | null;
+      fechamento: string | null;
+      diasEntregaApres: number | null;
+      diasApresFech: number | null;
+      diasTotal: number | null;
+    }> = {};
+
+    projects.forEach(project => {
+      // Entrega Projeto Apresentação: earliest project_environment of type 'apresentacao'
+      const envs = projectEnvs
+        .filter(e => e.project_id === project.id)
+        .sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
+      const entregaApresentacao = envs.length > 0 ? envs[0].created_at?.split('T')[0] || null : null;
+
+      // Apresentação Comercial: action with classification 'apresentacao' linked to this project
+      const apresActions = projectActions
+        .filter(a => a.project_id === project.id && (a as any).action_types?.classification === 'apresentacao')
+        .sort((a, b) => a.action_date.localeCompare(b.action_date));
+      const apresentacaoComercial = apresActions.length > 0 ? apresActions[0].action_date : null;
+
+      // Fechamento: closed_date
+      const fechamento = project.closed_date || null;
+
+      let diasEntregaApres: number | null = null;
+      let diasApresFech: number | null = null;
+      let diasTotal: number | null = null;
+
+      if (entregaApresentacao && apresentacaoComercial) {
+        diasEntregaApres = differenceInDays(parseISO(apresentacaoComercial), parseISO(entregaApresentacao));
+      }
+      if (apresentacaoComercial && fechamento) {
+        diasApresFech = differenceInDays(parseISO(fechamento), parseISO(apresentacaoComercial));
+      }
+      if (entregaApresentacao && fechamento) {
+        diasTotal = differenceInDays(parseISO(fechamento), parseISO(entregaApresentacao));
+      }
+
+      map[project.id] = { entregaApresentacao, apresentacaoComercial, fechamento, diasEntregaApres, diasApresFech, diasTotal };
+    });
+
+    return map;
+  }, [projects, projectActions, projectEnvs]);
 
   // Filter only projects for this tab (Em negociação and Perdidos)
   const activeProjects = useMemo(() => {
@@ -282,26 +357,32 @@ export default function ProjetosTab() {
               <tr>
                 <th className="text-left p-3 text-xs uppercase tracking-wider">Projeto</th>
                 <th className="text-left p-3 text-xs uppercase tracking-wider">Cliente</th>
-                <th className="text-left p-3 text-xs uppercase tracking-wider">Profissional</th>
                 <th className="text-left p-3 text-xs uppercase tracking-wider">Consultor</th>
                 <th className="text-left p-3 text-xs uppercase tracking-wider">Estágio</th>
                 <th className="text-right p-3 text-xs uppercase tracking-wider">Valor Est.</th>
-                <th className="text-left p-3 text-xs uppercase tracking-wider">Previsão</th>
+                <th className="text-center p-3 text-xs uppercase tracking-wider" title="Dias entre Entrega Apresentação e Apresentação Comercial">Entrega → Apres.</th>
+                <th className="text-center p-3 text-xs uppercase tracking-wider" title="Dias entre Apresentação Comercial e Fechamento">Apres. → Fech.</th>
+                <th className="text-center p-3 text-xs uppercase tracking-wider" title="Total de dias entre Entrega Apresentação e Fechamento">Total</th>
                 <th className="text-center p-3 text-xs uppercase tracking-wider">Ações</th>
               </tr>
             </thead>
             <tbody>
               {filteredProjects.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={9} className="p-8 text-center text-muted-foreground">
                     Nenhum projeto ativo encontrado
                   </td>
                 </tr>
               ) : (
                 filteredProjects.map(project => {
                   const stageInfo = ACTIVE_STAGES.find(s => s.id === project.stage) || ACTIVE_STAGES[0];
-                  const professional = professionals.find(p => p.id === project.professional_id);
                   const consultant = teamMembers.find(m => m.id === project.responsible_id);
+                  const timeline = projectTimeline[project.id];
+
+                  const formatDays = (days: number | null | undefined) => {
+                    if (days === null || days === undefined) return <span className="text-muted-foreground">—</span>;
+                    return <span className={`font-mono font-medium ${days > 30 ? 'text-destructive' : days > 15 ? 'text-amber-600 dark:text-amber-400' : 'text-green-600 dark:text-green-400'}`}>{days}d</span>;
+                  };
                   
                   return (
                     <tr key={project.id} className="border-t border-border hover:bg-muted/30">
@@ -317,20 +398,14 @@ export default function ProjetosTab() {
                         </div>
                       </td>
                       <td className="p-3 text-sm">{project.clients?.name || '-'}</td>
-                      <td className="p-3 text-sm">{professional?.name || '-'}</td>
                       <td className="p-3 text-sm">{consultant?.name || '-'}</td>
                       <td className="p-3">
                         <Badge className={`${stageInfo.color} border-0`}>{stageInfo.name}</Badge>
                       </td>
                       <td className="p-3 text-right text-sm">{formatCurrency(project.estimated_value)}</td>
-                      <td className="p-3 text-sm">
-                        {project.expected_delivery && (
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
-                            {new Date(project.expected_delivery).toLocaleDateString('pt-BR')}
-                          </span>
-                        )}
-                      </td>
+                      <td className="p-3 text-center text-sm">{formatDays(timeline?.diasEntregaApres)}</td>
+                      <td className="p-3 text-center text-sm">{formatDays(timeline?.diasApresFech)}</td>
+                      <td className="p-3 text-center text-sm">{formatDays(timeline?.diasTotal)}</td>
                       <td className="p-3">
                         <div className="flex justify-center gap-1">
                           <button
@@ -342,7 +417,7 @@ export default function ProjetosTab() {
                           </button>
                           <button
                             onClick={() => handleOpenLostModal(project)}
-                            className="p-1.5 hover:bg-red-500/20 rounded text-red-600"
+                            className="p-1.5 hover:bg-destructive/20 rounded text-destructive"
                             title="Marcar como Perdido"
                           >
                             <XCircle className="w-4 h-4" />
