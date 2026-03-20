@@ -73,7 +73,7 @@ export default function Projetos() {
           </div>
 
           {/* Main Metrics */}
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -96,7 +96,7 @@ export default function Projetos() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Reforma - Projeto de Apresentação
+                  Reforma - Apresentação
                 </CardTitle>
                 <Hammer className="h-4 w-4 text-orange-500" />
               </CardHeader>
@@ -107,7 +107,7 @@ export default function Projetos() {
                   <div className="text-3xl font-bold">{stats?.reformaApresentacao || 0}</div>
                 )}
                 <p className="text-xs text-muted-foreground mt-1">
-                  Ambientes de reforma
+                  Ambientes de reforma (apresentação)
                 </p>
               </CardContent>
             </Card>
@@ -123,10 +123,29 @@ export default function Projetos() {
                 {statsLoading ? (
                   <Skeleton className="h-8 w-20" />
                 ) : (
-                  <div className="text-3xl font-bold">{stats?.totalTecnico || 0}</div>
+                  <div className="text-3xl font-bold">{stats?.regularTecnico || 0}</div>
                 )}
                 <p className="text-xs text-muted-foreground mt-1">
-                  Ambientes executados via checklist
+                  Ambientes técnicos executados
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Reforma - Técnico
+                </CardTitle>
+                <Hammer className="h-4 w-4 text-red-500" />
+              </CardHeader>
+              <CardContent>
+                {statsLoading ? (
+                  <Skeleton className="h-8 w-20" />
+                ) : (
+                  <div className="text-3xl font-bold">{stats?.reformaTecnico || 0}</div>
+                )}
+                <p className="text-xs text-muted-foreground mt-1">
+                  Ambientes de reforma (técnico)
                 </p>
               </CardContent>
             </Card>
