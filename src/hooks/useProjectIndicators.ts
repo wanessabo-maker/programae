@@ -1,55 +1,71 @@
 import { useMemo } from 'react';
-import { useApp } from '@/contexts/AppContext';
 import { usePositions } from '@/hooks/usePositions';
-import { parseISO, getMonth, getYear, format, startOfMonth, endOfMonth } from 'date-fns';
+import { useApp } from '@/contexts/AppContext';
+import { format, startOfMonth } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 
 export interface ProjectMonthlyIndicators {
   memberId: string;
   memberName: string;
-  // Produção
-  projetosRecebidos: number;
-  projetosEmAndamento: number;
-  projetosFinalizados: number;
-  // Prazo
-  dentroDoPrazo: number;
-  foraDoPrazo: number;
-  // Integração com Comercial
-  convertidosEmVenda: number;
-  perdidosAposApresentacao: number;
+  // Produtividade
+  ambientesApresentacao: number;
+  ambientesReformaApresentacao: number;
+  ambientesTecnico: number;
+  ambientesReformaTecnico: number;
+  totalAmbientes: number;
+  // Conversão (apenas apresentação)
+  projetosApresentados: number;
+  projetosConvertidos: number;
+  projetosNaoConvertidos: number;
+  projetosEmNegociacao: number;
+  taxaConversao: number;
+  valorVendido: number;
+  // Detalhes por FOCCO
+  projetosDetalhe: {
+    foccoNumber: string;
+    ambientes: number;
+    status: 'vendido' | 'em_negociacao' | 'perdido' | 'sem_projeto';
+    valorVendido: number | null;
+    actionTypeName: string;
+  }[];
 }
 
 const PROJETOS_AREA_KEYWORD = 'projeto';
 
 export function useProjectIndicators(year: number, month: number) {
-  const { actions, actionTypes, teamMembers } = useApp();
+  const { teamMembers } = useApp();
   const { getMemberAreaIds, getAreaName } = usePositions();
 
-  const monthStart = format(startOfMonth(new Date(year, month - 1, 1)), 'yyyy-MM-dd');
-  const monthEnd = format(endOfMonth(new Date(year, month - 1, 1)), 'yyyy-MM-dd');
+  const competenceMonth = format(new Date(year, month - 1, 1), 'yyyy-MM-dd');
 
-  // Fetch projects with delivery dates
-  const { data: projects } = useQuery({
-    queryKey: ['project-indicators-projects', year, month],
+  // Fetch environments with action + action_type + project info
+  const { data: environments, isLoading: envsLoading } = useQuery({
+    queryKey: ['project-indicators-envs-v2', year, month],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('projects')
-        .select('id, status, stage, responsible_id, created_at, start_date, expected_delivery, actual_delivery, closed_date, focco_project_number, origin_type');
+        .from('project_environments')
+        .select(`
+          id, projetista_id, environment_type, environment_count, project_id,
+          action:actions!project_environments_action_id_fkey(
+            id, focco_project_number, action_type_id,
+            action_type:action_types!inner(id, name)
+          ),
+          project:projects(id, stage, closed_value, focco_project_number)
+        `)
+        .eq('competence_month', competenceMonth);
       if (error) throw error;
       return data || [];
     },
   });
 
-  // Fetch project_environments to link projetistas to projects
-  const { data: environments } = useQuery({
-    queryKey: ['project-indicators-envs', year, month],
+  // Also fetch all projects to resolve FOCCO numbers that may not be linked via project_id
+  const { data: allProjects, isLoading: projectsLoading } = useQuery({
+    queryKey: ['project-indicators-all-projects', year, month],
     queryFn: async () => {
-      const competenceMonth = format(new Date(year, month - 1, 1), 'yyyy-MM-dd');
       const { data, error } = await supabase
-        .from('project_environments')
-        .select('projetista_id, project_id, environment_type, action_id')
-        .eq('competence_month', competenceMonth);
+        .from('projects')
+        .select('id, focco_project_number, stage, closed_value');
       if (error) throw error;
       return data || [];
     },
@@ -69,109 +85,123 @@ export function useProjectIndicators(year: number, month: number) {
       .map(m => m.id);
   }, [teamMembers, getMemberAreaIds, getAreaName]);
 
-  // Classify action types
-  const actionTypeMap = useMemo(() => {
-    const map: Record<string, { classification: string; name: string }> = {};
-    actionTypes.forEach(at => {
-      map[at.id] = { classification: at.classification, name: at.name };
-    });
-    return map;
-  }, [actionTypes]);
-
   const indicators = useMemo((): ProjectMonthlyIndicators[] => {
-    if (!projects || !environments) return [];
+    if (!environments || !allProjects) return [];
 
-    // Actions in the selected month
-    const monthActions = actions.filter(a => {
-      const d = parseISO(a.date);
-      return getYear(d) === year && getMonth(d) === month - 1;
+    // Build FOCCO lookup
+    const foccoToProject: Record<string, { stage: string; closed_value: number | null }> = {};
+    allProjects.forEach(p => {
+      if (p.focco_project_number) {
+        foccoToProject[p.focco_project_number] = {
+          stage: p.stage || '',
+          closed_value: p.closed_value,
+        };
+      }
     });
 
     return projectMemberIds.map(memberId => {
       const member = teamMembers.find(m => m.id === memberId);
-
-      // Project IDs linked to this projetista via project_environments this month
       const memberEnvs = environments.filter(e => e.projetista_id === memberId);
-      const linkedProjectIds = [...new Set(memberEnvs.map(e => e.project_id).filter(Boolean))];
 
-      // Also find projects linked via actions where this member is the consultant (projetista registered actions)
-      const memberActions = monthActions.filter(a => a.consultantId === memberId);
-      const actionProjectIds = [...new Set(memberActions.map(a => a.projectId).filter(Boolean))];
+      const isReforma = (env: any) => {
+        const name = env.action?.action_type?.name || '';
+        return name.toLowerCase().includes('reforma');
+      };
 
-      const allProjectIds = [...new Set([...linkedProjectIds, ...actionProjectIds])];
-      const memberProjects = (projects || []).filter(p => allProjectIds.includes(p.id));
+      // --- Produtividade ---
+      const apresentacaoEnvs = memberEnvs.filter(e => e.environment_type === 'apresentacao');
+      const tecnicoEnvs = memberEnvs.filter(e => e.environment_type === 'tecnico');
 
-      // --- Produção ---
-      // Recebidos: projects created in the month linked to this projetista
-      const projetosRecebidos = memberProjects.filter(p => {
-        if (!p.created_at) return false;
-        const d = parseISO(p.created_at);
-        return getYear(d) === year && getMonth(d) === month - 1;
-      }).length;
+      const ambientesApresentacao = apresentacaoEnvs
+        .filter(e => !isReforma(e))
+        .reduce((s, e) => s + (e.environment_count || 0), 0);
+      const ambientesReformaApresentacao = apresentacaoEnvs
+        .filter(e => isReforma(e))
+        .reduce((s, e) => s + (e.environment_count || 0), 0);
+      const ambientesTecnico = tecnicoEnvs
+        .filter(e => !isReforma(e))
+        .reduce((s, e) => s + (e.environment_count || 0), 0);
+      const ambientesReformaTecnico = tecnicoEnvs
+        .filter(e => isReforma(e))
+        .reduce((s, e) => s + (e.environment_count || 0), 0);
 
-      // Em andamento: projects in active stages
-      const projetosEmAndamento = memberProjects.filter(p =>
-        p.stage === 'em_negociacao' || p.stage === 'lead' || p.status === 'em_andamento'
-      ).length;
+      const totalAmbientes = ambientesApresentacao + ambientesReformaApresentacao + ambientesTecnico + ambientesReformaTecnico;
 
-      // Finalizados: projects closed (won or lost) in the month
-      const projetosFinalizados = memberProjects.filter(p => {
-        if (p.stage !== 'closed_won' && p.stage !== 'closed_lost' && p.status !== 'concluido' && p.status !== 'perdido') return false;
-        const closedDate = p.closed_date || p.actual_delivery;
-        if (!closedDate) return false;
-        const d = parseISO(closedDate);
-        return getYear(d) === year && getMonth(d) === month - 1;
-      }).length;
+      // --- Conversão (apenas apresentação) ---
+      // Group by FOCCO number to avoid counting duplicates
+      const foccoMap: Record<string, {
+        ambientes: number;
+        actionTypeName: string;
+        projectStage: string | null;
+        projectValue: number | null;
+      }> = {};
 
-      // --- Prazo ---
-      // Delivered projects that have both expected_delivery and actual_delivery
-      const deliveredProjects = memberProjects.filter(p => {
-        const deliveryDate = p.actual_delivery || p.closed_date;
-        if (!deliveryDate) return false;
-        const d = parseISO(deliveryDate);
-        return getYear(d) === year && getMonth(d) === month - 1;
+      apresentacaoEnvs.forEach(env => {
+        const focco = env.action?.focco_project_number;
+        if (!focco) return;
+
+        if (!foccoMap[focco]) {
+          // Try to get project info from linked project or from FOCCO lookup
+          const projectInfo = env.project
+            ? { stage: env.project.stage, closed_value: env.project.closed_value }
+            : foccoToProject[focco] || null;
+
+          foccoMap[focco] = {
+            ambientes: 0,
+            actionTypeName: env.action?.action_type?.name || '',
+            projectStage: projectInfo?.stage || null,
+            projectValue: projectInfo?.closed_value || null,
+          };
+        }
+        foccoMap[focco].ambientes += env.environment_count || 0;
       });
 
-      const dentroDoPrazo = deliveredProjects.filter(p => {
-        if (!p.expected_delivery) return true; // No deadline = on time
-        const expected = parseISO(p.expected_delivery);
-        const actual = parseISO(p.actual_delivery || p.closed_date || '');
-        return actual <= expected;
-      }).length;
+      const projetosDetalhe = Object.entries(foccoMap).map(([foccoNumber, info]) => {
+        let status: 'vendido' | 'em_negociacao' | 'perdido' | 'sem_projeto' = 'sem_projeto';
+        if (info.projectStage === 'closed_won') status = 'vendido';
+        else if (info.projectStage === 'closed_lost') status = 'perdido';
+        else if (info.projectStage === 'em_negociacao' || info.projectStage === 'lead') status = 'em_negociacao';
 
-      const foraDoPrazo = deliveredProjects.length - dentroDoPrazo;
+        return {
+          foccoNumber,
+          ambientes: info.ambientes,
+          status,
+          valorVendido: status === 'vendido' ? info.projectValue : null,
+          actionTypeName: info.actionTypeName,
+        };
+      }).sort((a, b) => a.foccoNumber.localeCompare(b.foccoNumber, undefined, { numeric: true }));
 
-      // --- Integração com Comercial ---
-      // Convertidos em venda: projects that became closed_won
-      const convertidosEmVenda = memberProjects.filter(p => {
-        if (p.stage !== 'closed_won') return false;
-        if (!p.closed_date) return false;
-        const d = parseISO(p.closed_date);
-        return getYear(d) === year && getMonth(d) === month - 1;
-      }).length;
-
-      // Perdidos após apresentação: projects that went closed_lost
-      const perdidosAposApresentacao = memberProjects.filter(p => {
-        return p.stage === 'closed_lost' || p.status === 'perdido';
-      }).length;
+      const projetosApresentados = projetosDetalhe.length;
+      const projetosConvertidos = projetosDetalhe.filter(p => p.status === 'vendido').length;
+      const projetosNaoConvertidos = projetosDetalhe.filter(p => p.status === 'perdido').length;
+      const projetosEmNegociacao = projetosDetalhe.filter(p => p.status === 'em_negociacao' || p.status === 'sem_projeto').length;
+      const taxaConversao = projetosApresentados > 0 ? (projetosConvertidos / projetosApresentados) * 100 : 0;
+      const valorVendido = projetosDetalhe
+        .filter(p => p.status === 'vendido' && p.valorVendido)
+        .reduce((s, p) => s + (p.valorVendido || 0), 0);
 
       return {
         memberId,
         memberName: member?.name || '',
-        projetosRecebidos,
-        projetosEmAndamento,
-        projetosFinalizados,
-        dentroDoPrazo,
-        foraDoPrazo,
-        convertidosEmVenda,
-        perdidosAposApresentacao,
+        ambientesApresentacao,
+        ambientesReformaApresentacao,
+        ambientesTecnico,
+        ambientesReformaTecnico,
+        totalAmbientes,
+        projetosApresentados,
+        projetosConvertidos,
+        projetosNaoConvertidos,
+        projetosEmNegociacao,
+        taxaConversao,
+        valorVendido,
+        projetosDetalhe,
       };
     });
-  }, [actions, projectMemberIds, teamMembers, actionTypeMap, projects, environments, year, month]);
+  }, [environments, allProjects, projectMemberIds, teamMembers]);
 
   return {
     indicators,
     projectMemberIds,
-    isLoading: !projects || !environments,
+    isLoading: envsLoading || projectsLoading,
   };
 }
