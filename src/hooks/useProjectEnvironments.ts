@@ -85,15 +85,21 @@ export function useMonthlyEnvironmentStats(year: number, month: number) {
   return useQuery({
     queryKey: ['project-environments', 'stats', year, month],
     queryFn: async () => {
-      // Fetch from project_environments table (new system)
+      // Fetch from project_environments table with action type info
       const { data: envData, error: envError } = await supabase
         .from('project_environments')
-        .select('environment_type, environment_count, projetista_id')
+        .select(`
+          environment_type, environment_count, projetista_id, action_id,
+          action:actions!project_environments_action_id_fkey(
+            action_type_id,
+            action_type:action_types!inner(id, name)
+          )
+        `)
         .eq('competence_month', competenceMonth);
 
       if (envError) throw envError;
 
-      // Also fetch actions of type "Projeto de Apresentação" for this month
+      // Also fetch actions of type "Projeto de Apresentação" for this month (legacy fallback)
       const { data: actionsData, error: actionsError } = await supabase
         .from('actions')
         .select(`
@@ -109,33 +115,44 @@ export function useMonthlyEnvironmentStats(year: number, month: number) {
 
       if (actionsError) throw actionsError;
 
-      // Calculate totals from project_environments (new system)
-      let apresentacaoFromEnv = envData
-        .filter(e => e.environment_type === 'apresentacao')
+      // Split apresentação into regular and reforma
+      const isReforma = (env: any) => {
+        const actionTypeName = env.action?.action_type?.name || '';
+        return actionTypeName.toLowerCase().includes('reforma');
+      };
+
+      const apresentacaoEnvs = (envData || []).filter(e => e.environment_type === 'apresentacao');
+      
+      const regularApresentacao = apresentacaoEnvs
+        .filter(e => !isReforma(e))
         .reduce((sum, e) => sum + (e.environment_count || 0), 0);
 
-      const tecnico = envData
+      const reformaApresentacao = apresentacaoEnvs
+        .filter(e => isReforma(e))
+        .reduce((sum, e) => sum + (e.environment_count || 0), 0);
+
+      const totalApresentacaoFromEnv = regularApresentacao + reformaApresentacao;
+
+      const tecnico = (envData || [])
         .filter(e => e.environment_type === 'tecnico')
         .reduce((sum, e) => sum + (e.environment_count || 0), 0);
 
       // Calculate totals from actions (with legacy compatibility)
-      // If action has environment_count, use it; otherwise, legacy = 10 ambientes
       const apresentacaoFromActions = (actionsData || []).reduce((sum, action) => {
-        // If environment_count is set, use it; otherwise legacy = 10 ambientes per action
         const envCount = action.environment_count ?? 10;
         return sum + envCount;
       }, 0);
 
-      // Total environments (prefer environment_count from actions, fallback to legacy)
-      const totalApresentacao = apresentacaoFromEnv > 0 
-        ? apresentacaoFromEnv 
+      // Total environments (prefer environment_count from new system)
+      const totalApresentacao = totalApresentacaoFromEnv > 0 
+        ? totalApresentacaoFromEnv 
         : apresentacaoFromActions;
 
       const actionsCount = (actionsData || []).length;
 
       // Group by projetista
       const byProjetista: Record<string, { apresentacao: number; tecnico: number }> = {};
-      envData.forEach(env => {
+      (envData || []).forEach(env => {
         if (!byProjetista[env.projetista_id]) {
           byProjetista[env.projetista_id] = { apresentacao: 0, tecnico: 0 };
         }
@@ -145,6 +162,8 @@ export function useMonthlyEnvironmentStats(year: number, month: number) {
 
       return {
         totalApresentacao,
+        regularApresentacao,
+        reformaApresentacao,
         totalTecnico: tecnico,
         actionsCount,
         byProjetista,
