@@ -492,7 +492,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     // Client Name, Age, and Profession are required for client-creating action types
     // But NOT for Venda Aditivo (which only updates existing contract)
     // Only validate fields that are actually enabled/visible in the form
-    if ((isApresentacaoProjeto || (isVenda && !isVendaAditivo) || isSeletiva)) {
+    if ((isApresentacaoProjeto || (isVenda && !isVendaAditivo) || isSeletiva) && !(isEffectiveProjetista || isEffectiveProjetistaTecnico)) {
       const ef = selectedActionType?.enabledFields || [];
       const hasEnabledFields = ef.length > 0;
       if (!hasEnabledFields || ef.includes('clientName' as any)) {
