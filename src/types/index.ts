@@ -32,7 +32,7 @@ export interface ActionType {
   name: string;
   classification: 'relacionamento' | 'venda' | 'projeto' | 'outro' | 'seletiva' | 'apresentacao';
   impactsMetas: ('acoes' | 'vendas' | 'captacao' | 'projeto')[];
-  requiresValue: 'nenhum' | 'financeiro' | 'quantitativo';
+  requiresValue: 'nenhum' | 'financeiro' | 'ambientes';
   additionalFields: boolean;
   enabledFields: AdditionalFieldKey[]; // Which specific fields are enabled
   programPoints: number;

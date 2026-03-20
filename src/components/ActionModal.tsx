@@ -1515,7 +1515,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 type="number"
                 value={form.value}
                 onChange={(e) => handleFieldChange('value', e.target.value)}
-                placeholder={selectedActionType?.requiresValue === 'quantitativo' ? '0' : 'R$ 0,00'}
+                placeholder={selectedActionType?.requiresValue === 'ambientes' ? '0' : 'R$ 0,00'}
                 className={`input-flat w-full text-card-foreground ${errors.value ? 'border-destructive ring-1 ring-destructive' : ''}`}
               />
               {errors.value && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}

@@ -570,7 +570,7 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
                     setForm({ ...form, value: e.target.value });
                     setErrors({ ...errors, value: false });
                   }}
-                  placeholder={selectedActionType.requiresValue === 'quantitativo' ? '0' : 'R$ 0,00'}
+                  placeholder={selectedActionType.requiresValue === 'ambientes' ? '0' : 'R$ 0,00'}
                   className={`input-flat w-full text-card-foreground ${errors.value ? 'border-destructive ring-1 ring-destructive' : ''}`}
                 />
                 {errors.value && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}

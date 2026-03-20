@@ -607,8 +607,8 @@ const TiposAcaoTab = () => {
               Financeiro (R$)
             </label>
             <label className="flex items-center gap-1 text-sm">
-              <input type="radio" name="requiresValue" checked={form.requiresValue === 'quantitativo'} onChange={() => setForm({ ...form, requiresValue: 'quantitativo' })} />
-              Quantitativo (un)
+              <input type="radio" name="requiresValue" checked={form.requiresValue === 'ambientes'} onChange={() => setForm({ ...form, requiresValue: 'ambientes' })} />
+               Quantidade de Ambientes
             </label>
           </div>
           <div className="flex items-center gap-4">
