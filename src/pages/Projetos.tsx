@@ -309,8 +309,8 @@ export default function Projetos() {
                     Projeto Técnico
                   </h4>
                   <ul className="text-xs text-muted-foreground space-y-1 ml-6">
-                    <li>• Registrado via Checklist (após venda)</li>
-                    <li>• Vinculado obrigatoriamente a um contrato</li>
+                    <li>• Registrado via Checklist (após venda) ou +Registrar Ação no Dashboard</li>
+                    <li>• Vinculado obrigatoriamente a um número FOCCO</li>
                     <li>• Conta ambientes executados</li>
                     <li>• Gera pontos no Programa E+</li>
                   </ul>
