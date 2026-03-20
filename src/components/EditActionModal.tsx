@@ -179,7 +179,7 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
     if (!form.actionTypeId) newErrors.actionTypeId = true;
     if (!form.date) newErrors.date = true;
     
-    if (selectedActionType?.requiresValue && !form.value) {
+    if (selectedActionType?.requiresValue && selectedActionType.requiresValue !== 'nenhum' && !form.value) {
       newErrors.value = true;
     }
 
@@ -558,10 +558,10 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
               {errors.date && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
             </div>
 
-            {selectedActionType?.requiresValue && (
+            {selectedActionType?.requiresValue && selectedActionType.requiresValue !== 'nenhum' && (
               <div>
                 <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.value ? 'text-destructive' : 'text-muted-foreground'}`}>
-                  Valor da Venda *
+                  {selectedActionType.requiresValue === 'quantitativo' ? 'Quantidade (un) *' : 'Valor da Venda (R$) *'}
                 </label>
                 <input
                   type="number"
@@ -570,7 +570,7 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
                     setForm({ ...form, value: e.target.value });
                     setErrors({ ...errors, value: false });
                   }}
-                  placeholder="R$ 0,00"
+                  placeholder={selectedActionType.requiresValue === 'quantitativo' ? '0' : 'R$ 0,00'}
                   className={`input-flat w-full text-card-foreground ${errors.value ? 'border-destructive ring-1 ring-destructive' : ''}`}
                 />
                 {errors.value && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}

@@ -556,7 +556,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
       }
     }
     
-    if (selectedActionType?.requiresValue && !form.value) {
+    if (selectedActionType?.requiresValue && selectedActionType.requiresValue !== 'nenhum' && !form.value) {
       newErrors.value = true;
     }
     
@@ -1504,16 +1504,16 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           )}
 
           {/* Value (for sales or Projetista Técnico) */}
-          {(selectedActionType?.requiresValue || (isProjeto && isEffectiveProjetistaTecnico)) && (
+          {((selectedActionType?.requiresValue && selectedActionType.requiresValue !== 'nenhum') || (isProjeto && isEffectiveProjetistaTecnico)) && (
             <div>
               <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.value ? 'text-destructive' : 'text-muted-foreground'}`}>
-                {(isProjeto && isEffectiveProjetistaTecnico) ? 'Valor (R$)' : 'Valor da Venda *'}
+                {(isProjeto && isEffectiveProjetistaTecnico) ? 'Valor (R$)' : selectedActionType?.requiresValue === 'quantitativo' ? 'Quantidade (un) *' : 'Valor da Venda (R$) *'}
               </label>
               <input
                 type="number"
                 value={form.value}
                 onChange={(e) => handleFieldChange('value', e.target.value)}
-                placeholder="R$ 0,00"
+                placeholder={selectedActionType?.requiresValue === 'quantitativo' ? '0' : 'R$ 0,00'}
                 className={`input-flat w-full text-card-foreground ${errors.value ? 'border-destructive ring-1 ring-destructive' : ''}`}
               />
               {errors.value && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}

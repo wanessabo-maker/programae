@@ -28,7 +28,7 @@ export type Database = {
           impacts: string[] | null
           name: string
           points: number | null
-          requires_value: boolean | null
+          requires_value: string | null
         }
         Insert: {
           additional_fields?: boolean | null
@@ -43,7 +43,7 @@ export type Database = {
           impacts?: string[] | null
           name: string
           points?: number | null
-          requires_value?: boolean | null
+          requires_value?: string | null
         }
         Update: {
           additional_fields?: boolean | null
@@ -58,7 +58,7 @@ export type Database = {
           impacts?: string[] | null
           name?: string
           points?: number | null
-          requires_value?: boolean | null
+          requires_value?: string | null
         }
         Relationships: [
           {

@@ -128,7 +128,7 @@ function transformActionType(dbType: {
   name: string;
   classification: string;
   impacts: string[] | null;
-  requires_value: boolean | null;
+  requires_value: string | null;
   additional_fields: boolean | null;
   enabled_fields: string[] | null;
   points: number | null;
@@ -141,7 +141,7 @@ function transformActionType(dbType: {
     name: dbType.name,
     classification: dbType.classification as ActionType['classification'],
     impactsMetas: (dbType.impacts || []) as ActionType['impactsMetas'],
-    requiresValue: dbType.requires_value ?? false,
+    requiresValue: (dbType.requires_value as ActionType['requiresValue']) ?? 'nenhum',
     additionalFields: dbType.additional_fields ?? false,
     enabledFields: (dbType.enabled_fields || []) as ActionType['enabledFields'],
     programPoints: dbType.points ?? 0,
