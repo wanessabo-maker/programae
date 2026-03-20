@@ -534,9 +534,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
       if (!form.assignedLogisticaId) newErrors.assignedLogisticaId = true;
     }
     
-    // Validate all enabled fields (marked as required in action type configuration)
-    // For strict validation types, ALL enabled fields are mandatory
-    if (selectedActionType?.additionalFields && selectedActionType?.enabledFields) {
+    // Validate all enabled fields - skip for projetistas who only see FOCCO + environments
+    if (selectedActionType?.additionalFields && selectedActionType?.enabledFields && !(isEffectiveProjetista || isEffectiveProjetistaTecnico)) {
       selectedActionType.enabledFields.forEach((fieldKey) => {
         const formKey = fieldToFormKeyMap[fieldKey];
         if (formKey) {
