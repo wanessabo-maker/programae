@@ -596,7 +596,7 @@ const TiposAcaoTab = () => {
             <option value="">Selecione a Área</option>
             {areas.map(area => <option key={area.id} value={area.id}>{area.name}</option>)}
           </select>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
             <label className="text-sm text-muted-foreground mr-1">Exige valor:</label>
             <label className="flex items-center gap-1 text-sm">
               <input type="radio" name="requiresValue" checked={form.requiresValue === 'nenhum'} onChange={() => setForm({ ...form, requiresValue: 'nenhum' })} />
@@ -611,6 +611,7 @@ const TiposAcaoTab = () => {
               Quantitativo (un)
             </label>
           </div>
+          <div className="flex items-center gap-4">
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={form.additionalFields} onChange={e => setForm({
                 ...form,
