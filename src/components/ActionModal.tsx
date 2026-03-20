@@ -425,9 +425,10 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
   // Effective check: is the selected consultant (or logged-in user if not admin) a Projetista Técnico
   const isEffectiveProjetistaTecnico = isAdmin ? isSelectedConsultantProjetistaTecnico : isUserProjetistaTecnico;
   
-  // Check if this is an "Apresentação de Projeto" action type
+  // Check if this is an "Apresentação de Projeto" action type (but NOT "Reforma")
   const isApresentacaoProjeto = selectedActionType?.name?.toLowerCase().includes('apresentação') && 
-    selectedActionType?.name?.toLowerCase().includes('projeto');
+    selectedActionType?.name?.toLowerCase().includes('projeto') &&
+    !selectedActionType?.name?.toLowerCase().includes('reforma');
   
   // Check if this is a "Venda" action type
   const isVenda = selectedActionType?.classification === 'venda';
