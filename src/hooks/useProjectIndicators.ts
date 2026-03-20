@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { usePositions } from '@/hooks/usePositions';
 import { useApp } from '@/contexts/AppContext';
-import { format, startOfMonth } from 'date-fns';
+import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 

@@ -5,7 +5,7 @@ import { useCurrentTeamMember } from '@/hooks/useCurrentTeamMember';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, PenTool, Ruler, Hammer, TrendingUp, CheckCircle2, XCircle, Clock, DollarSign } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
