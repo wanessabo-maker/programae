@@ -556,7 +556,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
       }
     }
     
-    if (selectedActionType?.requiresValue && selectedActionType.requiresValue !== 'nenhum' && !form.value) {
+    if (selectedActionType?.requiresValue && selectedActionType.requiresValue !== 'nenhum' && !form.value && !(isEffectiveProjetista || isEffectiveProjetistaTecnico)) {
       newErrors.value = true;
     }
     
@@ -1486,7 +1486,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           {((isApresentacaoProjeto && isEffectiveProjetista) || (isProjeto && isEffectiveProjetistaTecnico)) && (
             <div>
               <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.environmentCount ? 'text-destructive' : 'text-muted-foreground'}`}>
-                {isApresentacaoProjeto && isEffectiveProjetista ? 'Quantidade *' : 'Quantidade de Ambientes *'}
+                Quantidade de Ambientes *
               </label>
               <input
                 type="number"
@@ -1497,25 +1497,20 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 className={`input-flat w-full text-card-foreground ${errors.environmentCount ? 'border-destructive ring-1 ring-destructive' : ''}`}
               />
               {errors.environmentCount && <span className="text-xs text-destructive mt-1">Campo obrigatório (mínimo 1)</span>}
-              {isProjeto && isEffectiveProjetistaTecnico && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Informe o número de ambientes projetados
-                </p>
-              )}
             </div>
           )}
 
-          {/* Value (for sales or Projetista Técnico) */}
-          {((selectedActionType?.requiresValue && selectedActionType.requiresValue !== 'nenhum') || (isProjeto && isEffectiveProjetistaTecnico)) && (
+          {/* Value (for sales etc) - Hidden for Projetistas since they only need environment count */}
+          {selectedActionType?.requiresValue && selectedActionType.requiresValue !== 'nenhum' && !(isEffectiveProjetista || isEffectiveProjetistaTecnico) && (
             <div>
               <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.value ? 'text-destructive' : 'text-muted-foreground'}`}>
-                {(isProjeto && isEffectiveProjetistaTecnico) ? 'Valor (R$)' : selectedActionType?.requiresValue === 'ambientes' ? 'Quantidade de Ambientes *' : 'Valor da Venda (R$) *'}
+                {selectedActionType.requiresValue === 'ambientes' ? 'Quantidade de Ambientes *' : 'Valor da Venda (R$) *'}
               </label>
               <input
                 type="number"
                 value={form.value}
                 onChange={(e) => handleFieldChange('value', e.target.value)}
-                placeholder={selectedActionType?.requiresValue === 'ambientes' ? '0' : 'R$ 0,00'}
+                placeholder={selectedActionType.requiresValue === 'ambientes' ? '0' : 'R$ 0,00'}
                 className={`input-flat w-full text-card-foreground ${errors.value ? 'border-destructive ring-1 ring-destructive' : ''}`}
               />
               {errors.value && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
