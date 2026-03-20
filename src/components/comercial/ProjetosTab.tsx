@@ -63,6 +63,79 @@ export default function ProjetosTab() {
 
   const activeTeamMembers = teamMembers.filter(m => m.active);
 
+  // Fetch actions linked to projects (presentations and sales)
+  const { data: projectActions = [] } = useQuery({
+    queryKey: ['project-timeline-actions'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('actions')
+        .select('id, project_id, focco_project_number, action_date, action_type_id, action_types(name, classification)')
+        .not('project_id', 'is', null);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Fetch project_environments (presentation deliveries)
+  const { data: projectEnvs = [] } = useQuery({
+    queryKey: ['project-timeline-envs'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('project_environments')
+        .select('id, project_id, environment_type, competence_month, created_at')
+        .eq('environment_type', 'apresentacao');
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Build timeline map per project
+  const projectTimeline = useMemo(() => {
+    const map: Record<string, {
+      entregaApresentacao: string | null;
+      apresentacaoComercial: string | null;
+      fechamento: string | null;
+      diasEntregaApres: number | null;
+      diasApresFech: number | null;
+      diasTotal: number | null;
+    }> = {};
+
+    projects.forEach(project => {
+      // Entrega Projeto Apresentação: earliest project_environment of type 'apresentacao'
+      const envs = projectEnvs
+        .filter(e => e.project_id === project.id)
+        .sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
+      const entregaApresentacao = envs.length > 0 ? envs[0].created_at?.split('T')[0] || null : null;
+
+      // Apresentação Comercial: action with classification 'apresentacao' linked to this project
+      const apresActions = projectActions
+        .filter(a => a.project_id === project.id && (a as any).action_types?.classification === 'apresentacao')
+        .sort((a, b) => a.action_date.localeCompare(b.action_date));
+      const apresentacaoComercial = apresActions.length > 0 ? apresActions[0].action_date : null;
+
+      // Fechamento: closed_date
+      const fechamento = project.closed_date || null;
+
+      let diasEntregaApres: number | null = null;
+      let diasApresFech: number | null = null;
+      let diasTotal: number | null = null;
+
+      if (entregaApresentacao && apresentacaoComercial) {
+        diasEntregaApres = differenceInDays(parseISO(apresentacaoComercial), parseISO(entregaApresentacao));
+      }
+      if (apresentacaoComercial && fechamento) {
+        diasApresFech = differenceInDays(parseISO(fechamento), parseISO(apresentacaoComercial));
+      }
+      if (entregaApresentacao && fechamento) {
+        diasTotal = differenceInDays(parseISO(fechamento), parseISO(entregaApresentacao));
+      }
+
+      map[project.id] = { entregaApresentacao, apresentacaoComercial, fechamento, diasEntregaApres, diasApresFech, diasTotal };
+    });
+
+    return map;
+  }, [projects, projectActions, projectEnvs]);
+
   // Filter only projects for this tab (Em negociação and Perdidos)
   const activeProjects = useMemo(() => {
     return projects.filter(p => p.stage === 'em_negociacao' || p.stage === 'closed_lost');
