@@ -1486,7 +1486,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           {((isApresentacaoProjeto && isEffectiveProjetista) || (isProjeto && isEffectiveProjetistaTecnico)) && (
             <div>
               <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.environmentCount ? 'text-destructive' : 'text-muted-foreground'}`}>
-                {isApresentacaoProjeto && isEffectiveProjetista ? 'Quantidade *' : 'Quantidade de Ambientes *'}
+                Quantidade de Ambientes *
               </label>
               <input
                 type="number"
@@ -1497,11 +1497,6 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 className={`input-flat w-full text-card-foreground ${errors.environmentCount ? 'border-destructive ring-1 ring-destructive' : ''}`}
               />
               {errors.environmentCount && <span className="text-xs text-destructive mt-1">Campo obrigatório (mínimo 1)</span>}
-              {isProjeto && isEffectiveProjetistaTecnico && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Informe o número de ambientes projetados
-                </p>
-              )}
             </div>
           )}
 
