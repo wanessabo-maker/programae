@@ -9,8 +9,10 @@ import {
   Users,
   PenTool,
   Ruler,
-  Hammer
+  Hammer,
+  FileText
 } from 'lucide-react';
+import { FoccoProjectsTable } from '@/components/FoccoProjectsTable';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -285,6 +287,15 @@ export default function Projetos() {
                 )}
               </CardContent>
             </Card>
+          </div>
+
+          {/* FOCCO Projects Summary */}
+          <div className="space-y-3">
+            <h3 className="text-xs tracking-widest uppercase text-muted-foreground font-medium flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Projetos FOCCO Cadastrados
+            </h3>
+            <FoccoProjectsTable />
           </div>
 
           {/* Info Section */}

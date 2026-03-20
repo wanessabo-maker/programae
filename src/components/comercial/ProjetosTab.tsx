@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { Search, Folder, Edit2, Trash2, Calendar, XCircle } from 'lucide-react';
+import { Search, Folder, Edit2, Trash2, Calendar, XCircle, FileText } from 'lucide-react';
+import { FoccoProjectsTable } from '@/components/FoccoProjectsTable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { useProjects, useUpdateProject, useDeleteProject, PROJECT_STAGES, Project } from '@/hooks/useProjects';
@@ -439,6 +440,15 @@ export default function ProjetosTab() {
           </table>
         </div>
       )}
+
+      {/* FOCCO Projects Summary */}
+      <div className="space-y-3 mt-6">
+        <h3 className="text-xs tracking-widest uppercase text-muted-foreground font-medium flex items-center gap-2">
+          <FileText className="h-4 w-4" />
+          Projetos FOCCO Cadastrados
+        </h3>
+        <FoccoProjectsTable />
+      </div>
 
       {/* Edit Modal */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
