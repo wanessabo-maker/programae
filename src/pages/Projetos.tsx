@@ -288,6 +288,15 @@ export default function Projetos() {
             </Card>
           </div>
 
+          {/* FOCCO Projects Summary */}
+          <div className="space-y-3">
+            <h3 className="text-xs tracking-widest uppercase text-muted-foreground font-medium flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Projetos FOCCO Cadastrados
+            </h3>
+            <FoccoProjectsTable />
+          </div>
+
           {/* Info Section */}
           <Card className="bg-muted/30">
             <CardContent className="pt-6">

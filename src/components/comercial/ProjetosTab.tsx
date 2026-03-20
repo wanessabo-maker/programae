@@ -441,6 +441,15 @@ export default function ProjetosTab() {
         </div>
       )}
 
+      {/* FOCCO Projects Summary */}
+      <div className="space-y-3 mt-6">
+        <h3 className="text-xs tracking-widest uppercase text-muted-foreground font-medium flex items-center gap-2">
+          <FileText className="h-4 w-4" />
+          Projetos FOCCO Cadastrados
+        </h3>
+        <FoccoProjectsTable />
+      </div>
+
       {/* Edit Modal */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
         <DialogContent className="bg-card text-card-foreground border-border max-w-2xl max-h-[90vh] overflow-y-auto">
