@@ -369,7 +369,7 @@ export default function ProjetosTab() {
             <tbody>
               {filteredProjects.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
+                  <td colSpan={9} className="p-8 text-center text-muted-foreground">
                     Nenhum projeto ativo encontrado
                   </td>
                 </tr>
