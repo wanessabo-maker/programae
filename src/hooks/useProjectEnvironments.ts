@@ -115,13 +115,14 @@ export function useMonthlyEnvironmentStats(year: number, month: number) {
 
       if (actionsError) throw actionsError;
 
-      // Split apresentação into regular and reforma
+      // Split by regular vs reforma
       const isReforma = (env: any) => {
         const actionTypeName = env.action?.action_type?.name || '';
         return actionTypeName.toLowerCase().includes('reforma');
       };
 
       const apresentacaoEnvs = (envData || []).filter(e => e.environment_type === 'apresentacao');
+      const tecnicoEnvs = (envData || []).filter(e => e.environment_type === 'tecnico');
       
       const regularApresentacao = apresentacaoEnvs
         .filter(e => !isReforma(e))
@@ -133,8 +134,12 @@ export function useMonthlyEnvironmentStats(year: number, month: number) {
 
       const totalApresentacaoFromEnv = regularApresentacao + reformaApresentacao;
 
-      const tecnico = (envData || [])
-        .filter(e => e.environment_type === 'tecnico')
+      const regularTecnico = tecnicoEnvs
+        .filter(e => !isReforma(e))
+        .reduce((sum, e) => sum + (e.environment_count || 0), 0);
+
+      const reformaTecnico = tecnicoEnvs
+        .filter(e => isReforma(e))
         .reduce((sum, e) => sum + (e.environment_count || 0), 0);
 
       // Calculate totals from actions (with legacy compatibility)
@@ -164,7 +169,9 @@ export function useMonthlyEnvironmentStats(year: number, month: number) {
         totalApresentacao,
         regularApresentacao,
         reformaApresentacao,
-        totalTecnico: tecnico,
+        regularTecnico,
+        reformaTecnico,
+        totalTecnico: regularTecnico + reformaTecnico,
         actionsCount,
         byProjetista,
       };
