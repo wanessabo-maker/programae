@@ -561,7 +561,7 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
             {selectedActionType?.requiresValue && selectedActionType.requiresValue !== 'nenhum' && (
               <div>
                 <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.value ? 'text-destructive' : 'text-muted-foreground'}`}>
-                  {selectedActionType.requiresValue === 'quantitativo' ? 'Quantidade (un) *' : 'Valor da Venda (R$) *'}
+                  {selectedActionType.requiresValue === 'ambientes' ? 'Quantidade de Ambientes *' : 'Valor da Venda (R$) *'}
                 </label>
                 <input
                   type="number"
