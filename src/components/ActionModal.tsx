@@ -556,7 +556,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
       }
     }
     
-    if (selectedActionType?.requiresValue && !form.value) {
+    if (selectedActionType?.requiresValue && selectedActionType.requiresValue !== 'nenhum' && !form.value) {
       newErrors.value = true;
     }
     
