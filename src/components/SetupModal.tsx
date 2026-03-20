@@ -470,7 +470,7 @@ const TiposAcaoTab = () => {
     name: '',
     classification: 'relacionamento' as 'relacionamento' | 'venda' | 'projeto' | 'outro' | 'seletiva' | 'apresentacao',
     impactsMetas: [] as string[],
-    requiresValue: 'nenhum' as 'nenhum' | 'financeiro' | 'quantitativo',
+    requiresValue: 'nenhum' as 'nenhum' | 'financeiro' | 'ambientes',
     additionalFields: false,
     enabledFields: [] as AdditionalFieldKey[],
     programPoints: 0,
