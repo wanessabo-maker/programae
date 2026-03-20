@@ -223,7 +223,7 @@ export function useCreateActionType() {
       name: string;
       classification: string;
       impacts: string[];
-      requires_value: boolean;
+      requires_value: string;
       additional_fields: boolean;
       enabled_fields?: string[];
       points: number;
