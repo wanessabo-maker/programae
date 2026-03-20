@@ -357,11 +357,12 @@ export default function ProjetosTab() {
               <tr>
                 <th className="text-left p-3 text-xs uppercase tracking-wider">Projeto</th>
                 <th className="text-left p-3 text-xs uppercase tracking-wider">Cliente</th>
-                <th className="text-left p-3 text-xs uppercase tracking-wider">Profissional</th>
                 <th className="text-left p-3 text-xs uppercase tracking-wider">Consultor</th>
                 <th className="text-left p-3 text-xs uppercase tracking-wider">Estágio</th>
                 <th className="text-right p-3 text-xs uppercase tracking-wider">Valor Est.</th>
-                <th className="text-left p-3 text-xs uppercase tracking-wider">Previsão</th>
+                <th className="text-center p-3 text-xs uppercase tracking-wider" title="Dias entre Entrega Apresentação e Apresentação Comercial">Entrega → Apres.</th>
+                <th className="text-center p-3 text-xs uppercase tracking-wider" title="Dias entre Apresentação Comercial e Fechamento">Apres. → Fech.</th>
+                <th className="text-center p-3 text-xs uppercase tracking-wider" title="Total de dias entre Entrega Apresentação e Fechamento">Total</th>
                 <th className="text-center p-3 text-xs uppercase tracking-wider">Ações</th>
               </tr>
             </thead>
