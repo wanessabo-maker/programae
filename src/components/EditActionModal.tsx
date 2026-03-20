@@ -561,7 +561,7 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
             {selectedActionType?.requiresValue && selectedActionType.requiresValue !== 'nenhum' && (
               <div>
                 <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.value ? 'text-destructive' : 'text-muted-foreground'}`}>
-                  {selectedActionType.requiresValue === 'quantitativo' ? 'Quantidade (un) *' : 'Valor da Venda (R$) *'}
+                  {selectedActionType.requiresValue === 'ambientes' ? 'Quantidade de Ambientes *' : 'Valor da Venda (R$) *'}
                 </label>
                 <input
                   type="number"
@@ -570,7 +570,7 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
                     setForm({ ...form, value: e.target.value });
                     setErrors({ ...errors, value: false });
                   }}
-                  placeholder={selectedActionType.requiresValue === 'quantitativo' ? '0' : 'R$ 0,00'}
+                  placeholder={selectedActionType.requiresValue === 'ambientes' ? '0' : 'R$ 0,00'}
                   className={`input-flat w-full text-card-foreground ${errors.value ? 'border-destructive ring-1 ring-destructive' : ''}`}
                 />
                 {errors.value && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}

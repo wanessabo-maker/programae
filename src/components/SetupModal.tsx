@@ -470,7 +470,7 @@ const TiposAcaoTab = () => {
     name: '',
     classification: 'relacionamento' as 'relacionamento' | 'venda' | 'projeto' | 'outro' | 'seletiva' | 'apresentacao',
     impactsMetas: [] as string[],
-    requiresValue: 'nenhum' as 'nenhum' | 'financeiro' | 'quantitativo',
+    requiresValue: 'nenhum' as 'nenhum' | 'financeiro' | 'ambientes',
     additionalFields: false,
     enabledFields: [] as AdditionalFieldKey[],
     programPoints: 0,
@@ -607,8 +607,8 @@ const TiposAcaoTab = () => {
               Financeiro (R$)
             </label>
             <label className="flex items-center gap-1 text-sm">
-              <input type="radio" name="requiresValue" checked={form.requiresValue === 'quantitativo'} onChange={() => setForm({ ...form, requiresValue: 'quantitativo' })} />
-              Quantitativo (un)
+              <input type="radio" name="requiresValue" checked={form.requiresValue === 'ambientes'} onChange={() => setForm({ ...form, requiresValue: 'ambientes' })} />
+               Quantidade de Ambientes
             </label>
           </div>
           <div className="flex items-center gap-4">
