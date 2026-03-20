@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { Search, Folder, Edit2, Trash2, Calendar, XCircle } from 'lucide-react';
+import { Search, Folder, Edit2, Trash2, Calendar, XCircle, FileText } from 'lucide-react';
+import { FoccoProjectsTable } from '@/components/FoccoProjectsTable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { useProjects, useUpdateProject, useDeleteProject, PROJECT_STAGES, Project } from '@/hooks/useProjects';
