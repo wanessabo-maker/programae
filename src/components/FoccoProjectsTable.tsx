@@ -2,12 +2,14 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useProjects } from '@/hooks/useProjects';
-import { FileText, User, Ruler, Users } from 'lucide-react';
+import { FileText, Ruler, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
+import { format, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface FoccoRow {
   foccoNumber: string;
@@ -18,6 +20,9 @@ interface FoccoRow {
   consultorComercial: string | null;
   projetista: string | null;
   totalAmbientes: number;
+  dataCadastroProjetista: string | null;
+  dataApresentacao: string | null;
+  valorApresentado: number | null;
 }
 
 export function FoccoProjectsTable() {
@@ -29,8 +34,21 @@ export function FoccoProjectsTable() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('project_environments')
-        .select('project_id, environment_count, projetista_id, projetista:team_members!project_environments_projetista_id_fkey(name)')
+        .select('project_id, environment_count, projetista_id, created_at, projetista:team_members!project_environments_projetista_id_fkey(name)')
         .not('project_id', 'is', null);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Fetch presentation actions (Apresentação de Projeto)
+  const { data: presActions = [], isLoading: actLoading } = useQuery({
+    queryKey: ['focco-presentation-actions'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('actions')
+        .select('project_id, focco_project_number, action_date, value, action_types!inner(classification)')
+        .eq('action_types.classification', 'apresentacao');
       if (error) throw error;
       return data || [];
     },
@@ -49,6 +67,19 @@ export function FoccoProjectsTable() {
         if (e.projetista?.name) projetistaNames.add(e.projetista.name);
       });
 
+      // Earliest environment created_at = data cadastro projetista
+      const sortedEnvs = [...envs].sort((a: any, b: any) => (a.created_at || '').localeCompare(b.created_at || ''));
+      const dataCadastroProjetista = sortedEnvs.length > 0 ? sortedEnvs[0].created_at?.split('T')[0] || null : null;
+
+      // Presentation action date and value
+      const projPresActions = presActions.filter((a: any) =>
+        a.project_id === p.id || a.focco_project_number === p.focco_project_number
+      ).sort((a: any, b: any) => (b.action_date || '').localeCompare(a.action_date || ''));
+      
+      const latestPres = projPresActions.length > 0 ? projPresActions[0] : null;
+      const dataApresentacao = latestPres?.action_date || null;
+      const valorApresentado = p.estimated_value || (latestPres as any)?.value || null;
+
       return {
         foccoNumber: p.focco_project_number!,
         projectId: p.id,
@@ -58,11 +89,14 @@ export function FoccoProjectsTable() {
         consultorComercial: p.responsible?.name || null,
         projetista: projetistaNames.size > 0 ? Array.from(projetistaNames).join(', ') : null,
         totalAmbientes,
+        dataCadastroProjetista,
+        dataApresentacao,
+        valorApresentado,
       };
     }).sort((a, b) => b.foccoNumber.localeCompare(a.foccoNumber));
-  }, [projects, envData]);
+  }, [projects, envData, presActions]);
 
-  const isLoading = projLoading || envLoading;
+  const isLoading = projLoading || envLoading || actLoading;
 
   const stageLabel = (stage: string | null) => {
     switch (stage) {
@@ -71,6 +105,20 @@ export function FoccoProjectsTable() {
       case 'em_negociacao': return { label: 'Em Negociação', cls: 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400' };
       default: return { label: stage || '—', cls: 'bg-muted text-muted-foreground' };
     }
+  };
+
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return <span className="text-muted-foreground">—</span>;
+    try {
+      return format(parseISO(dateStr), 'dd/MM/yyyy', { locale: ptBR });
+    } catch {
+      return <span className="text-muted-foreground">—</span>;
+    }
+  };
+
+  const formatCurrency = (value: number | null) => {
+    if (!value) return <span className="text-muted-foreground">—</span>;
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
   };
 
   if (isLoading) {
@@ -99,13 +147,16 @@ export function FoccoProjectsTable() {
             <TableHead className="text-xs uppercase tracking-wider">Cliente</TableHead>
             <TableHead className="text-xs uppercase tracking-wider">Status</TableHead>
             <TableHead className="text-xs uppercase tracking-wider">
-              <span className="flex items-center gap-1"><Users className="h-3 w-3" /> Consultor Comercial</span>
+              <span className="flex items-center gap-1"><Users className="h-3 w-3" /> Consultor</span>
             </TableHead>
             <TableHead className="text-xs uppercase tracking-wider">
               <span className="flex items-center gap-1"><Ruler className="h-3 w-3" /> Projetista</span>
             </TableHead>
+            <TableHead className="text-xs uppercase tracking-wider text-center">Cadastro Proj.</TableHead>
+            <TableHead className="text-xs uppercase tracking-wider text-center">Apresentação</TableHead>
+            <TableHead className="text-xs uppercase tracking-wider text-right">Valor Apres.</TableHead>
             <TableHead className="text-xs uppercase tracking-wider text-right">
-              <span className="flex items-center gap-1 justify-end"><Ruler className="h-3 w-3" /> Ambientes</span>
+              <span className="flex items-center gap-1 justify-end"><Ruler className="h-3 w-3" /> Amb.</span>
             </TableHead>
           </TableRow>
         </TableHeader>
@@ -121,6 +172,9 @@ export function FoccoProjectsTable() {
                 </TableCell>
                 <TableCell className="text-sm">{row.consultorComercial || <span className="text-muted-foreground">—</span>}</TableCell>
                 <TableCell className="text-sm">{row.projetista || <span className="text-muted-foreground">—</span>}</TableCell>
+                <TableCell className="text-center text-sm">{formatDate(row.dataCadastroProjetista)}</TableCell>
+                <TableCell className="text-center text-sm">{formatDate(row.dataApresentacao)}</TableCell>
+                <TableCell className="text-right text-sm font-medium">{formatCurrency(row.valorApresentado)}</TableCell>
                 <TableCell className="text-right">
                   <Badge variant="secondary" className="font-bold">{row.totalAmbientes}</Badge>
                 </TableCell>

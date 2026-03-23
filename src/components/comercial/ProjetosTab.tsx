@@ -321,8 +321,8 @@ export default function ProjetosTab() {
 
       {/* Carteira Flutuante */}
       {(() => {
-        const emNegociacao = activeProjects.filter(p => p.stage === 'em_negociacao');
-        const carteiraFlutuante = emNegociacao.reduce((sum, p) => sum + (p.estimated_value || 0), 0);
+        const projetosNaoFechados = projects.filter(p => p.stage !== 'closed_won' && p.stage !== 'closed_lost');
+        const carteiraFlutuante = projetosNaoFechados.reduce((sum, p) => sum + (p.estimated_value || 0), 0);
         return (
           <div className="border border-primary/30 bg-primary/5 p-4">
             <div className="flex items-center justify-between">
@@ -331,8 +331,8 @@ export default function ProjetosTab() {
                 <p className="text-2xl font-light tracking-tight mt-1">{formatCurrency(carteiraFlutuante)}</p>
               </div>
               <div className="text-right">
-                <p className="text-xs text-muted-foreground">{emNegociacao.length} projetos em negociação</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Último valor apresentado por projeto</p>
+                <p className="text-xs text-muted-foreground">{projetosNaoFechados.length} projetos no funil</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Soma dos valores de projetos não vendidos/perdidos</p>
               </div>
             </div>
           </div>
