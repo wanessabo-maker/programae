@@ -510,7 +510,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     }
     
     // FOCCO number is required for Apresentação de Projeto, Venda (including Aditivo), and Projeto
-    if ((isApresentacaoProjeto || isVenda || isProjeto) && !form.foccoProjectNumber.trim()) {
+    if ((isApresentacaoProjeto || isVenda || isProjeto || isReforma) && !form.foccoProjectNumber.trim()) {
       newErrors.foccoProjectNumber = true;
     }
     
