@@ -430,6 +430,11 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     selectedActionType?.name?.toLowerCase().includes('projeto') &&
     !selectedActionType?.name?.toLowerCase().includes('reforma');
   
+  // Check if this is a Reforma type (both Apresentação and Técnico)
+  const isReforma = selectedActionType?.name?.toLowerCase().includes('reforma');
+  const isReformaApresentacao = isReforma && selectedActionType?.name?.toLowerCase().includes('apresentação');
+  const isReformaTecnico = isReforma && (selectedActionType?.name?.toLowerCase().includes('técnico') || selectedActionType?.name?.toLowerCase().includes('tecnico'));
+  
   // Check if this is a "Venda" action type
   const isVenda = selectedActionType?.classification === 'venda';
   
@@ -439,8 +444,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
   // Check if this is a "Seletiva" action type (e.g., Assinatura de Certificado de Garantia)
   const isSeletiva = selectedActionType?.classification === 'seletiva';
   
-  // Check if this is a "Projeto" classification (Projeto Técnico)
-  const isProjeto = selectedActionType?.classification === 'projeto';
+  // Check if this is a "Projeto" classification (Projeto Técnico, but NOT Reforma)
+  const isProjeto = selectedActionType?.classification === 'projeto' && !isReforma;
   
   // Action types where ALL fields must be mandatory
   const isStrictValidationType = isApresentacaoProjeto || isVenda || isSeletiva || isProjeto;
