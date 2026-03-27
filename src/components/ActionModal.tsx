@@ -430,6 +430,9 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     selectedActionType?.name?.toLowerCase().includes('projeto') &&
     !selectedActionType?.name?.toLowerCase().includes('reforma');
   
+  // Check if this is a Reforma type (both Apresentação and Técnico)
+  const isReforma = selectedActionType?.name?.toLowerCase().includes('reforma');
+  
   // Check if this is a "Venda" action type
   const isVenda = selectedActionType?.classification === 'venda';
   
@@ -439,8 +442,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
   // Check if this is a "Seletiva" action type (e.g., Assinatura de Certificado de Garantia)
   const isSeletiva = selectedActionType?.classification === 'seletiva';
   
-  // Check if this is a "Projeto" classification (Projeto Técnico)
-  const isProjeto = selectedActionType?.classification === 'projeto';
+  // Check if this is a "Projeto" classification (Projeto Técnico, but NOT Reforma)
+  const isProjeto = selectedActionType?.classification === 'projeto' && !isReforma;
   
   // Action types where ALL fields must be mandatory
   const isStrictValidationType = isApresentacaoProjeto || isVenda || isSeletiva || isProjeto;
@@ -507,18 +510,27 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     }
     
     // FOCCO number is required for Apresentação de Projeto, Venda (including Aditivo), and Projeto
-    if ((isApresentacaoProjeto || isVenda || isProjeto) && !form.foccoProjectNumber.trim()) {
+    if ((isApresentacaoProjeto || isVenda || isProjeto || isReforma) && !form.foccoProjectNumber.trim()) {
       newErrors.foccoProjectNumber = true;
     }
     
-    // Environment count is required for Apresentação de Projeto (Projetista de Apresentação) OR Projeto Técnico (Projetista Técnico)
-    const requiresEnvironment = (isApresentacaoProjeto && isEffectiveProjetista) || (isProjeto && isEffectiveProjetistaTecnico);
+    // Environment count is required for Projetista doing actions with ambientes:
+    // - Apresentação de Projeto (Projetista de Apresentação)
+    // - Projeto Técnico (Projetista Técnico)
+    // - Reforma types (both projetista types)
+    const requiresEnvironment = 
+      (isApresentacaoProjeto && isEffectiveProjetista) || 
+      (isProjeto && isEffectiveProjetistaTecnico) ||
+      (isReforma && (isEffectiveProjetista || isEffectiveProjetistaTecnico));
     if (requiresEnvironment && (!form.environmentCount || (safeParseInt(form.environmentCount, { min: 1 }) === null))) {
       newErrors.environmentCount = true;
     }
     
     // Commercial consultant is required for Projetista de Apresentação or Projetista Técnico
-    const requiresCommercialConsultant = (isApresentacaoProjeto && isEffectiveProjetista) || (isProjeto && isEffectiveProjetistaTecnico);
+    const requiresCommercialConsultant = 
+      (isApresentacaoProjeto && isEffectiveProjetista) || 
+      (isProjeto && isEffectiveProjetistaTecnico) ||
+      (isReforma && (isEffectiveProjetista || isEffectiveProjetistaTecnico));
     if (requiresCommercialConsultant && !form.commercialConsultantId) {
       newErrors.commercialConsultantId = true;
     }
@@ -1092,13 +1104,14 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
         });
       }
 
-      // AUTOMATION: Create project environment record for Projetista de Apresentação or Projetista Técnico
+      // AUTOMATION: Create project environment record for Projetista de Apresentação, Projetista Técnico, or Reforma
       const shouldCreateEnvironment = 
         (isApresentacaoProjeto && isEffectiveProjetista && form.environmentCount && form.consultantId) ||
-        (isProjeto && isEffectiveProjetistaTecnico && form.environmentCount && form.consultantId);
+        (isProjeto && isEffectiveProjetistaTecnico && form.environmentCount && form.consultantId) ||
+        (isReforma && (isEffectiveProjetista || isEffectiveProjetistaTecnico) && form.environmentCount && form.consultantId);
       
       if (shouldCreateEnvironment) {
-        const envType = (isProjeto && isEffectiveProjetistaTecnico) ? 'tecnico' : 'apresentacao';
+        const envType = ((isProjeto && isEffectiveProjetistaTecnico) || (isReforma && isEffectiveProjetistaTecnico)) ? 'tecnico' : 'apresentacao';
         try {
           await createEnvironment.mutateAsync({
             environment_type: envType,
@@ -1481,8 +1494,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             {errors.date && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
           </div>
 
-          {/* Environment Count - For Projetista de Apresentação (Apresentação) or Projetista Técnico (Projeto Técnico) */}
-          {((isApresentacaoProjeto && isEffectiveProjetista) || (isProjeto && isEffectiveProjetistaTecnico)) && (
+          {/* Environment Count - For Projetista doing actions with ambientes (including Reforma) */}
+          {((isApresentacaoProjeto && isEffectiveProjetista) || (isProjeto && isEffectiveProjetistaTecnico) || (isReforma && (isEffectiveProjetista || isEffectiveProjetistaTecnico))) && (
             <div>
               <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.environmentCount ? 'text-destructive' : 'text-muted-foreground'}`}>
                 Quantidade de Ambientes *
