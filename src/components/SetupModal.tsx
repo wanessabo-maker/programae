@@ -596,57 +596,54 @@ const TiposAcaoTab = () => {
             <option value="">Selecione a Área</option>
             {areas.map(area => <option key={area.id} value={area.id}>{area.name}</option>)}
           </select>
-          <div className="flex items-center gap-4 flex-wrap">
-            <label className="text-sm text-muted-foreground mr-1">Exige valor:</label>
-            <label className="flex items-center gap-1 text-sm">
-              <input type="radio" name="requiresValue" checked={form.requiresValue === 'nenhum'} onChange={() => setForm({ ...form, requiresValue: 'nenhum' })} />
-              Nenhum
-            </label>
-            <label className="flex items-center gap-1 text-sm">
-              <input type="radio" name="requiresValue" checked={form.requiresValue === 'financeiro'} onChange={() => setForm({ ...form, requiresValue: 'financeiro' })} />
-              Financeiro (R$)
-            </label>
-            <label className="flex items-center gap-1 text-sm">
-              <input type="radio" name="requiresValue" checked={form.requiresValue === 'ambientes'} onChange={() => setForm({ ...form, requiresValue: 'ambientes' })} />
-               Quantidade de Ambientes
-            </label>
-          </div>
-          <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={form.additionalFields} onChange={e => setForm({
-                ...form,
-                additionalFields: e.target.checked
-              })} />
-              Campos obrigatórios
-            </label>
-          </div>
-          
-          {/* Enabled Additional Fields Selection */}
-          {form.additionalFields && <div className="border border-border p-3 space-y-2 bg-muted/30">
-              <p className="text-xs uppercase tracking-widest text-muted-foreground">CAMPOS OBRIGATORIOS:</p>
+          <div className="border border-border p-3 space-y-3 bg-muted/30">
+            <p className="text-xs uppercase tracking-widest text-muted-foreground">CAMPOS OBRIGATÓRIOS E VALOR:</p>
+            
+            <div className="flex items-center gap-4 flex-wrap">
+              <label className="text-sm text-muted-foreground mr-1">Exige valor:</label>
+              <label className="flex items-center gap-1 text-sm">
+                <input type="radio" name="requiresValue" checked={form.requiresValue === 'nenhum'} onChange={() => setForm({ ...form, requiresValue: 'nenhum' })} />
+                Nenhum
+              </label>
+              <label className="flex items-center gap-1 text-sm">
+                <input type="radio" name="requiresValue" checked={form.requiresValue === 'financeiro'} onChange={() => setForm({ ...form, requiresValue: 'financeiro' })} />
+                Financeiro (R$)
+              </label>
+              <label className="flex items-center gap-1 text-sm">
+                <input type="radio" name="requiresValue" checked={form.requiresValue === 'ambientes'} onChange={() => setForm({ ...form, requiresValue: 'ambientes' })} />
+                Quantidade de Ambientes
+              </label>
+            </div>
+
+            <div className="border-t border-border pt-2">
+              <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">CAMPOS DE PREENCHIMENTO OBRIGATÓRIO:</p>
               <div className="flex flex-wrap gap-4">
                 {ADDITIONAL_FIELDS_CONFIG.map(({
-            key,
-            label
-          }) => <label key={key} className="flex items-center gap-2 text-sm">
+                  key,
+                  label
+                }) => <label key={key} className="flex items-center gap-2 text-sm">
                     <input type="checkbox" checked={form.enabledFields.includes(key)} onChange={e => {
-              if (e.target.checked) {
-                setForm({
-                  ...form,
-                  enabledFields: [...form.enabledFields, key]
-                });
-              } else {
-                setForm({
-                  ...form,
-                  enabledFields: form.enabledFields.filter(f => f !== key)
-                });
-              }
-            }} />
+                      if (e.target.checked) {
+                        setForm({
+                          ...form,
+                          additionalFields: true,
+                          enabledFields: [...form.enabledFields, key]
+                        });
+                      } else {
+                        const newFields = form.enabledFields.filter(f => f !== key);
+                        setForm({
+                          ...form,
+                          additionalFields: newFields.length > 0,
+                          enabledFields: newFields
+                        });
+                      }
+                    }} />
                     {label}
                   </label>)}
               </div>
-            </div>}
-          
+            </div>
+          </div>
+
           {/* Impacta Metas */}
           <div className="border-t border-border pt-3 mt-3 space-y-2">
             <p className="text-xs uppercase tracking-widest text-muted-foreground">Impacta Metas</p>
