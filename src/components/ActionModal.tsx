@@ -516,14 +516,23 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
       newErrors.foccoProjectNumber = true;
     }
     
-    // Environment count is required for Apresentação de Projeto (Projetista de Apresentação) OR Projeto Técnico (Projetista Técnico)
-    const requiresEnvironment = (isApresentacaoProjeto && isEffectiveProjetista) || (isProjeto && isEffectiveProjetistaTecnico);
+    // Environment count is required for Projetista doing actions with ambientes:
+    // - Apresentação de Projeto (Projetista de Apresentação)
+    // - Projeto Técnico (Projetista Técnico)
+    // - Reforma types (both projetista types)
+    const requiresEnvironment = 
+      (isApresentacaoProjeto && isEffectiveProjetista) || 
+      (isProjeto && isEffectiveProjetistaTecnico) ||
+      (isReforma && (isEffectiveProjetista || isEffectiveProjetistaTecnico));
     if (requiresEnvironment && (!form.environmentCount || (safeParseInt(form.environmentCount, { min: 1 }) === null))) {
       newErrors.environmentCount = true;
     }
     
     // Commercial consultant is required for Projetista de Apresentação or Projetista Técnico
-    const requiresCommercialConsultant = (isApresentacaoProjeto && isEffectiveProjetista) || (isProjeto && isEffectiveProjetistaTecnico);
+    const requiresCommercialConsultant = 
+      (isApresentacaoProjeto && isEffectiveProjetista) || 
+      (isProjeto && isEffectiveProjetistaTecnico) ||
+      (isReforma && (isEffectiveProjetista || isEffectiveProjetistaTecnico));
     if (requiresCommercialConsultant && !form.commercialConsultantId) {
       newErrors.commercialConsultantId = true;
     }
