@@ -1495,8 +1495,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             {errors.date && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
           </div>
 
-          {/* Environment Count - For Projetista de Apresentação (Apresentação) or Projetista Técnico (Projeto Técnico) */}
-          {((isApresentacaoProjeto && isEffectiveProjetista) || (isProjeto && isEffectiveProjetistaTecnico)) && (
+          {/* Environment Count - For Projetista doing actions with ambientes (including Reforma) */}
+          {((isApresentacaoProjeto && isEffectiveProjetista) || (isProjeto && isEffectiveProjetistaTecnico) || (isReforma && (isEffectiveProjetista || isEffectiveProjetistaTecnico))) && (
             <div>
               <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.environmentCount ? 'text-destructive' : 'text-muted-foreground'}`}>
                 Quantidade de Ambientes *
