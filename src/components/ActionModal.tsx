@@ -1106,13 +1106,14 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
         });
       }
 
-      // AUTOMATION: Create project environment record for Projetista de Apresentação or Projetista Técnico
+      // AUTOMATION: Create project environment record for Projetista de Apresentação, Projetista Técnico, or Reforma
       const shouldCreateEnvironment = 
         (isApresentacaoProjeto && isEffectiveProjetista && form.environmentCount && form.consultantId) ||
-        (isProjeto && isEffectiveProjetistaTecnico && form.environmentCount && form.consultantId);
+        (isProjeto && isEffectiveProjetistaTecnico && form.environmentCount && form.consultantId) ||
+        (isReforma && (isEffectiveProjetista || isEffectiveProjetistaTecnico) && form.environmentCount && form.consultantId);
       
       if (shouldCreateEnvironment) {
-        const envType = (isProjeto && isEffectiveProjetistaTecnico) ? 'tecnico' : 'apresentacao';
+        const envType = ((isProjeto && isEffectiveProjetistaTecnico) || (isReforma && isEffectiveProjetistaTecnico)) ? 'tecnico' : 'apresentacao';
         try {
           await createEnvironment.mutateAsync({
             environment_type: envType,
