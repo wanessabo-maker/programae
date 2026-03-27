@@ -432,8 +432,6 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
   
   // Check if this is a Reforma type (both Apresentação and Técnico)
   const isReforma = selectedActionType?.name?.toLowerCase().includes('reforma');
-  const isReformaApresentacao = isReforma && selectedActionType?.name?.toLowerCase().includes('apresentação');
-  const isReformaTecnico = isReforma && (selectedActionType?.name?.toLowerCase().includes('técnico') || selectedActionType?.name?.toLowerCase().includes('tecnico'));
   
   // Check if this is a "Venda" action type
   const isVenda = selectedActionType?.classification === 'venda';
