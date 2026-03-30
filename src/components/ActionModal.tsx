@@ -540,8 +540,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
       newErrors.contractNumber = true;
     }
     
-    // For Venda (but NOT Aditivo), checklist assignment is mandatory
-    if (isVenda && !isVendaAditivo) {
+    // For Venda (including Aditivo), checklist assignment is mandatory
+    if (isVenda) {
       if (!form.assignedProjetistaId) newErrors.assignedProjetistaId = true;
       if (!form.assignedLogisticaId) newErrors.assignedLogisticaId = true;
     }
