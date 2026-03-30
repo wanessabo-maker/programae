@@ -38,6 +38,7 @@ export function ContractChecklistView({ projectId }: ContractChecklistViewProps)
   const assignedProjetistaName = getTeamMemberName(checklistData?.assigned_projetista_id);
   const assignedLogisticaName = getTeamMemberName(checklistData?.assigned_logistica_id);
   const assignedCsName = getTeamMemberName((checklistData as any)?.assigned_cs_id);
+  const assignedApresentacaoProjetistaName = getTeamMemberName((checklistData as any)?.assigned_apresentacao_projetista_id);
 
   const progressPercentage = useMemo(() => {
     if (!checklistData?.checklist_items?.length) return 0;
