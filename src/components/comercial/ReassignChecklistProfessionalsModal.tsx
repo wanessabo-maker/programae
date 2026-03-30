@@ -138,7 +138,8 @@ export function ReassignChecklistProfessionalsModal({
           assigned_projetista_id: projetistaId,
           assigned_logistica_id: logisticaId,
           assigned_cs_id: csId,
-        })
+          assigned_apresentacao_projetista_id: apresentacaoProjetistaId,
+        } as any)
         .eq('id', checklistId);
 
       if (checklistError) throw checklistError;
