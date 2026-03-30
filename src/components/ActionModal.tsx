@@ -540,8 +540,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
       newErrors.contractNumber = true;
     }
     
-    // For Venda (but NOT Aditivo), checklist assignment is mandatory
-    if (isVenda && !isVendaAditivo) {
+    // For Venda (including Aditivo), checklist assignment is mandatory
+    if (isVenda) {
       if (!form.assignedProjetistaId) newErrors.assignedProjetistaId = true;
       if (!form.assignedLogisticaId) newErrors.assignedLogisticaId = true;
     }
@@ -883,6 +883,13 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                     consultant_id: form.consultantId,
                     notes: `Projeto criado via Aditivo`,
                   });
+                
+                // Create checklist for the new project with assigned professionals
+                await createChecklistForProject(newProject.id, {
+                  assignedProjetistaId: form.assignedProjetistaId || undefined,
+                  assignedLogisticaId: form.assignedLogisticaId || undefined,
+                  commercialResponsibleId: form.consultantId,
+                });
                 
                 toast.success(`Projeto FOCCO ${foccoNumber} criado e aditivo registrado!`);
               }
@@ -1569,7 +1576,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           )}
 
           {/* Assigned Professionals for Checklist - Only for Venda */}
-          {isVenda && !isVendaAditivo && (
+          {isVenda && (
             <div className={`border rounded-md p-3 space-y-3 bg-muted/30 ${errors.assignedProjetistaId || errors.assignedLogisticaId ? 'border-red-500' : 'border-border'}`}>
               <label className="text-xs tracking-widest uppercase text-muted-foreground block">
                 Atribuir Responsáveis do Checklist <span className="text-red-500">*</span>
