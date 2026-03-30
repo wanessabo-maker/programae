@@ -181,6 +181,7 @@ export function ContractChecklistView({ projectId }: ContractChecklistViewProps)
           currentProjetistaId={checklistData.assigned_projetista_id}
           currentLogisticaId={checklistData.assigned_logistica_id}
           currentCsId={(checklistData as any).assigned_cs_id}
+          currentApresentacaoProjetistaId={(checklistData as any).assigned_apresentacao_projetista_id}
         />
       )}
 
