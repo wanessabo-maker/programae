@@ -30,6 +30,7 @@ interface ReassignChecklistProfessionalsModalProps {
   currentProjetistaId: string | null;
   currentLogisticaId: string | null;
   currentCsId: string | null;
+  currentApresentacaoProjetistaId?: string | null;
 }
 
 export function ReassignChecklistProfessionalsModal({
