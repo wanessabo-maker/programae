@@ -844,9 +844,48 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 toast.success(`Aditivo de ${aditivoValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} adicionado ao FOCCO ${foccoNumber}!`);
               }
             } else {
-              toast.error(`Projeto FOCCO ${foccoNumber} não encontrado. Use "Venda" para criar um novo contrato.`);
-              setIsSubmitting(false);
-              return;
+              // Project doesn't exist - create it and link professional
+              const { data: newProject, error: projectError } = await supabase
+                .from('projects')
+                .insert({
+                  name: `Projeto FOCCO ${foccoNumber}`,
+                  focco_project_number: foccoNumber,
+                  professional_id: professionalId || null,
+                  responsible_id: form.consultantId,
+                  created_by: form.consultantId,
+                  stage: 'closed_won',
+                  start_date: form.date,
+                  closed_date: form.date,
+                  closed_value: safeNumber(form.value, { min: 0 }),
+                  estimated_value: safeNumber(form.value, { min: 0 }),
+                  origin_type: 'venda_direta',
+                })
+                .select('id')
+                .single();
+
+              if (projectError) {
+                console.error('Error creating project for aditivo:', projectError);
+                toast.error('Erro ao criar projeto automaticamente');
+                setIsSubmitting(false);
+                return;
+              }
+              
+              if (newProject) {
+                projectId = newProject.id;
+                
+                // Save to value history
+                const aditivoValue = safeNumber(form.value, { min: 0 }) ?? 0;
+                await supabase
+                  .from('project_value_history')
+                  .insert({
+                    project_id: newProject.id,
+                    presented_value: aditivoValue,
+                    consultant_id: form.consultantId,
+                    notes: `Projeto criado via Aditivo`,
+                  });
+                
+                toast.success(`Projeto FOCCO ${foccoNumber} criado e aditivo registrado!`);
+              }
             }
           } else {
             toast.error('Informe o número FOCCO do projeto para o aditivo');
