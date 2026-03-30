@@ -1646,6 +1646,29 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   </p>
                 )}
               </div>
+
+              {/* Projetista de Apresentação */}
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">
+                  Projetista de Apresentação
+                </label>
+                {apresentacaoProjetistaMembers.length > 0 ? (
+                  <select
+                    value={form.assignedApresentacaoProjetistaId}
+                    onChange={(e) => handleFieldChange('assignedApresentacaoProjetistaId', e.target.value)}
+                    className="input-flat w-full text-card-foreground"
+                  >
+                    <option value="">Selecione um projetista (opcional)</option>
+                    {apresentacaoProjetistaMembers.map((m) => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <p className="text-xs text-orange-500 italic">
+                    Nenhum membro com cargo "Projetista de Apresentação" encontrado
+                  </p>
+                )}
+              </div>
             </div>
           )}
 
