@@ -113,6 +113,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
   // Fetch team members with specific positions for assignment
   const [projetistaMembers, setProjetistaMembers] = useState<{ id: string; name: string }[]>([]);
   const [logisticaMembers, setLogisticaMembers] = useState<{ id: string; name: string }[]>([]);
+  const [apresentacaoProjetistaMembers, setApresentacaoProjetistaMembers] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
     const fetchPositionMembers = async () => {
