@@ -1029,6 +1029,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 await createChecklistForProject(newProject.id, {
                   assignedProjetistaId: form.assignedProjetistaId || undefined,
                   assignedLogisticaId: form.assignedLogisticaId || undefined,
+                  assignedApresentacaoProjetistaId: form.assignedApresentacaoProjetistaId || undefined,
                   commercialResponsibleId: form.consultantId,
                 });
                 
