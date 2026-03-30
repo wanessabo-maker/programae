@@ -57,8 +57,9 @@ export function ReassignChecklistProfessionalsModal({
       setProjetistaId(currentProjetistaId);
       setLogisticaId(currentLogisticaId);
       setCsId(currentCsId);
+      setApresentacaoProjetistaId(currentApresentacaoProjetistaId || null);
     }
-  }, [open, currentProjetistaId, currentLogisticaId, currentCsId]);
+  }, [open, currentProjetistaId, currentLogisticaId, currentCsId, currentApresentacaoProjetistaId]);
 
   // Get projetistas (members with Projetista Técnico position)
   const projetistas = useMemo(() => {
