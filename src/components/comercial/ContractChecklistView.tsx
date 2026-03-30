@@ -136,11 +136,19 @@ export function ContractChecklistView({ projectId }: ContractChecklistViewProps)
           </Button>
         </div>
         
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div>
             <p className="text-xs text-neutral-400 mb-1">Projetista Técnico</p>
             <p className="text-sm font-medium text-white">
               {assignedProjetistaName || (
+                <span className="text-neutral-500 italic">Não atribuído</span>
+              )}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-neutral-400 mb-1">Projetista Apresentação</p>
+            <p className="text-sm font-medium text-white">
+              {assignedApresentacaoProjetistaName || (
                 <span className="text-neutral-500 italic">Não atribuído</span>
               )}
             </p>
