@@ -122,7 +122,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           .from('positions')
           .select('id, name')
           .eq('is_active', true)
-          .or('name.ilike.%projetista técnico%,name.ilike.%projetista tecnico%,name.ilike.%logistica%,name.ilike.%logística%');
+          .or('name.ilike.%projetista técnico%,name.ilike.%projetista tecnico%,name.ilike.%logistica%,name.ilike.%logística%,name.ilike.%projetista de apresentação%,name.ilike.%projetista apresentação%,name.ilike.%projetista apresentacao%');
 
         if (!positions || positions.length === 0) return;
 
