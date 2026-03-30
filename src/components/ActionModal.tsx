@@ -134,8 +134,12 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           p.name.toLowerCase().includes('logistica') || 
           p.name.toLowerCase().includes('logística')
         );
+        const apresentacaoPos = positions.find(p => 
+          (p.name.toLowerCase().includes('projetista') && p.name.toLowerCase().includes('apresentação')) ||
+          (p.name.toLowerCase().includes('projetista') && p.name.toLowerCase().includes('apresentacao'))
+        );
 
-        const positionIds = [projetistaPos?.id, logisticaPos?.id].filter(Boolean);
+        const positionIds = [projetistaPos?.id, logisticaPos?.id, apresentacaoPos?.id].filter(Boolean);
         if (positionIds.length === 0) return;
 
         const { data: memberPositions } = await supabase
