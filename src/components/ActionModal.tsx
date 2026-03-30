@@ -157,7 +157,11 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           .filter(mp => mp.position_id === logisticaPos?.id)
           .map(mp => mp.team_member_id);
 
-        const allMemberIds = [...new Set([...projetistaIds, ...logisticaIds])];
+        const apresentacaoIds = memberPositions
+          .filter(mp => mp.position_id === apresentacaoPos?.id)
+          .map(mp => mp.team_member_id);
+
+        const allMemberIds = [...new Set([...projetistaIds, ...logisticaIds, ...apresentacaoIds])];
         if (allMemberIds.length === 0) return;
 
         const { data: members } = await supabase
@@ -170,6 +174,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
 
         setProjetistaMembers(members.filter(m => projetistaIds.includes(m.id)));
         setLogisticaMembers(members.filter(m => logisticaIds.includes(m.id)));
+        setApresentacaoProjetistaMembers(members.filter(m => apresentacaoIds.includes(m.id)));
       } catch (error) {
         console.error('Error fetching position members:', error);
       }
