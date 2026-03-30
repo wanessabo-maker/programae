@@ -1,0 +1,1 @@
+ALTER TABLE public.contract_checklists ADD COLUMN assigned_apresentacao_projetista_id uuid REFERENCES public.team_members(id);
