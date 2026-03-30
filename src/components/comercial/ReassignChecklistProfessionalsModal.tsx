@@ -49,6 +49,7 @@ export function ReassignChecklistProfessionalsModal({
   const [projetistaId, setProjetistaId] = useState<string | null>(currentProjetistaId);
   const [logisticaId, setLogisticaId] = useState<string | null>(currentLogisticaId);
   const [csId, setCsId] = useState<string | null>(currentCsId);
+  const [apresentacaoProjetistaId, setApresentacaoProjetistaId] = useState<string | null>(currentApresentacaoProjetistaId || null);
 
   // Reset state when modal opens with new values
   useEffect(() => {
