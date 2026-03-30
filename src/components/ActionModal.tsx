@@ -43,6 +43,7 @@ interface FormState {
   // Assigned professionals for checklist
   assignedProjetistaId: string;
   assignedLogisticaId: string;
+  assignedApresentacaoProjetistaId: string;
   // Project environments (for Projeto de Apresentação)
   environmentCount: string;
   // Commercial consultant served (for Projetista de Apresentação)
