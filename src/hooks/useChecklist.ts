@@ -20,6 +20,7 @@ export async function createChecklistForProject(
     assignedProjetistaId?: string;
     assignedLogisticaId?: string;
     assignedCsId?: string;
+    assignedApresentacaoProjetistaId?: string;
     commercialResponsibleId?: string;
   }
 ): Promise<boolean> {
