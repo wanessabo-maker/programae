@@ -40,6 +40,7 @@ export function ReassignChecklistProfessionalsModal({
   currentProjetistaId,
   currentLogisticaId,
   currentCsId,
+  currentApresentacaoProjetistaId,
 }: ReassignChecklistProfessionalsModalProps) {
   const queryClient = useQueryClient();
   const { positions, memberPositions } = usePositions();
