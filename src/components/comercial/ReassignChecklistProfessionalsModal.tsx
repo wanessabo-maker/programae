@@ -194,7 +194,7 @@ export function ReassignChecklistProfessionalsModal({
     updateMutation.mutate();
   };
 
-  const hasChanges = projetistaId !== currentProjetistaId || logisticaId !== currentLogisticaId || csId !== currentCsId;
+  const hasChanges = projetistaId !== currentProjetistaId || logisticaId !== currentLogisticaId || csId !== currentCsId || apresentacaoProjetistaId !== (currentApresentacaoProjetistaId || null);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
