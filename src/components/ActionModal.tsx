@@ -884,6 +884,13 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                     notes: `Projeto criado via Aditivo`,
                   });
                 
+                // Create checklist for the new project with assigned professionals
+                await createChecklistForProject(newProject.id, {
+                  assignedProjetistaId: form.assignedProjetistaId || undefined,
+                  assignedLogisticaId: form.assignedLogisticaId || undefined,
+                  commercialResponsibleId: form.consultantId,
+                });
+                
                 toast.success(`Projeto FOCCO ${foccoNumber} criado e aditivo registrado!`);
               }
             }
