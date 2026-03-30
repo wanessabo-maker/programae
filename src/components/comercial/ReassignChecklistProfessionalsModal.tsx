@@ -61,14 +61,33 @@ export function ReassignChecklistProfessionalsModal({
     }
   }, [open, currentProjetistaId, currentLogisticaId, currentCsId, currentApresentacaoProjetistaId]);
 
-  // Get projetistas (members with Projetista Técnico position)
+  // Get projetistas técnicos (members with Projetista Técnico position)
   const projetistas = useMemo(() => {
     const projetistaPositionIds = positions
-      .filter(p => p.name.toLowerCase().includes('projetista'))
+      .filter(p => 
+        (p.name.toLowerCase().includes('projetista técnico') || p.name.toLowerCase().includes('projetista tecnico'))
+      )
       .map(p => p.id);
     
     const memberIds = memberPositions
       .filter(tmp => projetistaPositionIds.includes(tmp.position_id))
+      .map(tmp => tmp.team_member_id);
+    
+    const uniqueMemberIds = [...new Set(memberIds)];
+    return teamMembers.filter(m => uniqueMemberIds.includes(m.id) && m.active);
+  }, [positions, memberPositions, teamMembers]);
+
+  // Get projetistas de apresentação
+  const apresentacaoProjetistas = useMemo(() => {
+    const posIds = positions
+      .filter(p => 
+        (p.name.toLowerCase().includes('projetista') && p.name.toLowerCase().includes('apresentação')) ||
+        (p.name.toLowerCase().includes('projetista') && p.name.toLowerCase().includes('apresentacao'))
+      )
+      .map(p => p.id);
+    
+    const memberIds = memberPositions
+      .filter(tmp => posIds.includes(tmp.position_id))
       .map(tmp => tmp.team_member_id);
     
     const uniqueMemberIds = [...new Set(memberIds)];
