@@ -235,7 +235,34 @@ export function ReassignChecklistProfessionalsModal({
             )}
           </div>
 
-          {/* Analista de Logística */}
+          {/* Projetista de Apresentação */}
+          <div className="space-y-2">
+            <Label htmlFor="apresentacao">Projetista de Apresentação</Label>
+            <Select
+              value={apresentacaoProjetistaId || 'none'}
+              onValueChange={(value) => setApresentacaoProjetistaId(value === 'none' ? null : value)}
+            >
+              <SelectTrigger id="apresentacao">
+                <SelectValue placeholder="Selecione um projetista" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">
+                  <span className="text-muted-foreground">Nenhum</span>
+                </SelectItem>
+                {apresentacaoProjetistas.map((member) => (
+                  <SelectItem key={member.id} value={member.id}>
+                    {member.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {apresentacaoProjetistas.length === 0 && (
+              <p className="text-xs text-muted-foreground">
+                Nenhum membro com cargo de Projetista de Apresentação encontrado.
+              </p>
+            )}
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="logistica">Analista de Logística</Label>
             <Select
