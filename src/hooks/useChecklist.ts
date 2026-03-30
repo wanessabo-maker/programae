@@ -20,6 +20,7 @@ export async function createChecklistForProject(
     assignedProjetistaId?: string;
     assignedLogisticaId?: string;
     assignedCsId?: string;
+    assignedApresentacaoProjetistaId?: string;
     commercialResponsibleId?: string;
   }
 ): Promise<boolean> {
@@ -59,6 +60,7 @@ export async function createChecklistForProject(
         assigned_projetista_id: options?.assignedProjetistaId || null,
         assigned_logistica_id: options?.assignedLogisticaId || null,
         assigned_cs_id: options?.assignedCsId || null,
+        assigned_apresentacao_projetista_id: options?.assignedApresentacaoProjetistaId || null,
       })
       .select()
       .single();

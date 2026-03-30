@@ -30,6 +30,7 @@ interface ReassignChecklistProfessionalsModalProps {
   currentProjetistaId: string | null;
   currentLogisticaId: string | null;
   currentCsId: string | null;
+  currentApresentacaoProjetistaId?: string | null;
 }
 
 export function ReassignChecklistProfessionalsModal({
@@ -39,6 +40,7 @@ export function ReassignChecklistProfessionalsModal({
   currentProjetistaId,
   currentLogisticaId,
   currentCsId,
+  currentApresentacaoProjetistaId,
 }: ReassignChecklistProfessionalsModalProps) {
   const queryClient = useQueryClient();
   const { positions, memberPositions } = usePositions();
@@ -47,6 +49,7 @@ export function ReassignChecklistProfessionalsModal({
   const [projetistaId, setProjetistaId] = useState<string | null>(currentProjetistaId);
   const [logisticaId, setLogisticaId] = useState<string | null>(currentLogisticaId);
   const [csId, setCsId] = useState<string | null>(currentCsId);
+  const [apresentacaoProjetistaId, setApresentacaoProjetistaId] = useState<string | null>(currentApresentacaoProjetistaId || null);
 
   // Reset state when modal opens with new values
   useEffect(() => {
@@ -54,17 +57,37 @@ export function ReassignChecklistProfessionalsModal({
       setProjetistaId(currentProjetistaId);
       setLogisticaId(currentLogisticaId);
       setCsId(currentCsId);
+      setApresentacaoProjetistaId(currentApresentacaoProjetistaId || null);
     }
-  }, [open, currentProjetistaId, currentLogisticaId, currentCsId]);
+  }, [open, currentProjetistaId, currentLogisticaId, currentCsId, currentApresentacaoProjetistaId]);
 
-  // Get projetistas (members with Projetista Técnico position)
+  // Get projetistas técnicos (members with Projetista Técnico position)
   const projetistas = useMemo(() => {
     const projetistaPositionIds = positions
-      .filter(p => p.name.toLowerCase().includes('projetista'))
+      .filter(p => 
+        (p.name.toLowerCase().includes('projetista técnico') || p.name.toLowerCase().includes('projetista tecnico'))
+      )
       .map(p => p.id);
     
     const memberIds = memberPositions
       .filter(tmp => projetistaPositionIds.includes(tmp.position_id))
+      .map(tmp => tmp.team_member_id);
+    
+    const uniqueMemberIds = [...new Set(memberIds)];
+    return teamMembers.filter(m => uniqueMemberIds.includes(m.id) && m.active);
+  }, [positions, memberPositions, teamMembers]);
+
+  // Get projetistas de apresentação
+  const apresentacaoProjetistas = useMemo(() => {
+    const posIds = positions
+      .filter(p => 
+        (p.name.toLowerCase().includes('projetista') && p.name.toLowerCase().includes('apresentação')) ||
+        (p.name.toLowerCase().includes('projetista') && p.name.toLowerCase().includes('apresentacao'))
+      )
+      .map(p => p.id);
+    
+    const memberIds = memberPositions
+      .filter(tmp => posIds.includes(tmp.position_id))
       .map(tmp => tmp.team_member_id);
     
     const uniqueMemberIds = [...new Set(memberIds)];
@@ -115,7 +138,8 @@ export function ReassignChecklistProfessionalsModal({
           assigned_projetista_id: projetistaId,
           assigned_logistica_id: logisticaId,
           assigned_cs_id: csId,
-        })
+          assigned_apresentacao_projetista_id: apresentacaoProjetistaId,
+        } as any)
         .eq('id', checklistId);
 
       if (checklistError) throw checklistError;
@@ -170,7 +194,7 @@ export function ReassignChecklistProfessionalsModal({
     updateMutation.mutate();
   };
 
-  const hasChanges = projetistaId !== currentProjetistaId || logisticaId !== currentLogisticaId || csId !== currentCsId;
+  const hasChanges = projetistaId !== currentProjetistaId || logisticaId !== currentLogisticaId || csId !== currentCsId || apresentacaoProjetistaId !== (currentApresentacaoProjetistaId || null);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -211,7 +235,34 @@ export function ReassignChecklistProfessionalsModal({
             )}
           </div>
 
-          {/* Analista de Logística */}
+          {/* Projetista de Apresentação */}
+          <div className="space-y-2">
+            <Label htmlFor="apresentacao">Projetista de Apresentação</Label>
+            <Select
+              value={apresentacaoProjetistaId || 'none'}
+              onValueChange={(value) => setApresentacaoProjetistaId(value === 'none' ? null : value)}
+            >
+              <SelectTrigger id="apresentacao">
+                <SelectValue placeholder="Selecione um projetista" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">
+                  <span className="text-muted-foreground">Nenhum</span>
+                </SelectItem>
+                {apresentacaoProjetistas.map((member) => (
+                  <SelectItem key={member.id} value={member.id}>
+                    {member.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {apresentacaoProjetistas.length === 0 && (
+              <p className="text-xs text-muted-foreground">
+                Nenhum membro com cargo de Projetista de Apresentação encontrado.
+              </p>
+            )}
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="logistica">Analista de Logística</Label>
             <Select

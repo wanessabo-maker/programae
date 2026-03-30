@@ -43,6 +43,7 @@ interface FormState {
   // Assigned professionals for checklist
   assignedProjetistaId: string;
   assignedLogisticaId: string;
+  assignedApresentacaoProjetistaId: string;
   // Project environments (for Projeto de Apresentação)
   environmentCount: string;
   // Commercial consultant served (for Projetista de Apresentação)
@@ -70,6 +71,7 @@ const initialFormState: FormState = {
   presentedValue: '',
   assignedProjetistaId: '',
   assignedLogisticaId: '',
+  assignedApresentacaoProjetistaId: '',
   environmentCount: '',
   commercialConsultantId: '',
 };
@@ -111,6 +113,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
   // Fetch team members with specific positions for assignment
   const [projetistaMembers, setProjetistaMembers] = useState<{ id: string; name: string }[]>([]);
   const [logisticaMembers, setLogisticaMembers] = useState<{ id: string; name: string }[]>([]);
+  const [apresentacaoProjetistaMembers, setApresentacaoProjetistaMembers] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
     const fetchPositionMembers = async () => {
@@ -119,7 +122,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           .from('positions')
           .select('id, name')
           .eq('is_active', true)
-          .or('name.ilike.%projetista técnico%,name.ilike.%projetista tecnico%,name.ilike.%logistica%,name.ilike.%logística%');
+          .or('name.ilike.%projetista técnico%,name.ilike.%projetista tecnico%,name.ilike.%logistica%,name.ilike.%logística%,name.ilike.%projetista de apresentação%,name.ilike.%projetista apresentação%,name.ilike.%projetista apresentacao%');
 
         if (!positions || positions.length === 0) return;
 
@@ -131,8 +134,12 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           p.name.toLowerCase().includes('logistica') || 
           p.name.toLowerCase().includes('logística')
         );
+        const apresentacaoPos = positions.find(p => 
+          (p.name.toLowerCase().includes('projetista') && p.name.toLowerCase().includes('apresentação')) ||
+          (p.name.toLowerCase().includes('projetista') && p.name.toLowerCase().includes('apresentacao'))
+        );
 
-        const positionIds = [projetistaPos?.id, logisticaPos?.id].filter(Boolean);
+        const positionIds = [projetistaPos?.id, logisticaPos?.id, apresentacaoPos?.id].filter(Boolean);
         if (positionIds.length === 0) return;
 
         const { data: memberPositions } = await supabase
@@ -150,7 +157,11 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           .filter(mp => mp.position_id === logisticaPos?.id)
           .map(mp => mp.team_member_id);
 
-        const allMemberIds = [...new Set([...projetistaIds, ...logisticaIds])];
+        const apresentacaoIds = memberPositions
+          .filter(mp => mp.position_id === apresentacaoPos?.id)
+          .map(mp => mp.team_member_id);
+
+        const allMemberIds = [...new Set([...projetistaIds, ...logisticaIds, ...apresentacaoIds])];
         if (allMemberIds.length === 0) return;
 
         const { data: members } = await supabase
@@ -163,6 +174,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
 
         setProjetistaMembers(members.filter(m => projetistaIds.includes(m.id)));
         setLogisticaMembers(members.filter(m => logisticaIds.includes(m.id)));
+        setApresentacaoProjetistaMembers(members.filter(m => apresentacaoIds.includes(m.id)));
       } catch (error) {
         console.error('Error fetching position members:', error);
       }
@@ -888,6 +900,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 await createChecklistForProject(newProject.id, {
                   assignedProjetistaId: form.assignedProjetistaId || undefined,
                   assignedLogisticaId: form.assignedLogisticaId || undefined,
+                  assignedApresentacaoProjetistaId: form.assignedApresentacaoProjetistaId || undefined,
                   commercialResponsibleId: form.consultantId,
                 });
                 
@@ -955,6 +968,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 await createChecklistForProject(existingProject.id, {
                   assignedProjetistaId: form.assignedProjetistaId || undefined,
                   assignedLogisticaId: form.assignedLogisticaId || undefined,
+                  assignedApresentacaoProjetistaId: form.assignedApresentacaoProjetistaId || undefined,
                   commercialResponsibleId: form.consultantId,
                 });
                 
@@ -1015,6 +1029,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 await createChecklistForProject(newProject.id, {
                   assignedProjetistaId: form.assignedProjetistaId || undefined,
                   assignedLogisticaId: form.assignedLogisticaId || undefined,
+                  assignedApresentacaoProjetistaId: form.assignedApresentacaoProjetistaId || undefined,
                   commercialResponsibleId: form.consultantId,
                 });
                 
@@ -1081,6 +1096,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
               await createChecklistForProject(newProject.id, {
                 assignedProjetistaId: form.assignedProjetistaId || undefined,
                 assignedLogisticaId: form.assignedLogisticaId || undefined,
+                assignedApresentacaoProjetistaId: form.assignedApresentacaoProjetistaId || undefined,
                 commercialResponsibleId: form.consultantId,
               });
               
@@ -1627,6 +1643,29 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 ) : (
                   <p className="text-xs text-orange-500 italic">
                     Nenhum membro com cargo "Analista de Logística" encontrado
+                  </p>
+                )}
+              </div>
+
+              {/* Projetista de Apresentação */}
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">
+                  Projetista de Apresentação
+                </label>
+                {apresentacaoProjetistaMembers.length > 0 ? (
+                  <select
+                    value={form.assignedApresentacaoProjetistaId}
+                    onChange={(e) => handleFieldChange('assignedApresentacaoProjetistaId', e.target.value)}
+                    className="input-flat w-full text-card-foreground"
+                  >
+                    <option value="">Selecione um projetista (opcional)</option>
+                    {apresentacaoProjetistaMembers.map((m) => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <p className="text-xs text-orange-500 italic">
+                    Nenhum membro com cargo "Projetista de Apresentação" encontrado
                   </p>
                 )}
               </div>
