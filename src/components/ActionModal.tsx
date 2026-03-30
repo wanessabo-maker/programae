@@ -71,6 +71,7 @@ const initialFormState: FormState = {
   presentedValue: '',
   assignedProjetistaId: '',
   assignedLogisticaId: '',
+  assignedApresentacaoProjetistaId: '',
   environmentCount: '',
   commercialConsultantId: '',
 };
