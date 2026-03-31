@@ -348,11 +348,13 @@ export default function Dashboard() {
     const monthActions = actions.filter(a => {
       // Non-admins can only see current month
       if (!isAdmin && actionsMonthOffset !== 0) return false;
+      // Non-admins only see their own actions
+      if (!isAdmin && currentTeamMember?.id && a.consultantId !== currentTeamMember.id) return false;
       const d = parseISO(a.date);
       return d.getFullYear() === targetYear && d.getMonth() === targetMonth;
     });
     
-    // Apply team member filter if selected
+    // Apply team member filter if selected (relevant for admins)
     const filteredActions = actionsFilter === 'all' 
       ? monthActions 
       : monthActions.filter(a => a.consultantId === actionsFilter);
@@ -370,7 +372,7 @@ export default function Dashboard() {
           actionTypeName: actionType?.name || '-',
         };
       });
-  }, [actions, teamMembers, professionals, actionTypes, actionsFilter, selectedActionsDate, isAdmin, actionsMonthOffset]);
+  }, [actions, teamMembers, professionals, actionTypes, actionsFilter, selectedActionsDate, isAdmin, actionsMonthOffset, currentTeamMember]);
 
   // Team members available for filter (respecting permissions)
   const availableTeamMembersForFilter = useMemo(() => {
