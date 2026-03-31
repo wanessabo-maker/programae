@@ -372,7 +372,7 @@ export default function Dashboard() {
           actionTypeName: actionType?.name || '-',
         };
       });
-  }, [actions, teamMembers, professionals, actionTypes, actionsFilter, selectedActionsDate, isAdmin, actionsMonthOffset]);
+  }, [actions, teamMembers, professionals, actionTypes, actionsFilter, selectedActionsDate, isAdmin, actionsMonthOffset, currentTeamMember]);
 
   // Team members available for filter (respecting permissions)
   const availableTeamMembersForFilter = useMemo(() => {
