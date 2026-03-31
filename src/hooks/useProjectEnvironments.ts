@@ -234,13 +234,24 @@ export function useProjetistaRanking(year: number, month: number) {
   return useQuery({
     queryKey: ['project-environments', 'ranking', year, month],
     queryFn: async () => {
-      // Fetch from project_environments table
+      // Fetch from project_environments table with action type info for reforma detection
       const { data: environments, error } = await supabase
         .from('project_environments')
-        .select('environment_type, environment_count, projetista_id')
+        .select(`
+          environment_type, environment_count, projetista_id, action_id,
+          action:actions!project_environments_action_id_fkey(
+            action_type_id,
+            action_type:action_types!inner(id, name)
+          )
+        `)
         .eq('competence_month', competenceMonth);
 
       if (error) throw error;
+
+      const isReforma = (env: any) => {
+        const actionTypeName = env.action?.action_type?.name || '';
+        return actionTypeName.toLowerCase().includes('reforma');
+      };
 
       // Get consultant ranking from project_environments (commercial consultants served)
       const { data: envWithConsultants, error: envConsError } = await supabase
@@ -267,14 +278,24 @@ export function useProjetistaRanking(year: number, month: number) {
 
       const memberMap = new Map(members?.map(p => [p.id, p.name]) || []);
 
-      // Calculate totals per projetista per type from project_environments
-      const totals: Record<string, { apresentacao: number; tecnico: number }> = {};
+      // Calculate totals per projetista per type, split by regular/reforma
+      const totals: Record<string, { 
+        apresentacao: number; tecnico: number;
+        regularApresentacao: number; reformaApresentacao: number;
+      }> = {};
       environments.forEach(env => {
         if (!totals[env.projetista_id]) {
-          totals[env.projetista_id] = { apresentacao: 0, tecnico: 0 };
+          totals[env.projetista_id] = { apresentacao: 0, tecnico: 0, regularApresentacao: 0, reformaApresentacao: 0 };
         }
-        totals[env.projetista_id][env.environment_type as 'apresentacao' | 'tecnico'] += 
-          env.environment_count || 0;
+        const count = env.environment_count || 0;
+        totals[env.projetista_id][env.environment_type as 'apresentacao' | 'tecnico'] += count;
+        if (env.environment_type === 'apresentacao') {
+          if (isReforma(env)) {
+            totals[env.projetista_id].reformaApresentacao += count;
+          } else {
+            totals[env.projetista_id].regularApresentacao += count;
+          }
+        }
       });
 
       // Calculate consultant ranking from project_environments (commercial consultants served)
