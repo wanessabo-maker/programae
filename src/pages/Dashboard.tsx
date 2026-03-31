@@ -477,7 +477,9 @@ export default function Dashboard() {
             <div className="flex items-center gap-3">
               <span className="text-xs text-muted-foreground">{currentMonthActions.length} ações</span>
               <span className="text-xs text-muted-foreground">·</span>
-              <span className="text-xs text-muted-foreground">{currentMonthActions.reduce((sum, a) => sum + (a.pointsGenerated || 0), 0)} pts</span>
+              <span className="text-xs text-muted-foreground">
+                {currentMonthActions.reduce((sum, a) => sum + (a.pointsGenerated || 0) + (a.bonusPoints || 0), 0)} pts
+              </span>
             </div>
           </CollapsibleTrigger>
           
