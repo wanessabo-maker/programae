@@ -642,7 +642,7 @@ export default function Dashboard() {
                         <span className="text-muted-foreground">{action.actionTypeName}</span>
                         <div className="flex gap-3">
                           {action.value && <span>{formatCurrency(action.value)}</span>}
-                          <span className="text-muted-foreground">{action.effectivePoints} pts</span>
+                          <span className="text-muted-foreground">{action.basePoints} pts</span>
                           {action.bonusPoints > 0 && (
                             <span className="text-success font-medium">+{action.bonusPoints} bônus</span>
                           )}
