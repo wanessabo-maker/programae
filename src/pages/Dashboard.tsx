@@ -558,7 +558,7 @@ export default function Dashboard() {
                           <td className="p-3 text-sm">{action.professionalName}</td>
                           <td className="p-3 text-sm">{action.actionTypeName}</td>
                           <td className="p-3 text-sm">{action.value ? formatCurrency(action.value) : '-'}</td>
-                          <td className="p-3 text-sm">{action.pointsGenerated}</td>
+                          <td className="p-3 text-sm">{(action.pointsGenerated || 0) + (action.bonusPoints || 0)}</td>
                           {currentMonthActions.some(a => a.bonusPoints > 0) && (
                             <td className="p-3 text-sm">
                               {action.bonusPoints > 0 ? (
@@ -625,7 +625,7 @@ export default function Dashboard() {
                         <span className="text-muted-foreground">{action.actionTypeName}</span>
                         <div className="flex gap-3">
                           {action.value && <span>{formatCurrency(action.value)}</span>}
-                          <span className="text-muted-foreground">{action.pointsGenerated} pts</span>
+                          <span className="text-muted-foreground">{(action.pointsGenerated || 0) + (action.bonusPoints || 0)} pts</span>
                           {action.bonusPoints > 0 && (
                             <span className="text-success font-medium">+{action.bonusPoints} bônus</span>
                           )}
