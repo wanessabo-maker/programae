@@ -495,7 +495,7 @@ export default function Dashboard() {
               <span className="text-xs text-muted-foreground">{currentMonthActions.length} ações</span>
               <span className="text-xs text-muted-foreground">·</span>
               <span className="text-xs text-muted-foreground">
-                {currentMonthActions.reduce((sum, a) => sum + (a.effectivePoints || 0), 0)} pts
+                {currentMonthActions.reduce((sum, a) => sum + (a.basePoints || 0) + (a.bonusPoints || 0), 0)} pts
               </span>
             </div>
           </CollapsibleTrigger>
