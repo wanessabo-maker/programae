@@ -393,7 +393,7 @@ export default function Dashboard() {
           professionalName: professional?.name || '-',
           actionTypeName: actionType?.name || '-',
           bonusPoints,
-          effectivePoints,
+          basePoints: effectiveBasePoints,
         };
       });
   }, [actions, creditTransactions, teamMembers, professionals, actionTypes, actionsFilter, selectedActionsDate, isAdmin, actionsMonthOffset, currentTeamMember]);
