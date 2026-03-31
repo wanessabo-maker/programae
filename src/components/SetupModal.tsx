@@ -155,10 +155,24 @@ const MetasTab = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
     value: '',
+    areaId: '',
+    teamMemberId: '',
+    type: 'acoes' as 'acoes' | 'vendas' | 'captacao' | 'projeto' | 'categoria',
+    categoryId: '',
     validityType: 'mensal' as 'mensal' | 'trimestral' | 'semestral' | 'anual' | 'personalizada',
     startDate: '',
     endDate: ''
   });
+
+  // Filter active team members by edit form area
+  const editFilteredTeamMembers = useMemo(() => {
+    if (!editForm.areaId) return [];
+    return teamMembers.filter(m => {
+      if (!m.active) return false;
+      const memberAreaIds = getMemberAreaIds(m.id);
+      return memberAreaIds.includes(editForm.areaId);
+    });
+  }, [editForm.areaId, teamMembers, getMemberAreaIds]);
 
   // Filter active team members by selected area using position-based logic
   const filteredTeamMembers = useMemo(() => {
