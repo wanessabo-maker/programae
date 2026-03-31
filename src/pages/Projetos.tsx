@@ -224,9 +224,17 @@ export default function Projetos() {
                           </div>
                           <span className="font-medium text-sm">{item.projetistaName}</span>
                         </div>
-                        <Badge variant="secondary" className="text-base font-bold">
-                          {item.count} <span className="text-xs font-normal ml-1">amb.</span>
-                        </Badge>
+                        <div className="flex flex-col items-end">
+                          <Badge variant="secondary" className="text-base font-bold">
+                            {item.count} <span className="text-xs font-normal ml-1">amb.</span>
+                          </Badge>
+                          {(item.regular > 0 || item.reforma > 0) && (
+                            <div className="flex gap-2 mt-1 text-[10px] text-muted-foreground">
+                              {item.regular > 0 && <span>{item.regular} projeto</span>}
+                              {item.reforma > 0 && <span className="text-orange-500">{item.reforma} reforma</span>}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
