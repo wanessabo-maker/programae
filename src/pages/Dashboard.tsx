@@ -474,7 +474,11 @@ export default function Dashboard() {
                 {isAdmin ? 'Ações' : 'Ações do Mês'}
               </span>
             </div>
-            <span className="text-xs text-muted-foreground">{currentMonthActions.length} ações</span>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-muted-foreground">{currentMonthActions.length} ações</span>
+              <span className="text-xs text-muted-foreground">·</span>
+              <span className="text-xs text-muted-foreground">{currentMonthActions.reduce((sum, a) => sum + (a.pointsGenerated || 0), 0)} pts</span>
+            </div>
           </CollapsibleTrigger>
           
           <CollapsibleContent>
