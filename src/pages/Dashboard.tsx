@@ -34,6 +34,7 @@ export default function Dashboard() {
   const { isAdmin } = useAuthContext();
   const { 
     actions, 
+    creditTransactions,
     metas, 
     areas, 
     teamMembers, 
@@ -365,21 +366,33 @@ export default function Dashboard() {
         const consultant = teamMembers.find(m => m.id === action.consultantId);
         const professional = professionals.find(p => p.id === action.professionalId);
         const actionType = actionTypes.find(t => t.id === action.actionTypeId);
-        const _basePoints = actionType?.programPoints || 0;
+
         const hasProfessionalBonus = action.professionalId && 
           actionType?.bonusPointsWithProfessional && 
           actionType.bonusPointsWithProfessional > 0 &&
           ['relacionamento', 'venda'].includes(actionType?.classification || '');
         const bonusPoints = hasProfessionalBonus ? actionType.bonusPointsWithProfessional : 0;
+
+        const actionCredits = creditTransactions.filter(
+          ct => ct.actionId === action.id && ct.consultantId === action.consultantId
+        );
+        const creditedPoints = actionCredits.reduce(
+          (sum, ct) => sum + (ct.type === 'ganho' ? ct.amount : -ct.amount),
+          0
+        );
+        const fallbackPoints = (action.pointsGenerated || 0) + (bonusPoints || 0);
+        const effectivePoints = actionCredits.length > 0 ? creditedPoints : fallbackPoints;
+
         return {
           ...action,
           consultantName: consultant?.name || '-',
           professionalName: professional?.name || '-',
           actionTypeName: actionType?.name || '-',
           bonusPoints,
+          effectivePoints,
         };
       });
-  }, [actions, teamMembers, professionals, actionTypes, actionsFilter, selectedActionsDate, isAdmin, actionsMonthOffset, currentTeamMember]);
+  }, [actions, creditTransactions, teamMembers, professionals, actionTypes, actionsFilter, selectedActionsDate, isAdmin, actionsMonthOffset, currentTeamMember]);
 
   // Team members available for filter (respecting permissions)
   const availableTeamMembersForFilter = useMemo(() => {
@@ -478,7 +491,7 @@ export default function Dashboard() {
               <span className="text-xs text-muted-foreground">{currentMonthActions.length} ações</span>
               <span className="text-xs text-muted-foreground">·</span>
               <span className="text-xs text-muted-foreground">
-                {currentMonthActions.reduce((sum, a) => sum + (a.pointsGenerated || 0) + (a.bonusPoints || 0), 0)} pts
+                {currentMonthActions.reduce((sum, a) => sum + (a.effectivePoints || 0), 0)} pts
               </span>
             </div>
           </CollapsibleTrigger>
@@ -558,7 +571,7 @@ export default function Dashboard() {
                           <td className="p-3 text-sm">{action.professionalName}</td>
                           <td className="p-3 text-sm">{action.actionTypeName}</td>
                           <td className="p-3 text-sm">{action.value ? formatCurrency(action.value) : '-'}</td>
-                          <td className="p-3 text-sm">{(action.pointsGenerated || 0) + (action.bonusPoints || 0)}</td>
+                          <td className="p-3 text-sm">{action.effectivePoints}</td>
                           {currentMonthActions.some(a => a.bonusPoints > 0) && (
                             <td className="p-3 text-sm">
                               {action.bonusPoints > 0 ? (
@@ -625,7 +638,7 @@ export default function Dashboard() {
                         <span className="text-muted-foreground">{action.actionTypeName}</span>
                         <div className="flex gap-3">
                           {action.value && <span>{formatCurrency(action.value)}</span>}
-                          <span className="text-muted-foreground">{(action.pointsGenerated || 0) + (action.bonusPoints || 0)} pts</span>
+                          <span className="text-muted-foreground">{action.effectivePoints} pts</span>
                           {action.bonusPoints > 0 && (
                             <span className="text-success font-medium">+{action.bonusPoints} bônus</span>
                           )}
