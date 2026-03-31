@@ -538,6 +538,9 @@ export default function Dashboard() {
                         <th className="table-header text-left p-3">Tipo</th>
                         <th className="table-header text-left p-3">Valor</th>
                         <th className="table-header text-left p-3">Pts</th>
+                        {currentMonthActions.some(a => a.bonusPoints > 0) && (
+                          <th className="table-header text-left p-3">Bônus</th>
+                        )}
                         <th className="table-header text-right p-3"></th>
                       </tr>
                     </thead>
@@ -550,6 +553,13 @@ export default function Dashboard() {
                           <td className="p-3 text-sm">{action.actionTypeName}</td>
                           <td className="p-3 text-sm">{action.value ? formatCurrency(action.value) : '-'}</td>
                           <td className="p-3 text-sm">{action.pointsGenerated}</td>
+                          {currentMonthActions.some(a => a.bonusPoints > 0) && (
+                            <td className="p-3 text-sm">
+                              {action.bonusPoints > 0 ? (
+                                <span className="text-success font-medium">+{action.bonusPoints}</span>
+                              ) : '-'}
+                            </td>
+                          )}
                           <td className="p-3 text-right">
                             <div className="flex items-center justify-end gap-1">
                               {canEditAction(action) && (
