@@ -250,6 +250,10 @@ const MetasTab = () => {
   const handleEdit = (meta: typeof metas[0]) => {
     setEditForm({
       value: String(meta.value),
+      areaId: meta.areaId,
+      teamMemberId: meta.teamMemberId || '',
+      type: meta.type === 'especificador' ? 'acoes' : meta.type as typeof editForm.type,
+      categoryId: meta.categoryId || '',
       validityType: meta.validityType,
       startDate: meta.startDate || '',
       endDate: meta.endDate || ''
@@ -259,6 +263,10 @@ const MetasTab = () => {
   const handleSaveEdit = (meta: typeof metas[0]) => {
     const dates = calculateDates(editForm.validityType, editForm.startDate);
     updateMeta(meta.id, {
+      areaId: editForm.areaId,
+      teamMemberId: editForm.teamMemberId || undefined,
+      type: editForm.type,
+      categoryId: editForm.type === 'categoria' ? editForm.categoryId : undefined,
       value: Number(editForm.value),
       validityType: editForm.validityType,
       startDate: editForm.validityType === 'personalizada' ? editForm.startDate : dates.start,
