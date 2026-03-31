@@ -316,6 +316,8 @@ export function useProjetistaRanking(year: number, month: number) {
           projetistaId: id,
           projetistaName: memberMap.get(id) || 'Desconhecido',
           count: t.apresentacao,
+          regular: t.regularApresentacao,
+          reforma: t.reformaApresentacao,
         }))
         .sort((a, b) => b.count - a.count);
 
