@@ -457,9 +457,46 @@ const MetasTab = () => {
       {/* Expired metas */}
       {expiredMetas.length > 0 && <div className="space-y-2">
           <p className="text-xs uppercase tracking-widest text-muted-foreground">Metas Expiradas ({expiredMetas.length})</p>
-          {expiredMetas.map(meta => <div key={meta.id} className="flex items-center justify-between p-3 border border-black/30 bg-muted/30 opacity-60">
+          {expiredMetas.map(meta => <div key={meta.id} className={`flex items-center justify-between p-3 border border-black/30 bg-muted/30 ${editingId === meta.id ? 'opacity-100' : 'opacity-60'}`}>
+            {editingId === meta.id ? <div className="flex flex-wrap items-center gap-2 flex-1">
+                <select value={editForm.areaId} onChange={e => {
+                  setEditForm({ ...editForm, areaId: e.target.value, teamMemberId: '' });
+                }} className="input-flat text-card-foreground text-xs">
+                  <option value="">Área</option>
+                  {areas.map(area => <option key={area.id} value={area.id}>{area.name}</option>)}
+                </select>
+                <select value={editForm.teamMemberId} onChange={e => setEditForm({ ...editForm, teamMemberId: e.target.value })} className="input-flat text-card-foreground text-xs" disabled={!editForm.areaId}>
+                  <option value="">Colaborador</option>
+                  {editFilteredTeamMembers.map(member => <option key={member.id} value={member.id}>{member.name}</option>)}
+                </select>
+                <select value={editForm.type} onChange={e => setEditForm({ ...editForm, type: e.target.value as typeof editForm.type })} className="input-flat text-card-foreground text-xs">
+                  {Object.entries(typeLabels).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                </select>
+                {editForm.type === 'categoria' && <select value={editForm.categoryId} onChange={e => setEditForm({ ...editForm, categoryId: e.target.value })} className="input-flat text-card-foreground text-xs">
+                    <option value="">Categoria</option>
+                    {professionalCategories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                  </select>}
+                <div className="relative">
+                  {editForm.type === 'vendas' && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>}
+                  <input type="number" value={editForm.value} onChange={e => setEditForm({ ...editForm, value: e.target.value })} className={`input-flat w-32 text-card-foreground ${editForm.type === 'vendas' ? 'pl-10' : ''}`} />
+                </div>
+                <select value={editForm.validityType} onChange={e => setEditForm({ ...editForm, validityType: e.target.value as typeof editForm.validityType })} className="input-flat text-card-foreground text-xs">
+                  {Object.entries(validityLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+                {editForm.validityType === 'personalizada' && <>
+                    <input type="date" value={editForm.startDate} onChange={e => setEditForm({ ...editForm, startDate: e.target.value })} className="input-flat text-card-foreground text-xs" />
+                    <input type="date" value={editForm.endDate} onChange={e => setEditForm({ ...editForm, endDate: e.target.value })} className="input-flat text-card-foreground text-xs" />
+                  </>}
+                <button onClick={() => handleSaveEdit(meta)} className="p-2">
+                  <Check className="w-4 h-4" />
+                </button>
+                <button onClick={() => setEditingId(null)} className="p-2">
+                  <X className="w-4 h-4" />
+                </button>
+              </div> : <>
               <div className="flex items-center gap-4 flex-wrap">
-                <span className="text-sm">{areas.find(a => a.id === meta.areaId)?.name}</span>
+                <span className="text-sm">{teamMembers.find(m => m.id === meta.teamMemberId)?.name || areas.find(a => a.id === meta.areaId)?.name}</span>
+                {meta.teamMemberId && <span className="text-xs text-muted-foreground">({areas.find(a => a.id === meta.areaId)?.name})</span>}
                 <span className="text-xs text-muted-foreground uppercase">{getMetaLabel(meta)}</span>
                 <span className="text-sm">
                   {meta.type === 'vendas' ? `R$ ${meta.value.toLocaleString('pt-BR')}` : meta.type === 'categoria' ? `${meta.value}%` : `${meta.value} un.`}
@@ -470,6 +507,9 @@ const MetasTab = () => {
                 </span>
               </div>
               <div className="flex gap-1">
+                <button onClick={() => handleEdit(meta)} className="p-2 opacity-60 hover:opacity-100">
+                  <Pencil className="w-4 h-4" />
+                </button>
                 <button onClick={() => {
             const dates = calculateDates(meta.validityType);
             addMeta({
@@ -489,7 +529,8 @@ const MetasTab = () => {
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
-            </div>)}
+            </>}
+          </div>)}
         </div>}
     </div>;
 };
