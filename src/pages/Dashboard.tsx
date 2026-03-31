@@ -380,8 +380,12 @@ export default function Dashboard() {
           (sum, ct) => sum + (ct.type === 'ganho' ? ct.amount : -ct.amount),
           0
         );
-        const fallbackPoints = (action.pointsGenerated || 0) + (bonusPoints || 0);
-        const effectivePoints = actionCredits.length > 0 ? creditedPoints : fallbackPoints;
+        // Base points (without bonus)
+        const basePoints = action.pointsGenerated || 0;
+        // If we have credit transactions, derive base from credited minus bonus
+        const effectiveBasePoints = actionCredits.length > 0 
+          ? creditedPoints - (bonusPoints || 0)
+          : basePoints;
 
         return {
           ...action,
