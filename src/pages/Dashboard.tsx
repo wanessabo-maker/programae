@@ -34,6 +34,7 @@ export default function Dashboard() {
   const { isAdmin } = useAuthContext();
   const { 
     actions, 
+    creditTransactions,
     metas, 
     areas, 
     teamMembers, 
