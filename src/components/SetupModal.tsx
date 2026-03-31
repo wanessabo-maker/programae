@@ -155,10 +155,24 @@ const MetasTab = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
     value: '',
+    areaId: '',
+    teamMemberId: '',
+    type: 'acoes' as 'acoes' | 'vendas' | 'captacao' | 'projeto' | 'categoria',
+    categoryId: '',
     validityType: 'mensal' as 'mensal' | 'trimestral' | 'semestral' | 'anual' | 'personalizada',
     startDate: '',
     endDate: ''
   });
+
+  // Filter active team members by edit form area
+  const editFilteredTeamMembers = useMemo(() => {
+    if (!editForm.areaId) return [];
+    return teamMembers.filter(m => {
+      if (!m.active) return false;
+      const memberAreaIds = getMemberAreaIds(m.id);
+      return memberAreaIds.includes(editForm.areaId);
+    });
+  }, [editForm.areaId, teamMembers, getMemberAreaIds]);
 
   // Filter active team members by selected area using position-based logic
   const filteredTeamMembers = useMemo(() => {
@@ -236,6 +250,10 @@ const MetasTab = () => {
   const handleEdit = (meta: typeof metas[0]) => {
     setEditForm({
       value: String(meta.value),
+      areaId: meta.areaId,
+      teamMemberId: meta.teamMemberId || '',
+      type: meta.type === 'especificador' ? 'acoes' : meta.type as typeof editForm.type,
+      categoryId: meta.categoryId || '',
       validityType: meta.validityType,
       startDate: meta.startDate || '',
       endDate: meta.endDate || ''
@@ -245,6 +263,10 @@ const MetasTab = () => {
   const handleSaveEdit = (meta: typeof metas[0]) => {
     const dates = calculateDates(editForm.validityType, editForm.startDate);
     updateMeta(meta.id, {
+      areaId: editForm.areaId,
+      teamMemberId: editForm.teamMemberId || undefined,
+      type: editForm.type,
+      categoryId: editForm.type === 'categoria' ? editForm.categoryId : undefined,
       value: Number(editForm.value),
       validityType: editForm.validityType,
       startDate: editForm.validityType === 'personalizada' ? editForm.startDate : dates.start,
@@ -361,14 +383,29 @@ const MetasTab = () => {
         <p className="text-xs uppercase tracking-widest text-muted-foreground">Metas Ativas ({activeMetas.length})</p>
         {activeMetas.map(meta => <div key={meta.id} className="flex items-center justify-between p-3 border border-black bg-card">
             {editingId === meta.id ? <div className="flex flex-wrap items-center gap-2 flex-1">
-                <span className="text-sm">{areas.find(a => a.id === meta.areaId)?.name}</span>
-                <span className="text-xs text-muted-foreground uppercase">{getMetaLabel(meta)}</span>
+                <select value={editForm.areaId} onChange={e => {
+                  setEditForm({ ...editForm, areaId: e.target.value, teamMemberId: '' });
+                }} className="input-flat text-card-foreground text-xs">
+                  <option value="">Área</option>
+                  {areas.map(area => <option key={area.id} value={area.id}>{area.name}</option>)}
+                </select>
+                <select value={editForm.teamMemberId} onChange={e => setEditForm({ ...editForm, teamMemberId: e.target.value })} className="input-flat text-card-foreground text-xs" disabled={!editForm.areaId}>
+                  <option value="">Colaborador</option>
+                  {editFilteredTeamMembers.map(member => <option key={member.id} value={member.id}>{member.name}</option>)}
+                </select>
+                <select value={editForm.type} onChange={e => setEditForm({ ...editForm, type: e.target.value as typeof editForm.type })} className="input-flat text-card-foreground text-xs">
+                  {Object.entries(typeLabels).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                </select>
+                {editForm.type === 'categoria' && <select value={editForm.categoryId} onChange={e => setEditForm({ ...editForm, categoryId: e.target.value })} className="input-flat text-card-foreground text-xs">
+                    <option value="">Categoria</option>
+                    {professionalCategories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                  </select>}
                 <div className="relative">
-                  {meta.type === 'vendas' && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>}
+                  {editForm.type === 'vendas' && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">R$</span>}
                   <input type="number" value={editForm.value} onChange={e => setEditForm({
               ...editForm,
               value: e.target.value
-            })} className={`input-flat w-32 text-card-foreground ${meta.type === 'vendas' ? 'pl-10' : ''}`} />
+            })} className={`input-flat w-32 text-card-foreground ${editForm.type === 'vendas' ? 'pl-10' : ''}`} />
                 </div>
                 <select value={editForm.validityType} onChange={e => setEditForm({
             ...editForm,
