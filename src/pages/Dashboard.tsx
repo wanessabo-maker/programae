@@ -365,11 +365,18 @@ export default function Dashboard() {
         const consultant = teamMembers.find(m => m.id === action.consultantId);
         const professional = professionals.find(p => p.id === action.professionalId);
         const actionType = actionTypes.find(t => t.id === action.actionTypeId);
+        const basePoints = actionType?.programPoints || 0;
+        const hasProfessionalBonus = action.professionalId && 
+          actionType?.bonusPointsWithProfessional && 
+          actionType.bonusPointsWithProfessional > 0 &&
+          ['relacionamento', 'venda'].includes(actionType?.classification || '');
+        const bonusPoints = hasProfessionalBonus ? actionType.bonusPointsWithProfessional : 0;
         return {
           ...action,
           consultantName: consultant?.name || '-',
           professionalName: professional?.name || '-',
           actionTypeName: actionType?.name || '-',
+          bonusPoints,
         };
       });
   }, [actions, teamMembers, professionals, actionTypes, actionsFilter, selectedActionsDate, isAdmin, actionsMonthOffset, currentTeamMember]);
