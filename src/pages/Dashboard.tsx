@@ -366,21 +366,33 @@ export default function Dashboard() {
         const consultant = teamMembers.find(m => m.id === action.consultantId);
         const professional = professionals.find(p => p.id === action.professionalId);
         const actionType = actionTypes.find(t => t.id === action.actionTypeId);
-        const _basePoints = actionType?.programPoints || 0;
+
         const hasProfessionalBonus = action.professionalId && 
           actionType?.bonusPointsWithProfessional && 
           actionType.bonusPointsWithProfessional > 0 &&
           ['relacionamento', 'venda'].includes(actionType?.classification || '');
         const bonusPoints = hasProfessionalBonus ? actionType.bonusPointsWithProfessional : 0;
+
+        const actionCredits = creditTransactions.filter(
+          ct => ct.actionId === action.id && ct.consultantId === action.consultantId
+        );
+        const creditedPoints = actionCredits.reduce(
+          (sum, ct) => sum + (ct.type === 'ganho' ? ct.amount : -ct.amount),
+          0
+        );
+        const fallbackPoints = (action.pointsGenerated || 0) + (bonusPoints || 0);
+        const effectivePoints = actionCredits.length > 0 ? creditedPoints : fallbackPoints;
+
         return {
           ...action,
           consultantName: consultant?.name || '-',
           professionalName: professional?.name || '-',
           actionTypeName: actionType?.name || '-',
           bonusPoints,
+          effectivePoints,
         };
       });
-  }, [actions, teamMembers, professionals, actionTypes, actionsFilter, selectedActionsDate, isAdmin, actionsMonthOffset, currentTeamMember]);
+  }, [actions, creditTransactions, teamMembers, professionals, actionTypes, actionsFilter, selectedActionsDate, isAdmin, actionsMonthOffset, currentTeamMember]);
 
   // Team members available for filter (respecting permissions)
   const availableTeamMembersForFilter = useMemo(() => {
