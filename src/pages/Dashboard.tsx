@@ -558,7 +558,7 @@ export default function Dashboard() {
                           <td className="p-3 text-sm">{action.professionalName}</td>
                           <td className="p-3 text-sm">{action.actionTypeName}</td>
                           <td className="p-3 text-sm">{action.value ? formatCurrency(action.value) : '-'}</td>
-                          <td className="p-3 text-sm">{action.pointsGenerated}</td>
+                          <td className="p-3 text-sm">{(action.pointsGenerated || 0) + (action.bonusPoints || 0)}</td>
                           {currentMonthActions.some(a => a.bonusPoints > 0) && (
                             <td className="p-3 text-sm">
                               {action.bonusPoints > 0 ? (
