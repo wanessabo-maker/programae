@@ -380,8 +380,12 @@ export default function Dashboard() {
           (sum, ct) => sum + (ct.type === 'ganho' ? ct.amount : -ct.amount),
           0
         );
-        const fallbackPoints = (action.pointsGenerated || 0) + (bonusPoints || 0);
-        const effectivePoints = actionCredits.length > 0 ? creditedPoints : fallbackPoints;
+        // Base points (without bonus)
+        const basePoints = action.pointsGenerated || 0;
+        // If we have credit transactions, derive base from credited minus bonus
+        const effectiveBasePoints = actionCredits.length > 0 
+          ? creditedPoints - (bonusPoints || 0)
+          : basePoints;
 
         return {
           ...action,
@@ -389,7 +393,7 @@ export default function Dashboard() {
           professionalName: professional?.name || '-',
           actionTypeName: actionType?.name || '-',
           bonusPoints,
-          effectivePoints,
+          basePoints: effectiveBasePoints,
         };
       });
   }, [actions, creditTransactions, teamMembers, professionals, actionTypes, actionsFilter, selectedActionsDate, isAdmin, actionsMonthOffset, currentTeamMember]);
@@ -491,7 +495,7 @@ export default function Dashboard() {
               <span className="text-xs text-muted-foreground">{currentMonthActions.length} ações</span>
               <span className="text-xs text-muted-foreground">·</span>
               <span className="text-xs text-muted-foreground">
-                {currentMonthActions.reduce((sum, a) => sum + (a.effectivePoints || 0), 0)} pts
+                {currentMonthActions.reduce((sum, a) => sum + (a.basePoints || 0) + (a.bonusPoints || 0), 0)} pts
               </span>
             </div>
           </CollapsibleTrigger>
@@ -571,7 +575,7 @@ export default function Dashboard() {
                           <td className="p-3 text-sm">{action.professionalName}</td>
                           <td className="p-3 text-sm">{action.actionTypeName}</td>
                           <td className="p-3 text-sm">{action.value ? formatCurrency(action.value) : '-'}</td>
-                          <td className="p-3 text-sm">{action.effectivePoints}</td>
+                          <td className="p-3 text-sm">{action.basePoints}</td>
                           {currentMonthActions.some(a => a.bonusPoints > 0) && (
                             <td className="p-3 text-sm">
                               {action.bonusPoints > 0 ? (
@@ -638,7 +642,7 @@ export default function Dashboard() {
                         <span className="text-muted-foreground">{action.actionTypeName}</span>
                         <div className="flex gap-3">
                           {action.value && <span>{formatCurrency(action.value)}</span>}
-                          <span className="text-muted-foreground">{action.effectivePoints} pts</span>
+                          <span className="text-muted-foreground">{action.basePoints} pts</span>
                           {action.bonusPoints > 0 && (
                             <span className="text-success font-medium">+{action.bonusPoints} bônus</span>
                           )}
