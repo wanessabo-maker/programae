@@ -660,18 +660,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return undefined;
     }
 
-    const date = new Date(transactionDate);
+    // Parse date parts directly to avoid timezone issues
+    const [yearStr, monthStr, dayStr] = transactionDate.split('-');
+    const year = parseInt(yearStr, 10);
+    const month = parseInt(monthStr, 10); // 1-12
+    const day = parseInt(dayStr, 10);
     
     switch (validityType) {
-      case 'mensal':
-        return new Date(date.getFullYear(), date.getMonth() + 1, 0).toISOString().split('T')[0];
+      case 'mensal': {
+        // Last day of the same month as the action
+        const lastDay = new Date(year, month, 0).getDate(); // month is 1-indexed here, Date(year, month, 0) gives last day of month
+        return `${yearStr}-${monthStr.padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+      }
       case 'anual':
-        return new Date(date.getFullYear(), 11, 31).toISOString().split('T')[0];
+        return `${yearStr}-12-31`;
       case 'dias':
-      case 'personalizado':
+      case 'personalizado': {
         const days = validityDays || 30;
-        date.setDate(date.getDate() + days);
-        return date.toISOString().split('T')[0];
+        const futureDate = new Date(year, month - 1, day + days);
+        const fy = futureDate.getFullYear();
+        const fm = String(futureDate.getMonth() + 1).padStart(2, '0');
+        const fd = String(futureDate.getDate()).padStart(2, '0');
+        return `${fy}-${fm}-${fd}`;
+      }
       default:
         return undefined;
     }
