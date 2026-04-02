@@ -1599,15 +1599,18 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
 
           {/* Assigned Professionals for Checklist - For Venda and Apresentação de Projeto */}
           {(isVenda || isApresentacaoProjeto) && (
-            <div className={`border rounded-md p-3 space-y-3 bg-muted/30 ${errors.assignedProjetistaId || errors.assignedLogisticaId ? 'border-red-500' : 'border-border'}`}>
+            <div className={`border rounded-md p-3 space-y-3 bg-muted/30 ${errors.assignedProjetistaId || errors.assignedLogisticaId || errors.assignedApresentacaoProjetistaId ? 'border-red-500' : 'border-border'}`}>
               <label className="text-xs tracking-widest uppercase text-muted-foreground block">
-                Atribuir Responsáveis do Checklist <span className="text-red-500">*</span>
+                {isVenda ? 'Atribuir Responsáveis do Checklist' : 'Projetista de Apresentação'} <span className="text-red-500">*</span>
               </label>
-              <p className="text-xs text-muted-foreground mb-2">
-                Selecione os profissionais responsáveis pelas etapas técnicas e de logística deste contrato.
-              </p>
+              {isVenda && (
+                <p className="text-xs text-muted-foreground mb-2">
+                  Selecione os profissionais responsáveis pelas etapas técnicas e de logística deste contrato.
+                </p>
+              )}
               
-              {/* Projetista Técnico */}
+              {/* Projetista Técnico - Only for Venda */}
+              {isVenda && (
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">
                   Projetista Técnico <span className="text-red-500">*</span>
@@ -1629,8 +1632,10 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   </p>
                 )}
               </div>
+              )}
 
-              {/* Analista de Logística */}
+              {/* Analista de Logística - Only for Venda */}
+              {isVenda && (
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">
                   Analista de Logística <span className="text-red-500">*</span>
@@ -1652,6 +1657,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   </p>
                 )}
               </div>
+              )}
 
               {/* Projetista de Apresentação */}
               <div>
