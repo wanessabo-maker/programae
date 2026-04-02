@@ -1321,6 +1321,7 @@ export type Database = {
       projects: {
         Row: {
           actual_delivery: string | null
+          apresentacao_projetista_id: string | null
           client_id: string | null
           closed_date: string | null
           closed_value: number | null
@@ -1343,6 +1344,7 @@ export type Database = {
         }
         Insert: {
           actual_delivery?: string | null
+          apresentacao_projetista_id?: string | null
           client_id?: string | null
           closed_date?: string | null
           closed_value?: number | null
@@ -1365,6 +1367,7 @@ export type Database = {
         }
         Update: {
           actual_delivery?: string | null
+          apresentacao_projetista_id?: string | null
           client_id?: string | null
           closed_date?: string | null
           closed_value?: number | null
@@ -1386,6 +1389,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "projects_apresentacao_projetista_id_fkey"
+            columns: ["apresentacao_projetista_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "projects_client_id_fkey"
             columns: ["client_id"]
