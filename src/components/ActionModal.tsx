@@ -714,18 +714,16 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           if (existingProject) {
             projectId = existingProject.id;
             
+            // Always update the projetista de apresentação on the project
+            const updateData: any = {
+              apresentacao_projetista_id: form.assignedApresentacaoProjetistaId || null,
+            };
+            
             // Update existing project with new presented value (always use latest)
             if (form.presentedValue) {
               const presentedValueNum = safeNumber(form.presentedValue, { min: 0 });
-              
               if (presentedValueNum !== null) {
-                await supabase
-                  .from('projects')
-                  .update({ 
-                    estimated_value: presentedValueNum,
-                    apresentacao_projetista_id: form.assignedApresentacaoProjetistaId || null,
-                  } as any)
-                  .eq('id', existingProject.id);
+                updateData.estimated_value = presentedValueNum;
                 
                 // Save to value history
                 await supabase
@@ -737,6 +735,11 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   });
               }
             }
+            
+            await supabase
+              .from('projects')
+              .update(updateData)
+              .eq('id', existingProject.id);
             
             // Update existing client with any new data (progressive filling)
             if (existingProject.client_id) {
