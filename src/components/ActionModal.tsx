@@ -790,8 +790,9 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 stage: 'em_negociacao',
                 start_date: form.date,
                 estimated_value: safeNumber(form.presentedValue, { min: 0 }),
-                origin_type: 'standard', // Normal flow - Apresentação creates project
-              })
+                origin_type: 'standard',
+                apresentacao_projetista_id: form.assignedApresentacaoProjetistaId || null,
+              } as any)
               .select('id')
               .single();
             
