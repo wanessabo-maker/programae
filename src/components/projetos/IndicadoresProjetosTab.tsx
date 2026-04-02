@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useProjectIndicators } from '@/hooks/useProjectIndicators';
+import { useApresentacaoConversion } from '@/hooks/useApresentacaoConversion';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useCurrentTeamMember } from '@/hooks/useCurrentTeamMember';
 import { format } from 'date-fns';
@@ -19,12 +20,19 @@ export default function IndicadoresProjetosTab() {
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
 
   const { indicators, isLoading } = useProjectIndicators(selectedYear, selectedMonth);
+  const { conversionData, isLoading: conversionLoading } = useApresentacaoConversion(selectedYear, selectedMonth);
 
   const visibleIndicators = useMemo(() => {
     if (isAdmin) return indicators;
     if (!currentTeamMember) return [];
     return indicators.filter(i => i.memberId === currentTeamMember.id);
   }, [indicators, isAdmin, currentTeamMember]);
+
+  const visibleConversion = useMemo(() => {
+    if (isAdmin) return conversionData;
+    if (!currentTeamMember) return [];
+    return conversionData.filter(d => d.projetistaId === currentTeamMember.id);
+  }, [conversionData, isAdmin, currentTeamMember]);
 
   const monthLabel = format(new Date(selectedYear, selectedMonth - 1, 1), "MMMM 'de' yyyy", { locale: ptBR });
 
@@ -46,7 +54,7 @@ export default function IndicadoresProjetosTab() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading && conversionLoading) {
     return (
       <div className="space-y-6">
         <MonthSelector label={monthLabel} onPrev={goToPrevMonth} onNext={goToNextMonth} />
@@ -57,20 +65,84 @@ export default function IndicadoresProjetosTab() {
     );
   }
 
-  if (visibleIndicators.length === 0) {
-    return (
-      <div className="space-y-4">
-        <MonthSelector label={monthLabel} onPrev={goToPrevMonth} onNext={goToNextMonth} />
-        <p className="text-sm text-muted-foreground">
-          Nenhum colaborador da área de Projetos encontrado para este período.
-        </p>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-8">
       <MonthSelector label={monthLabel} onPrev={goToPrevMonth} onNext={goToNextMonth} />
+
+      {/* Comparativo Apresentados vs Vendidos por Projetista de Apresentação */}
+      {visibleConversion.length > 0 && (
+        <section className="space-y-4">
+          <h3 className="text-sm font-semibold tracking-widest uppercase border-b border-border pb-2">
+            Apresentados vs Vendidos por Projetista de Apresentação
+          </h3>
+          <div className="rounded-lg border border-border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-muted/50 text-xs tracking-wider uppercase text-muted-foreground">
+                  <th className="text-left p-3 font-medium">Projetista</th>
+                  <th className="text-center p-3 font-medium">Apresentados</th>
+                  <th className="text-center p-3 font-medium">Vendidos</th>
+                  <th className="text-center p-3 font-medium">Em Negociação</th>
+                  <th className="text-center p-3 font-medium">Perdidos</th>
+                  <th className="text-center p-3 font-medium">Taxa Conversão</th>
+                  <th className="text-right p-3 font-medium">Valor Estimado</th>
+                  <th className="text-right p-3 font-medium">Valor Vendido</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleConversion.map((d, idx) => (
+                  <tr key={d.projetistaId} className={idx % 2 === 0 ? 'bg-background' : 'bg-muted/20'}>
+                    <td className="p-3 font-medium">{d.projetistaName}</td>
+                    <td className="p-3 text-center">
+                      <Badge variant="secondary" className="text-xs">{d.apresentados}</Badge>
+                    </td>
+                    <td className="p-3 text-center">
+                      <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 text-xs">{d.vendidos}</Badge>
+                    </td>
+                    <td className="p-3 text-center">
+                      <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 text-xs">{d.emNegociacao}</Badge>
+                    </td>
+                    <td className="p-3 text-center">
+                      <Badge className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 text-xs">{d.perdidos}</Badge>
+                    </td>
+                    <td className="p-3 text-center">
+                      <span className={`font-bold ${d.taxaConversao >= 50 ? 'text-green-600 dark:text-green-400' : d.taxaConversao >= 25 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>
+                        {d.taxaConversao.toFixed(0)}%
+                      </span>
+                    </td>
+                    <td className="p-3 text-right text-muted-foreground">{formatCurrency(d.valorEstimado)}</td>
+                    <td className="p-3 text-right font-semibold">{formatCurrency(d.valorVendido)}</td>
+                  </tr>
+                ))}
+                {visibleConversion.length > 1 && (
+                  <tr className="bg-muted/40 font-semibold border-t border-border">
+                    <td className="p-3">Total</td>
+                    <td className="p-3 text-center">{visibleConversion.reduce((s, d) => s + d.apresentados, 0)}</td>
+                    <td className="p-3 text-center">{visibleConversion.reduce((s, d) => s + d.vendidos, 0)}</td>
+                    <td className="p-3 text-center">{visibleConversion.reduce((s, d) => s + d.emNegociacao, 0)}</td>
+                    <td className="p-3 text-center">{visibleConversion.reduce((s, d) => s + d.perdidos, 0)}</td>
+                    <td className="p-3 text-center">
+                      {(() => {
+                        const totalA = visibleConversion.reduce((s, d) => s + d.apresentados, 0);
+                        const totalV = visibleConversion.reduce((s, d) => s + d.vendidos, 0);
+                        return totalA > 0 ? `${((totalV / totalA) * 100).toFixed(0)}%` : '0%';
+                      })()}
+                    </td>
+                    <td className="p-3 text-right">{formatCurrency(visibleConversion.reduce((s, d) => s + d.valorEstimado, 0))}</td>
+                    <td className="p-3 text-right">{formatCurrency(visibleConversion.reduce((s, d) => s + d.valorVendido, 0))}</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {visibleIndicators.length === 0 && visibleConversion.length === 0 && (
+        <p className="text-sm text-muted-foreground">
+          Nenhum colaborador da área de Projetos encontrado para este período.
+        </p>
+      )}
 
       {visibleIndicators.map(ind => (
         <div key={ind.memberId} className="space-y-5">
