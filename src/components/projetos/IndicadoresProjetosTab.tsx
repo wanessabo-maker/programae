@@ -1,14 +1,16 @@
 import { useState, useMemo } from 'react';
 import { useProjectIndicators } from '@/hooks/useProjectIndicators';
+import { useApresentacaoConversion } from '@/hooks/useApresentacaoConversion';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useCurrentTeamMember } from '@/hooks/useCurrentTeamMember';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, PenTool, Ruler, Hammer, TrendingUp, CheckCircle2, XCircle, Clock, DollarSign } from 'lucide-react';
+import { ChevronLeft, ChevronRight, PenTool, Ruler, Hammer, TrendingUp, CheckCircle2, XCircle, Clock, DollarSign, BarChart3 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 
 export default function IndicadoresProjetosTab() {
   const { isAdmin } = useAuthContext();
