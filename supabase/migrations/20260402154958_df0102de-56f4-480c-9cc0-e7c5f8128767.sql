@@ -1,0 +1,1 @@
+ALTER TABLE public.projects ADD COLUMN apresentacao_projetista_id uuid REFERENCES public.team_members(id) ON DELETE SET NULL;

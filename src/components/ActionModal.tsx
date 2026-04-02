@@ -556,6 +556,12 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     if (isVenda) {
       if (!form.assignedProjetistaId) newErrors.assignedProjetistaId = true;
       if (!form.assignedLogisticaId) newErrors.assignedLogisticaId = true;
+      if (!form.assignedApresentacaoProjetistaId) newErrors.assignedApresentacaoProjetistaId = true;
+    }
+    
+    // For Apresentação de Projeto, Projetista de Apresentação is mandatory
+    if (isApresentacaoProjeto && !form.assignedApresentacaoProjetistaId) {
+      newErrors.assignedApresentacaoProjetistaId = true;
     }
     
     // Validate all enabled fields - skip for projetistas who only see FOCCO + environments
@@ -708,15 +714,16 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           if (existingProject) {
             projectId = existingProject.id;
             
+            // Always update the projetista de apresentação on the project
+            const updateData: any = {
+              apresentacao_projetista_id: form.assignedApresentacaoProjetistaId || null,
+            };
+            
             // Update existing project with new presented value (always use latest)
             if (form.presentedValue) {
               const presentedValueNum = safeNumber(form.presentedValue, { min: 0 });
-              
               if (presentedValueNum !== null) {
-                await supabase
-                  .from('projects')
-                  .update({ estimated_value: presentedValueNum })
-                  .eq('id', existingProject.id);
+                updateData.estimated_value = presentedValueNum;
                 
                 // Save to value history
                 await supabase
@@ -728,6 +735,11 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   });
               }
             }
+            
+            await supabase
+              .from('projects')
+              .update(updateData)
+              .eq('id', existingProject.id);
             
             // Update existing client with any new data (progressive filling)
             if (existingProject.client_id) {
@@ -784,8 +796,9 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 stage: 'em_negociacao',
                 start_date: form.date,
                 estimated_value: safeNumber(form.presentedValue, { min: 0 }),
-                origin_type: 'standard', // Normal flow - Apresentação creates project
-              })
+                origin_type: 'standard',
+                apresentacao_projetista_id: form.assignedApresentacaoProjetistaId || null,
+              } as any)
               .select('id')
               .single();
             
@@ -871,7 +884,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   closed_value: safeNumber(form.value, { min: 0 }),
                   estimated_value: safeNumber(form.value, { min: 0 }),
                   origin_type: 'venda_direta',
-                })
+                  apresentacao_projetista_id: form.assignedApresentacaoProjetistaId || null,
+                } as any)
                 .select('id')
                 .single();
 
@@ -932,7 +946,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   stage: 'closed_won',
                   closed_date: form.date,
                   closed_value: safeNumber(form.value, { min: 0 }) ?? existingProject.estimated_value,
-                })
+                  apresentacao_projetista_id: form.assignedApresentacaoProjetistaId || (existingProject as any).apresentacao_projetista_id || null,
+                } as any)
                 .eq('id', existingProject.id);
               
               if (updateError) {
@@ -1014,8 +1029,9 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   closed_date: form.date,
                   closed_value: safeNumber(form.value, { min: 0 }),
                   estimated_value: safeNumber(form.value, { min: 0 }),
-                  origin_type: 'venda_direta', // Exception: Sale without prior presentation
-                })
+                  origin_type: 'venda_direta',
+                  apresentacao_projetista_id: form.assignedApresentacaoProjetistaId || null,
+                } as any)
                 .select('id')
                 .single();
               
@@ -1081,8 +1097,9 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 closed_date: form.date,
                 closed_value: safeNumber(form.value, { min: 0 }),
                 estimated_value: safeNumber(form.value, { min: 0 }),
-                origin_type: 'venda_direta', // Exception: Direct sale without FOCCO
-              })
+                origin_type: 'venda_direta',
+                apresentacao_projetista_id: form.assignedApresentacaoProjetistaId || null,
+              } as any)
               .select('id')
               .single();
             
@@ -1591,17 +1608,20 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             </div>
           )}
 
-          {/* Assigned Professionals for Checklist - Only for Venda */}
-          {isVenda && (
-            <div className={`border rounded-md p-3 space-y-3 bg-muted/30 ${errors.assignedProjetistaId || errors.assignedLogisticaId ? 'border-red-500' : 'border-border'}`}>
+          {/* Assigned Professionals for Checklist - For Venda and Apresentação de Projeto */}
+          {(isVenda || isApresentacaoProjeto) && (
+            <div className={`border rounded-md p-3 space-y-3 bg-muted/30 ${errors.assignedProjetistaId || errors.assignedLogisticaId || errors.assignedApresentacaoProjetistaId ? 'border-red-500' : 'border-border'}`}>
               <label className="text-xs tracking-widest uppercase text-muted-foreground block">
-                Atribuir Responsáveis do Checklist <span className="text-red-500">*</span>
+                {isVenda ? 'Atribuir Responsáveis do Checklist' : 'Projetista de Apresentação'} <span className="text-red-500">*</span>
               </label>
-              <p className="text-xs text-muted-foreground mb-2">
-                Selecione os profissionais responsáveis pelas etapas técnicas e de logística deste contrato.
-              </p>
+              {isVenda && (
+                <p className="text-xs text-muted-foreground mb-2">
+                  Selecione os profissionais responsáveis pelas etapas técnicas e de logística deste contrato.
+                </p>
+              )}
               
-              {/* Projetista Técnico */}
+              {/* Projetista Técnico - Only for Venda */}
+              {isVenda && (
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">
                   Projetista Técnico <span className="text-red-500">*</span>
@@ -1623,8 +1643,10 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   </p>
                 )}
               </div>
+              )}
 
-              {/* Analista de Logística */}
+              {/* Analista de Logística - Only for Venda */}
+              {isVenda && (
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">
                   Analista de Logística <span className="text-red-500">*</span>
@@ -1646,19 +1668,20 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   </p>
                 )}
               </div>
+              )}
 
               {/* Projetista de Apresentação */}
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">
-                  Projetista de Apresentação
+                  Projetista de Apresentação <span className="text-red-500">*</span>
                 </label>
                 {apresentacaoProjetistaMembers.length > 0 ? (
                   <select
                     value={form.assignedApresentacaoProjetistaId}
                     onChange={(e) => handleFieldChange('assignedApresentacaoProjetistaId', e.target.value)}
-                    className="input-flat w-full text-card-foreground"
+                    className={`input-flat w-full text-card-foreground ${errors.assignedApresentacaoProjetistaId ? 'border-red-500' : ''}`}
                   >
-                    <option value="">Selecione um projetista (opcional)</option>
+                    <option value="">Selecione um projetista</option>
                     {apresentacaoProjetistaMembers.map((m) => (
                       <option key={m.id} value={m.id}>{m.name}</option>
                     ))}
