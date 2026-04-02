@@ -556,6 +556,12 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     if (isVenda) {
       if (!form.assignedProjetistaId) newErrors.assignedProjetistaId = true;
       if (!form.assignedLogisticaId) newErrors.assignedLogisticaId = true;
+      if (!form.assignedApresentacaoProjetistaId) newErrors.assignedApresentacaoProjetistaId = true;
+    }
+    
+    // For Apresentação de Projeto, Projetista de Apresentação is mandatory
+    if (isApresentacaoProjeto && !form.assignedApresentacaoProjetistaId) {
+      newErrors.assignedApresentacaoProjetistaId = true;
     }
     
     // Validate all enabled fields - skip for projetistas who only see FOCCO + environments
@@ -1591,8 +1597,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             </div>
           )}
 
-          {/* Assigned Professionals for Checklist - Only for Venda */}
-          {isVenda && (
+          {/* Assigned Professionals for Checklist - For Venda and Apresentação de Projeto */}
+          {(isVenda || isApresentacaoProjeto) && (
             <div className={`border rounded-md p-3 space-y-3 bg-muted/30 ${errors.assignedProjetistaId || errors.assignedLogisticaId ? 'border-red-500' : 'border-border'}`}>
               <label className="text-xs tracking-widest uppercase text-muted-foreground block">
                 Atribuir Responsáveis do Checklist <span className="text-red-500">*</span>
@@ -1650,15 +1656,15 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
               {/* Projetista de Apresentação */}
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">
-                  Projetista de Apresentação
+                  Projetista de Apresentação <span className="text-red-500">*</span>
                 </label>
                 {apresentacaoProjetistaMembers.length > 0 ? (
                   <select
                     value={form.assignedApresentacaoProjetistaId}
                     onChange={(e) => handleFieldChange('assignedApresentacaoProjetistaId', e.target.value)}
-                    className="input-flat w-full text-card-foreground"
+                    className={`input-flat w-full text-card-foreground ${errors.assignedApresentacaoProjetistaId ? 'border-red-500' : ''}`}
                   >
-                    <option value="">Selecione um projetista (opcional)</option>
+                    <option value="">Selecione um projetista</option>
                     {apresentacaoProjetistaMembers.map((m) => (
                       <option key={m.id} value={m.id}>{m.name}</option>
                     ))}
