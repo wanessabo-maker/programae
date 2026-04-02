@@ -20,7 +20,7 @@ export default function IndicadoresProjetosTab() {
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
 
-  const { indicators, isLoading } = useProjectIndicators(selectedYear, selectedMonth);
+  const { conversionData, isLoading: conversionLoading } = useApresentacaoConversion(selectedYear, selectedMonth);
 
   const visibleIndicators = useMemo(() => {
     if (isAdmin) return indicators;
