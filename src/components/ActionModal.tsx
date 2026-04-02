@@ -721,7 +721,10 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
               if (presentedValueNum !== null) {
                 await supabase
                   .from('projects')
-                  .update({ estimated_value: presentedValueNum })
+                  .update({ 
+                    estimated_value: presentedValueNum,
+                    apresentacao_projetista_id: form.assignedApresentacaoProjetistaId || null,
+                  } as any)
                   .eq('id', existingProject.id);
                 
                 // Save to value history
