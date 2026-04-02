@@ -945,7 +945,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   stage: 'closed_won',
                   closed_date: form.date,
                   closed_value: safeNumber(form.value, { min: 0 }) ?? existingProject.estimated_value,
-                  apresentacao_projetista_id: form.assignedApresentacaoProjetistaId || existingProject.apresentacao_projetista_id || null,
+                  apresentacao_projetista_id: form.assignedApresentacaoProjetistaId || (existingProject as any).apresentacao_projetista_id || null,
                 } as any)
                 .eq('id', existingProject.id);
               
