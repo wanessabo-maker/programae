@@ -440,8 +440,113 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
         }
       }
 
-      // If presented value changed for a presentation, update project estimated_value
-      if (form.presentedValue && selectedActionType?.enabledFields?.includes('presentedValue')) {
+      // ===== APRESENTAÇÃO DE PROJETO FLOW: Create/Update project + client + value history =====
+      if (isApresentacaoProjeto && form.foccoProjectNumber.trim()) {
+        const foccoNumber = form.foccoProjectNumber.trim();
+        const presentedValueNum = safeNumber(form.presentedValue, { min: 0 });
+
+        try {
+          const existingProject = await findProjectByFocco(foccoNumber);
+
+          if (existingProject) {
+            // Update existing project with latest presented value
+            const updateData: Record<string, unknown> = {};
+            if (presentedValueNum !== null) {
+              updateData.estimated_value = presentedValueNum;
+            }
+
+            if (Object.keys(updateData).length > 0) {
+              await supabase
+                .from('projects')
+                .update(updateData)
+                .eq('id', existingProject.id);
+            }
+
+            // Save to value history
+            if (presentedValueNum !== null) {
+              await supabase
+                .from('project_value_history')
+                .insert({
+                  project_id: existingProject.id,
+                  presented_value: presentedValueNum,
+                  consultant_id: form.consultantId,
+                  action_id: action.id,
+                });
+            }
+
+            // Link action to existing project if not yet linked
+            if (!action.projectId) {
+              await supabase
+                .from('actions')
+                .update({ project_id: existingProject.id })
+                .eq('id', action.id);
+            }
+
+            toast.info(`Ação vinculada ao projeto FOCCO ${foccoNumber}. Carteira flutuante atualizada.`);
+          } else {
+            // Create new client if name provided
+            let clientId: string | null = null;
+            if (form.clientName?.trim()) {
+              clientId = await createClientDirect({
+                name: form.clientName.trim(),
+                age: safeParseInt(form.clientAge, { min: 0, max: 150 }),
+                profession: form.clientProfession || null,
+                professional_id: form.professionalId || null,
+                responsible_id: form.consultantId,
+                created_by: form.consultantId,
+                status: 'apresentado',
+              });
+            }
+
+            // Create new project (em_negociacao = entra na carteira flutuante)
+            const { data: newProject, error: projectError } = await supabase
+              .from('projects')
+              .insert({
+                name: `Projeto FOCCO ${foccoNumber}`,
+                focco_project_number: foccoNumber,
+                professional_id: form.professionalId || null,
+                responsible_id: form.consultantId,
+                created_by: form.consultantId,
+                client_id: clientId,
+                stage: 'em_negociacao',
+                start_date: form.date,
+                estimated_value: presentedValueNum,
+                origin_type: 'standard',
+              })
+              .select('id')
+              .single();
+
+            if (!projectError && newProject) {
+              // Save initial value history
+              if (presentedValueNum !== null) {
+                await supabase
+                  .from('project_value_history')
+                  .insert({
+                    project_id: newProject.id,
+                    presented_value: presentedValueNum,
+                    consultant_id: form.consultantId,
+                    action_id: action.id,
+                  });
+              }
+
+              // Link action to new project
+              await supabase
+                .from('actions')
+                .update({ project_id: newProject.id })
+                .eq('id', action.id);
+
+              toast.success(`Projeto FOCCO ${foccoNumber} criado. Carteira flutuante atualizada!`);
+            } else if (projectError) {
+              console.error('Error creating project from edit:', projectError);
+              toast.error('Erro ao criar projeto da apresentação');
+            }
+          }
+        } catch (err) {
+          console.error('Error in apresentação flow:', err);
+          toast.error('Erro ao processar apresentação de projeto');
+        }
+      } else if (form.presentedValue && selectedActionType?.enabledFields?.includes('presentedValue')) {
+        // Fallback: legacy behavior for non-FOCCO presentations
         const presentedValueNum = safeNumber(form.presentedValue, { min: 0 });
         if (presentedValueNum !== null) {
           let projectId = action.projectId;
