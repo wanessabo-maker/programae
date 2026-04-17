@@ -8,8 +8,6 @@ import { useProfessionals, useTeamMembers } from '@/hooks/useDatabase';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { ProjectValueHistory } from '@/components/ProjectValueHistory';
-import { differenceInDays, parseISO } from 'date-fns';
 
 interface ProjectFormData {
   name: string;
