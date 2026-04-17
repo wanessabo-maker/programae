@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Search, Folder, Edit2, Trash2, XCircle } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useProjects, useUpdateProject, useDeleteProject, PROJECT_STAGES, Project } from '@/hooks/useProjects';
 import { useClients, useUpdateClient } from '@/hooks/useClients';
 import { useProfessionals, useTeamMembers } from '@/hooks/useDatabase';
@@ -22,6 +22,24 @@ interface ProjectFormData {
   responsible_id: string;
 }
 
+interface PresentationActionRow {
+  id: string;
+  project_id: string | null;
+  focco_project_number: string | null;
+  action_date: string;
+  value: number | null;
+  action_types: {
+    classification: string;
+    name: string;
+  } | null;
+}
+
+interface ValueHistoryRow {
+  project_id: string;
+  presented_value: number;
+  created_at: string;
+}
+
 const emptyForm: ProjectFormData = {
   name: '',
   description: '',
@@ -34,6 +52,24 @@ const emptyForm: ProjectFormData = {
   client_id: '',
   professional_id: '',
   responsible_id: '',
+};
+
+const normalizeText = (value: string | null | undefined) =>
+  (value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+
+const isProjectPresentationAction = (action: PresentationActionRow) => {
+  const classification = normalizeText(action.action_types?.classification);
+  const actionName = normalizeText(action.action_types?.name);
+
+  return classification === 'apresentacao' || (
+    actionName.includes('apresentacao') &&
+    actionName.includes('projeto') &&
+    !actionName.includes('reforma')
+  );
 };
 
 // Carteira Flutuante: somente Em Negociação (não vendidos nem perdidos)
@@ -58,22 +94,21 @@ export default function ProjetosTab() {
 
   const activeTeamMembers = teamMembers.filter(m => m.active);
 
-  // Fetch all "Apresentação de Projeto" actions (to identify carteira flutuante origin + latest date)
-  const { data: presentationActions = [] } = useQuery({
+  // Fetch all presentation-related actions; filtering is finalized in the client to also cover misclassified records
+  const { data: presentationActions = [] } = useQuery<PresentationActionRow[]>({
     queryKey: ['carteira-flutuante-presentations'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('actions')
-        .select('id, project_id, focco_project_number, action_date, value, action_types!inner(classification)')
-        .eq('action_types.classification', 'apresentacao')
+        .select('id, project_id, focco_project_number, action_date, value, action_types(classification, name)')
         .order('action_date', { ascending: false });
       if (error) throw error;
-      return data || [];
+      return (data || []).filter(isProjectPresentationAction) as PresentationActionRow[];
     },
   });
 
   // Fetch project value history (to retrieve latest presented value)
-  const { data: valueHistory = [] } = useQuery({
+  const { data: valueHistory = [] } = useQuery<ValueHistoryRow[]>({
     queryKey: ['carteira-flutuante-value-history'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -81,7 +116,7 @@ export default function ProjetosTab() {
         .select('project_id, presented_value, created_at')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data || [];
+      return (data || []) as ValueHistoryRow[];
     },
   });
 
@@ -90,12 +125,14 @@ export default function ProjetosTab() {
     const map: Record<string, { lastPresentationDate: string; lastPresentedValue: number | null }> = {};
 
     // Index latest presentation date per project (by project_id OR focco_project_number)
-    presentationActions.forEach(a => {
-      const project = projects.find(p =>
+    presentationActions.forEach((a) => {
+      const project = projects.find((p) =>
         (a.project_id && p.id === a.project_id) ||
         (a.focco_project_number && p.focco_project_number === a.focco_project_number)
       );
+
       if (!project) return;
+
       const existing = map[project.id];
       if (!existing || a.action_date > existing.lastPresentationDate) {
         map[project.id] = {
@@ -106,9 +143,13 @@ export default function ProjetosTab() {
     });
 
     // Index latest presented value per project (history is ordered desc)
-    valueHistory.forEach(h => {
+    valueHistory.forEach((h) => {
       if (!map[h.project_id]) {
-        map[h.project_id] = { lastPresentationDate: '', lastPresentedValue: h.presented_value };
+        const project = projects.find((p) => p.id === h.project_id);
+        map[h.project_id] = {
+          lastPresentationDate: project?.start_date || project?.created_at || '',
+          lastPresentedValue: h.presented_value,
+        };
       } else if (map[h.project_id].lastPresentedValue === null) {
         map[h.project_id].lastPresentedValue = h.presented_value;
       }
@@ -120,10 +161,10 @@ export default function ProjetosTab() {
   // Carteira Flutuante: projetos em_negociacao com pelo menos uma Apresentação de Projeto registrada
   const carteiraFlutuanteProjects = useMemo(() => {
     return projects
-      .filter(p => p.stage === 'em_negociacao' && presentationMap[p.id])
-      .map(p => ({
+      .filter((p) => p.stage === 'em_negociacao' && presentationMap[p.id])
+      .map((p) => ({
         ...p,
-        lastPresentationDate: presentationMap[p.id]?.lastPresentationDate || '',
+        lastPresentationDate: presentationMap[p.id]?.lastPresentationDate || p.start_date || p.created_at || '',
         lastPresentedValue: presentationMap[p.id]?.lastPresentedValue ?? p.estimated_value ?? null,
       }))
       .sort((a, b) => (b.lastPresentationDate || '').localeCompare(a.lastPresentationDate || ''));
@@ -397,6 +438,7 @@ export default function ProjetosTab() {
         <DialogContent className="bg-card text-card-foreground border-border max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>EDITAR PROJETO</DialogTitle>
+            <DialogDescription>Atualize os dados do projeto em negociação exibido na Carteira Flutuante.</DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
             <div className="md:col-span-2">
