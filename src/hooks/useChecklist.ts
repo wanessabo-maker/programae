@@ -151,6 +151,7 @@ export interface ChecklistItemWithDetails extends ChecklistItem {
     clients?: {
       id: string;
       name: string;
+      contract_number?: string | null;
     } | null;
   };
   checklist?: ContractChecklist;
@@ -244,7 +245,8 @@ export function useMyActiveChecklistItems(userAreas: string[], currentTeamMember
               responsible_id,
               clients (
                 id,
-                name
+                name,
+                contract_number
               )
             )
           )
@@ -351,7 +353,8 @@ export function useMyAllChecklistItems(userAreas: string[], currentTeamMemberId?
               responsible_id,
               clients (
                 id,
-                name
+                name,
+                contract_number
               )
             )
           )
