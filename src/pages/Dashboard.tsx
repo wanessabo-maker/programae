@@ -19,6 +19,8 @@ import {
 import { format, parseISO, isThisMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Action } from '@/types';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function Dashboard() {
   // State hooks first
@@ -52,6 +54,26 @@ export default function Dashboard() {
   // Get current month environment stats for project goals
   const currentDate = new Date();
   const { data: envStats } = useMonthlyEnvironmentStats(currentDate.getFullYear(), currentDate.getMonth() + 1);
+
+  // Map action_id -> latest presented_value (used for "Apresentação de Projeto")
+  const { data: actionPresentedValueMap = {} } = useQuery<Record<string, number>>({
+    queryKey: ['dashboard-action-presented-values'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('project_value_history')
+        .select('action_id, presented_value, created_at')
+        .not('action_id', 'is', null)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      const map: Record<string, number> = {};
+      (data || []).forEach((row) => {
+        if (row.action_id && map[row.action_id] === undefined) {
+          map[row.action_id] = Number(row.presented_value) || 0;
+        }
+      });
+      return map;
+    },
+  });
 
   // Show timeout message after 3 seconds if still loading
   useEffect(() => {
@@ -392,11 +414,12 @@ export default function Dashboard() {
           consultantName: consultant?.name || '-',
           professionalName: professional?.name || '-',
           actionTypeName: actionType?.name || '-',
+          value: action.value ?? actionPresentedValueMap[action.id] ?? undefined,
           bonusPoints,
           basePoints: effectiveBasePoints,
         };
       });
-  }, [actions, creditTransactions, teamMembers, professionals, actionTypes, actionsFilter, selectedActionsDate, isAdmin, actionsMonthOffset, currentTeamMember]);
+  }, [actions, creditTransactions, teamMembers, professionals, actionTypes, actionsFilter, selectedActionsDate, isAdmin, actionsMonthOffset, currentTeamMember, actionPresentedValueMap]);
 
   // Team members available for filter (respecting permissions)
   const availableTeamMembersForFilter = useMemo(() => {
