@@ -977,6 +977,36 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                     .from('clients')
                     .update({ status: 'closed' })
                     .eq('id', existingProject.client_id);
+                } else if (form.clientName.trim()) {
+                  // Project exists but has no client linked yet (e.g. created via Apresentação without client data)
+                  // Create the client now and link it to the project
+                  clientId = await createClientDirect({
+                    name: form.clientName.trim(),
+                    age: safeParseInt(form.clientAge, { min: 0, max: 150 }),
+                    profession: form.clientProfession || null,
+                    professional_id: professionalId || null,
+                    responsible_id: form.consultantId,
+                    created_by: form.consultantId,
+                    status: 'closed',
+                  });
+                  
+                  if (clientId) {
+                    await updateClientData(clientId, {
+                      contract_number: form.contractNumber.trim() || undefined,
+                      cpf_cnpj: form.clientCpfCnpj.trim() || undefined,
+                      phone: form.clientPhone.trim() || undefined,
+                      email: form.clientEmail.trim() || undefined,
+                      address: form.clientAddress.trim() || undefined,
+                      city: form.clientCity.trim() || undefined,
+                      state: form.clientState.trim() || undefined,
+                    });
+                    
+                    // Link the new client to the existing project
+                    await supabase
+                      .from('projects')
+                      .update({ client_id: clientId })
+                      .eq('id', existingProject.id);
+                  }
                 }
                 
                 // Create checklist for the closed project with assigned professionals
