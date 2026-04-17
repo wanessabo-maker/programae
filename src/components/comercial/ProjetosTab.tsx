@@ -37,8 +37,8 @@ const emptyForm: ProjectFormData = {
   responsible_id: '',
 };
 
-// Filter stages for display - only "Em negociação" and "Perdidos" (closed_won goes to Contratos)
-const ACTIVE_STAGES = PROJECT_STAGES.filter(s => s.id === 'em_negociacao' || s.id === 'closed_lost');
+// Carteira Flutuante: somente Em Negociação (não vendidos nem perdidos)
+const ACTIVE_STAGES = PROJECT_STAGES.filter(s => s.id === 'em_negociacao');
 
 export default function ProjetosTab() {
   const [showModal, setShowModal] = useState(false);
@@ -48,8 +48,6 @@ export default function ProjetosTab() {
   const [lostReason, setLostReason] = useState('');
   const [form, setForm] = useState<ProjectFormData>(emptyForm);
   const [searchTerm, setSearchTerm] = useState('');
-  const [stageFilter, setStageFilter] = useState('all');
-  
 
   const { data: projects = [], isLoading } = useProjects();
   const { data: clients = [] } = useClients();
@@ -61,100 +59,86 @@ export default function ProjetosTab() {
 
   const activeTeamMembers = teamMembers.filter(m => m.active);
 
-  // Fetch actions linked to projects (presentations and sales)
-  const { data: projectActions = [] } = useQuery({
-    queryKey: ['project-timeline-actions'],
+  // Fetch all "Apresentação de Projeto" actions (to identify carteira flutuante origin + latest date)
+  const { data: presentationActions = [] } = useQuery({
+    queryKey: ['carteira-flutuante-presentations'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('actions')
-        .select('id, project_id, focco_project_number, action_date, action_type_id, action_types(name, classification)')
-        .not('project_id', 'is', null);
+        .select('id, project_id, focco_project_number, action_date, value, action_types!inner(classification)')
+        .eq('action_types.classification', 'apresentacao')
+        .order('action_date', { ascending: false });
       if (error) throw error;
       return data || [];
     },
   });
 
-  // Fetch project_environments (presentation deliveries)
-  const { data: projectEnvs = [] } = useQuery({
-    queryKey: ['project-timeline-envs'],
+  // Fetch project value history (to retrieve latest presented value)
+  const { data: valueHistory = [] } = useQuery({
+    queryKey: ['carteira-flutuante-value-history'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('project_environments')
-        .select('id, project_id, environment_type, competence_month, created_at')
-        .eq('environment_type', 'apresentacao');
+        .from('project_value_history')
+        .select('project_id, presented_value, created_at')
+        .order('created_at', { ascending: false });
       if (error) throw error;
       return data || [];
     },
   });
 
-  // Build timeline map per project
-  const projectTimeline = useMemo(() => {
-    const map: Record<string, {
-      entregaApresentacao: string | null;
-      apresentacaoComercial: string | null;
-      fechamento: string | null;
-      diasEntregaApres: number | null;
-      diasApresFech: number | null;
-      diasTotal: number | null;
-    }> = {};
+  // Build map: project_id -> { lastPresentationDate, lastPresentedValue }
+  const presentationMap = useMemo(() => {
+    const map: Record<string, { lastPresentationDate: string; lastPresentedValue: number | null }> = {};
 
-    projects.forEach(project => {
-      // Entrega Projeto Apresentação: earliest project_environment of type 'apresentacao'
-      const envs = projectEnvs
-        .filter(e => e.project_id === project.id)
-        .sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
-      const entregaApresentacao = envs.length > 0 ? envs[0].created_at?.split('T')[0] || null : null;
-
-      // Apresentação Comercial: action with classification 'apresentacao' linked to this project
-      const apresActions = projectActions
-        .filter(a => a.project_id === project.id && (a as any).action_types?.classification === 'apresentacao')
-        .sort((a, b) => a.action_date.localeCompare(b.action_date));
-      const apresentacaoComercial = apresActions.length > 0 ? apresActions[0].action_date : null;
-
-      // Fechamento: closed_date
-      const fechamento = project.closed_date || null;
-
-      let diasEntregaApres: number | null = null;
-      let diasApresFech: number | null = null;
-      let diasTotal: number | null = null;
-
-      if (entregaApresentacao && apresentacaoComercial) {
-        diasEntregaApres = differenceInDays(parseISO(apresentacaoComercial), parseISO(entregaApresentacao));
+    // Index latest presentation date per project (by project_id OR focco_project_number)
+    presentationActions.forEach(a => {
+      const project = projects.find(p =>
+        (a.project_id && p.id === a.project_id) ||
+        (a.focco_project_number && p.focco_project_number === a.focco_project_number)
+      );
+      if (!project) return;
+      const existing = map[project.id];
+      if (!existing || a.action_date > existing.lastPresentationDate) {
+        map[project.id] = {
+          lastPresentationDate: a.action_date,
+          lastPresentedValue: existing?.lastPresentedValue ?? null,
+        };
       }
-      if (apresentacaoComercial && fechamento) {
-        diasApresFech = differenceInDays(parseISO(fechamento), parseISO(apresentacaoComercial));
-      }
-      if (entregaApresentacao && fechamento) {
-        diasTotal = differenceInDays(parseISO(fechamento), parseISO(entregaApresentacao));
-      }
+    });
 
-      map[project.id] = { entregaApresentacao, apresentacaoComercial, fechamento, diasEntregaApres, diasApresFech, diasTotal };
+    // Index latest presented value per project (history is ordered desc)
+    valueHistory.forEach(h => {
+      if (!map[h.project_id]) {
+        map[h.project_id] = { lastPresentationDate: '', lastPresentedValue: h.presented_value };
+      } else if (map[h.project_id].lastPresentedValue === null) {
+        map[h.project_id].lastPresentedValue = h.presented_value;
+      }
     });
 
     return map;
-  }, [projects, projectActions, projectEnvs]);
+  }, [presentationActions, valueHistory, projects]);
 
-  // Filter only projects for this tab (Em negociação and Perdidos)
-  const activeProjects = useMemo(() => {
-    return projects.filter(p => p.stage === 'em_negociacao' || p.stage === 'closed_lost');
-  }, [projects]);
+  // Carteira Flutuante: projetos em_negociacao com pelo menos uma Apresentação de Projeto registrada
+  const carteiraFlutuanteProjects = useMemo(() => {
+    return projects
+      .filter(p => p.stage === 'em_negociacao' && presentationMap[p.id])
+      .map(p => ({
+        ...p,
+        lastPresentationDate: presentationMap[p.id]?.lastPresentationDate || '',
+        lastPresentedValue: presentationMap[p.id]?.lastPresentedValue ?? p.estimated_value ?? null,
+      }))
+      .sort((a, b) => (b.lastPresentationDate || '').localeCompare(a.lastPresentationDate || ''));
+  }, [projects, presentationMap]);
 
   const filteredProjects = useMemo(() => {
-    return activeProjects.filter(project => {
-      const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        project.clients?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        project.focco_project_number?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStage = stageFilter === 'all' || project.stage === stageFilter;
-      return matchesSearch && matchesStage;
-    });
-  }, [activeProjects, searchTerm, stageFilter]);
-
-  const projectsByStage = useMemo(() => {
-    return ACTIVE_STAGES.reduce((acc, stage) => {
-      acc[stage.id] = filteredProjects.filter(p => p.stage === stage.id);
-      return acc;
-    }, {} as Record<string, Project[]>);
-  }, [filteredProjects]);
+    if (!searchTerm.trim()) return carteiraFlutuanteProjects;
+    const term = searchTerm.toLowerCase();
+    return carteiraFlutuanteProjects.filter(project =>
+      project.name.toLowerCase().includes(term) ||
+      project.clients?.name?.toLowerCase().includes(term) ||
+      project.focco_project_number?.toLowerCase().includes(term)
+    );
+  }, [carteiraFlutuanteProjects, searchTerm]);
 
   const handleEdit = (project: Project) => {
     setForm({
