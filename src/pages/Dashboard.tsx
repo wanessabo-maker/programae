@@ -21,6 +21,7 @@ import { ptBR } from 'date-fns/locale';
 import { Action } from '@/types';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { CleanlinessCheckBar } from '@/components/dashboard/CleanlinessCheckBar';
 
 export default function Dashboard() {
   // State hooks first
@@ -475,6 +476,9 @@ export default function Dashboard() {
           Registrar Ação
         </button>
       </div>
+
+      {/* Cleanliness weekly check bar */}
+      <CleanlinessCheckBar />
 
       {/* General Metrics */}
       <section>
