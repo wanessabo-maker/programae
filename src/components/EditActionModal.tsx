@@ -163,6 +163,9 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
   const selectedActionType = actionTypes.find(t => t.id === form.actionTypeId);
   const consultantProfessionals = professionals.filter(p => p.consultantId === form.consultantId);
   const isVenda = selectedActionType?.classification === 'venda';
+  const isApresentacaoProjeto = selectedActionType?.name?.toLowerCase().includes('apresentação') &&
+    selectedActionType?.name?.toLowerCase().includes('projeto') &&
+    !selectedActionType?.name?.toLowerCase().includes('reforma');
 
   // Check if the action type is changing TO venda (was not venda before)
   const oldActionType = action ? actionTypes.find(t => t.id === action.actionTypeId) : null;
