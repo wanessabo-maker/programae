@@ -266,17 +266,24 @@ export default function ProjetosTab() {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
   };
 
-  const getStageTotals = () => {
-    return ACTIVE_STAGES.map(stage => {
-      const stageProjects = activeProjects.filter(p => p.stage === stage.id);
-      const total = stageProjects.reduce((sum, p) => sum + (p.estimated_value || 0), 0);
-      return { ...stage, count: stageProjects.length, total };
-    });
+  const formatDate = (dateStr: string | null | undefined) => {
+    if (!dateStr) return '—';
+    try {
+      const [y, m, d] = dateStr.split('-');
+      return `${d}/${m}/${y}`;
+    } catch {
+      return '—';
+    }
   };
 
   if (isLoading) {
     return <div className="py-8 text-center text-muted-foreground">Carregando...</div>;
   }
+
+  const carteiraFlutuanteTotal = carteiraFlutuanteProjects.reduce(
+    (sum, p) => sum + (p.lastPresentedValue || 0),
+    0
+  );
 
   return (
     <div className="space-y-6">
@@ -294,141 +301,96 @@ export default function ProjetosTab() {
             />
           </div>
         </div>
-        {/* Info: Projects are created automatically from action registration */}
         <div className="text-xs text-muted-foreground bg-muted/50 px-3 py-2 border border-border max-w-xs">
-          <span className="font-medium">Projetos são criados automaticamente</span> ao registrar ações "Apresentação de Projeto" com nº FOCCO.
+          <span className="font-medium">Carteira Flutuante:</span> projetos de "Apresentação de Projeto" ainda não vendidos nem perdidos.
         </div>
       </div>
 
       {/* Carteira Flutuante */}
-      {(() => {
-        const projetosNaoFechados = projects.filter(p => p.stage !== 'closed_won' && p.stage !== 'closed_lost');
-        const carteiraFlutuante = projetosNaoFechados.reduce((sum, p) => sum + (p.estimated_value || 0), 0);
-        return (
-          <div className="border border-primary/30 bg-primary/5 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs tracking-widest uppercase text-muted-foreground">Carteira Flutuante</p>
-                <p className="text-2xl font-light tracking-tight mt-1">{formatCurrency(carteiraFlutuante)}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-muted-foreground">{projetosNaoFechados.length} projetos no funil</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Soma dos valores de projetos não vendidos/perdidos</p>
-              </div>
-            </div>
+      <div className="border border-primary/30 bg-primary/5 p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs tracking-widest uppercase text-muted-foreground">Carteira Flutuante</p>
+            <p className="text-2xl font-light tracking-tight mt-1">{formatCurrency(carteiraFlutuanteTotal)}</p>
           </div>
-        );
-      })()}
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        {getStageTotals().map(stage => (
-          <div key={stage.id} className={`border border-border p-3 ${stage.color}`}>
-            <p className="text-lg font-bold">{stage.count}</p>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider truncate">{stage.name}</p>
-            <p className="text-xs font-medium mt-1">{formatCurrency(stage.total)}</p>
+          <div className="text-right">
+            <p className="text-xs text-muted-foreground">{carteiraFlutuanteProjects.length} projetos no funil</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Soma do último valor apresentado de cada projeto</p>
           </div>
-        ))}
+        </div>
       </div>
 
       {/* Table View */}
-      {(
-        <div className="border border-border overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-muted/50">
+      <div className="border border-border overflow-x-auto">
+        <table className="w-full">
+          <thead className="bg-muted/50">
+            <tr>
+              <th className="text-left p-3 text-xs uppercase tracking-wider">Projeto</th>
+              <th className="text-left p-3 text-xs uppercase tracking-wider">Cliente</th>
+              <th className="text-left p-3 text-xs uppercase tracking-wider">Consultor</th>
+              <th className="text-center p-3 text-xs uppercase tracking-wider">Última Apres.</th>
+              <th className="text-right p-3 text-xs uppercase tracking-wider">Valor Apres.</th>
+              <th className="text-center p-3 text-xs uppercase tracking-wider">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredProjects.length === 0 ? (
               <tr>
-                <th className="text-left p-3 text-xs uppercase tracking-wider">Projeto</th>
-                <th className="text-left p-3 text-xs uppercase tracking-wider">Cliente</th>
-                <th className="text-left p-3 text-xs uppercase tracking-wider">Consultor</th>
-                <th className="text-left p-3 text-xs uppercase tracking-wider">Estágio</th>
-                <th className="text-right p-3 text-xs uppercase tracking-wider">Valor Est.</th>
-                <th className="text-center p-3 text-xs uppercase tracking-wider" title="Dias entre Entrega Apresentação e Apresentação Comercial">Entrega → Apres.</th>
-                <th className="text-center p-3 text-xs uppercase tracking-wider" title="Dias entre Apresentação Comercial e Fechamento">Apres. → Fech.</th>
-                <th className="text-center p-3 text-xs uppercase tracking-wider" title="Total de dias entre Entrega Apresentação e Fechamento">Total</th>
-                <th className="text-center p-3 text-xs uppercase tracking-wider">Ações</th>
+                <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                  Nenhum projeto na Carteira Flutuante
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {filteredProjects.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="p-8 text-center text-muted-foreground">
-                    Nenhum projeto ativo encontrado
-                  </td>
-                </tr>
-              ) : (
-                filteredProjects.map(project => {
-                  const stageInfo = ACTIVE_STAGES.find(s => s.id === project.stage) || ACTIVE_STAGES[0];
-                  const consultant = teamMembers.find(m => m.id === project.responsible_id);
-                  const timeline = projectTimeline[project.id];
-
-                  const formatDays = (days: number | null | undefined) => {
-                    if (days === null || days === undefined) return <span className="text-muted-foreground">—</span>;
-                    return <span className={`font-mono font-medium ${days > 30 ? 'text-destructive' : days > 15 ? 'text-amber-600 dark:text-amber-400' : 'text-green-600 dark:text-green-400'}`}>{days}d</span>;
-                  };
-                  
-                  return (
-                    <tr key={project.id} className="border-t border-border hover:bg-muted/30">
-                      <td className="p-3">
-                        <div className="flex items-center gap-2">
-                          <Folder className="w-4 h-4 text-muted-foreground" />
-                          <div>
-                            <p className="font-medium">{project.name}</p>
-                            {project.focco_project_number && (
-                              <p className="text-xs text-primary font-mono">FOCCO: {project.focco_project_number}</p>
-                            )}
-                          </div>
+            ) : (
+              filteredProjects.map(project => {
+                const consultant = teamMembers.find(m => m.id === project.responsible_id);
+                return (
+                  <tr key={project.id} className="border-t border-border hover:bg-muted/30">
+                    <td className="p-3">
+                      <div className="flex items-center gap-2">
+                        <Folder className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <p className="font-medium">{project.name}</p>
+                          {project.focco_project_number && (
+                            <p className="text-xs text-primary font-mono">FOCCO: {project.focco_project_number}</p>
+                          )}
                         </div>
-                      </td>
-                      <td className="p-3 text-sm">{project.clients?.name || '-'}</td>
-                      <td className="p-3 text-sm">{consultant?.name || '-'}</td>
-                      <td className="p-3">
-                        <Badge className={`${stageInfo.color} border-0`}>{stageInfo.name}</Badge>
-                      </td>
-                      <td className="p-3 text-right text-sm">{formatCurrency(project.estimated_value)}</td>
-                      <td className="p-3 text-center text-sm">{formatDays(timeline?.diasEntregaApres)}</td>
-                      <td className="p-3 text-center text-sm">{formatDays(timeline?.diasApresFech)}</td>
-                      <td className="p-3 text-center text-sm">{formatDays(timeline?.diasTotal)}</td>
-                      <td className="p-3">
-                        <div className="flex justify-center gap-1">
-                          <button
-                            onClick={() => handleEdit(project)}
-                            className="p-1.5 hover:bg-muted rounded"
-                            title="Editar"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleOpenLostModal(project)}
-                            className="p-1.5 hover:bg-destructive/20 rounded text-destructive"
-                            title="Marcar como Perdido"
-                          >
-                            <XCircle className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(project.id)}
-                            className="p-1.5 hover:bg-destructive/20 rounded text-destructive"
-                            title="Excluir"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* FOCCO Projects Summary */}
-      <div className="space-y-3 mt-6">
-        <h3 className="text-xs tracking-widest uppercase text-muted-foreground font-medium flex items-center gap-2">
-          <FileText className="h-4 w-4" />
-          Projetos FOCCO Cadastrados
-        </h3>
-        <FoccoProjectsTable />
+                      </div>
+                    </td>
+                    <td className="p-3 text-sm">{project.clients?.name || '-'}</td>
+                    <td className="p-3 text-sm">{consultant?.name || '-'}</td>
+                    <td className="p-3 text-center text-sm font-mono">{formatDate(project.lastPresentationDate)}</td>
+                    <td className="p-3 text-right text-sm font-medium">{formatCurrency(project.lastPresentedValue)}</td>
+                    <td className="p-3">
+                      <div className="flex justify-center gap-1">
+                        <button
+                          onClick={() => handleEdit(project)}
+                          className="p-1.5 hover:bg-muted rounded"
+                          title="Editar"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleOpenLostModal(project)}
+                          className="p-1.5 hover:bg-destructive/20 rounded text-destructive"
+                          title="Marcar como Perdido"
+                        >
+                          <XCircle className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(project.id)}
+                          className="p-1.5 hover:bg-destructive/20 rounded text-destructive"
+                          title="Excluir"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
       </div>
 
       {/* Edit Modal */}
