@@ -1,16 +1,12 @@
 import { useState, useMemo } from 'react';
-import { Search, Folder, Edit2, Trash2, Calendar, XCircle, FileText } from 'lucide-react';
-import { FoccoProjectsTable } from '@/components/FoccoProjectsTable';
+import { Search, Folder, Edit2, Trash2, XCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
 import { useProjects, useUpdateProject, useDeleteProject, PROJECT_STAGES, Project } from '@/hooks/useProjects';
 import { useClients, useUpdateClient } from '@/hooks/useClients';
 import { useProfessionals, useTeamMembers } from '@/hooks/useDatabase';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { ProjectValueHistory } from '@/components/ProjectValueHistory';
-import { differenceInDays, parseISO } from 'date-fns';
 
 interface ProjectFormData {
   name: string;
@@ -40,8 +36,8 @@ const emptyForm: ProjectFormData = {
   responsible_id: '',
 };
 
-// Filter stages for display - only "Em negociação" and "Perdidos" (closed_won goes to Contratos)
-const ACTIVE_STAGES = PROJECT_STAGES.filter(s => s.id === 'em_negociacao' || s.id === 'closed_lost');
+// Carteira Flutuante: somente Em Negociação (não vendidos nem perdidos)
+const ACTIVE_STAGES = PROJECT_STAGES.filter(s => s.id === 'em_negociacao');
 
 export default function ProjetosTab() {
   const [showModal, setShowModal] = useState(false);
@@ -51,8 +47,6 @@ export default function ProjetosTab() {
   const [lostReason, setLostReason] = useState('');
   const [form, setForm] = useState<ProjectFormData>(emptyForm);
   const [searchTerm, setSearchTerm] = useState('');
-  const [stageFilter, setStageFilter] = useState('all');
-  
 
   const { data: projects = [], isLoading } = useProjects();
   const { data: clients = [] } = useClients();
@@ -64,100 +58,86 @@ export default function ProjetosTab() {
 
   const activeTeamMembers = teamMembers.filter(m => m.active);
 
-  // Fetch actions linked to projects (presentations and sales)
-  const { data: projectActions = [] } = useQuery({
-    queryKey: ['project-timeline-actions'],
+  // Fetch all "Apresentação de Projeto" actions (to identify carteira flutuante origin + latest date)
+  const { data: presentationActions = [] } = useQuery({
+    queryKey: ['carteira-flutuante-presentations'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('actions')
-        .select('id, project_id, focco_project_number, action_date, action_type_id, action_types(name, classification)')
-        .not('project_id', 'is', null);
+        .select('id, project_id, focco_project_number, action_date, value, action_types!inner(classification)')
+        .eq('action_types.classification', 'apresentacao')
+        .order('action_date', { ascending: false });
       if (error) throw error;
       return data || [];
     },
   });
 
-  // Fetch project_environments (presentation deliveries)
-  const { data: projectEnvs = [] } = useQuery({
-    queryKey: ['project-timeline-envs'],
+  // Fetch project value history (to retrieve latest presented value)
+  const { data: valueHistory = [] } = useQuery({
+    queryKey: ['carteira-flutuante-value-history'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('project_environments')
-        .select('id, project_id, environment_type, competence_month, created_at')
-        .eq('environment_type', 'apresentacao');
+        .from('project_value_history')
+        .select('project_id, presented_value, created_at')
+        .order('created_at', { ascending: false });
       if (error) throw error;
       return data || [];
     },
   });
 
-  // Build timeline map per project
-  const projectTimeline = useMemo(() => {
-    const map: Record<string, {
-      entregaApresentacao: string | null;
-      apresentacaoComercial: string | null;
-      fechamento: string | null;
-      diasEntregaApres: number | null;
-      diasApresFech: number | null;
-      diasTotal: number | null;
-    }> = {};
+  // Build map: project_id -> { lastPresentationDate, lastPresentedValue }
+  const presentationMap = useMemo(() => {
+    const map: Record<string, { lastPresentationDate: string; lastPresentedValue: number | null }> = {};
 
-    projects.forEach(project => {
-      // Entrega Projeto Apresentação: earliest project_environment of type 'apresentacao'
-      const envs = projectEnvs
-        .filter(e => e.project_id === project.id)
-        .sort((a, b) => (a.created_at || '').localeCompare(b.created_at || ''));
-      const entregaApresentacao = envs.length > 0 ? envs[0].created_at?.split('T')[0] || null : null;
-
-      // Apresentação Comercial: action with classification 'apresentacao' linked to this project
-      const apresActions = projectActions
-        .filter(a => a.project_id === project.id && (a as any).action_types?.classification === 'apresentacao')
-        .sort((a, b) => a.action_date.localeCompare(b.action_date));
-      const apresentacaoComercial = apresActions.length > 0 ? apresActions[0].action_date : null;
-
-      // Fechamento: closed_date
-      const fechamento = project.closed_date || null;
-
-      let diasEntregaApres: number | null = null;
-      let diasApresFech: number | null = null;
-      let diasTotal: number | null = null;
-
-      if (entregaApresentacao && apresentacaoComercial) {
-        diasEntregaApres = differenceInDays(parseISO(apresentacaoComercial), parseISO(entregaApresentacao));
+    // Index latest presentation date per project (by project_id OR focco_project_number)
+    presentationActions.forEach(a => {
+      const project = projects.find(p =>
+        (a.project_id && p.id === a.project_id) ||
+        (a.focco_project_number && p.focco_project_number === a.focco_project_number)
+      );
+      if (!project) return;
+      const existing = map[project.id];
+      if (!existing || a.action_date > existing.lastPresentationDate) {
+        map[project.id] = {
+          lastPresentationDate: a.action_date,
+          lastPresentedValue: existing?.lastPresentedValue ?? null,
+        };
       }
-      if (apresentacaoComercial && fechamento) {
-        diasApresFech = differenceInDays(parseISO(fechamento), parseISO(apresentacaoComercial));
-      }
-      if (entregaApresentacao && fechamento) {
-        diasTotal = differenceInDays(parseISO(fechamento), parseISO(entregaApresentacao));
-      }
+    });
 
-      map[project.id] = { entregaApresentacao, apresentacaoComercial, fechamento, diasEntregaApres, diasApresFech, diasTotal };
+    // Index latest presented value per project (history is ordered desc)
+    valueHistory.forEach(h => {
+      if (!map[h.project_id]) {
+        map[h.project_id] = { lastPresentationDate: '', lastPresentedValue: h.presented_value };
+      } else if (map[h.project_id].lastPresentedValue === null) {
+        map[h.project_id].lastPresentedValue = h.presented_value;
+      }
     });
 
     return map;
-  }, [projects, projectActions, projectEnvs]);
+  }, [presentationActions, valueHistory, projects]);
 
-  // Filter only projects for this tab (Em negociação and Perdidos)
-  const activeProjects = useMemo(() => {
-    return projects.filter(p => p.stage === 'em_negociacao' || p.stage === 'closed_lost');
-  }, [projects]);
+  // Carteira Flutuante: projetos em_negociacao com pelo menos uma Apresentação de Projeto registrada
+  const carteiraFlutuanteProjects = useMemo(() => {
+    return projects
+      .filter(p => p.stage === 'em_negociacao' && presentationMap[p.id])
+      .map(p => ({
+        ...p,
+        lastPresentationDate: presentationMap[p.id]?.lastPresentationDate || '',
+        lastPresentedValue: presentationMap[p.id]?.lastPresentedValue ?? p.estimated_value ?? null,
+      }))
+      .sort((a, b) => (b.lastPresentationDate || '').localeCompare(a.lastPresentationDate || ''));
+  }, [projects, presentationMap]);
 
   const filteredProjects = useMemo(() => {
-    return activeProjects.filter(project => {
-      const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        project.clients?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        project.focco_project_number?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStage = stageFilter === 'all' || project.stage === stageFilter;
-      return matchesSearch && matchesStage;
-    });
-  }, [activeProjects, searchTerm, stageFilter]);
-
-  const projectsByStage = useMemo(() => {
-    return ACTIVE_STAGES.reduce((acc, stage) => {
-      acc[stage.id] = filteredProjects.filter(p => p.stage === stage.id);
-      return acc;
-    }, {} as Record<string, Project[]>);
-  }, [filteredProjects]);
+    if (!searchTerm.trim()) return carteiraFlutuanteProjects;
+    const term = searchTerm.toLowerCase();
+    return carteiraFlutuanteProjects.filter(project =>
+      project.name.toLowerCase().includes(term) ||
+      project.clients?.name?.toLowerCase().includes(term) ||
+      project.focco_project_number?.toLowerCase().includes(term)
+    );
+  }, [carteiraFlutuanteProjects, searchTerm]);
 
   const handleEdit = (project: Project) => {
     setForm({
@@ -285,17 +265,24 @@ export default function ProjetosTab() {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
   };
 
-  const getStageTotals = () => {
-    return ACTIVE_STAGES.map(stage => {
-      const stageProjects = activeProjects.filter(p => p.stage === stage.id);
-      const total = stageProjects.reduce((sum, p) => sum + (p.estimated_value || 0), 0);
-      return { ...stage, count: stageProjects.length, total };
-    });
+  const formatDate = (dateStr: string | null | undefined) => {
+    if (!dateStr) return '—';
+    try {
+      const [y, m, d] = dateStr.split('-');
+      return `${d}/${m}/${y}`;
+    } catch {
+      return '—';
+    }
   };
 
   if (isLoading) {
     return <div className="py-8 text-center text-muted-foreground">Carregando...</div>;
   }
+
+  const carteiraFlutuanteTotal = carteiraFlutuanteProjects.reduce(
+    (sum, p) => sum + (p.lastPresentedValue || 0),
+    0
+  );
 
   return (
     <div className="space-y-6">
@@ -313,141 +300,96 @@ export default function ProjetosTab() {
             />
           </div>
         </div>
-        {/* Info: Projects are created automatically from action registration */}
         <div className="text-xs text-muted-foreground bg-muted/50 px-3 py-2 border border-border max-w-xs">
-          <span className="font-medium">Projetos são criados automaticamente</span> ao registrar ações "Apresentação de Projeto" com nº FOCCO.
+          <span className="font-medium">Carteira Flutuante:</span> projetos de "Apresentação de Projeto" ainda não vendidos nem perdidos.
         </div>
       </div>
 
       {/* Carteira Flutuante */}
-      {(() => {
-        const projetosNaoFechados = projects.filter(p => p.stage !== 'closed_won' && p.stage !== 'closed_lost');
-        const carteiraFlutuante = projetosNaoFechados.reduce((sum, p) => sum + (p.estimated_value || 0), 0);
-        return (
-          <div className="border border-primary/30 bg-primary/5 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs tracking-widest uppercase text-muted-foreground">Carteira Flutuante</p>
-                <p className="text-2xl font-light tracking-tight mt-1">{formatCurrency(carteiraFlutuante)}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-muted-foreground">{projetosNaoFechados.length} projetos no funil</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Soma dos valores de projetos não vendidos/perdidos</p>
-              </div>
-            </div>
+      <div className="border border-primary/30 bg-primary/5 p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs tracking-widest uppercase text-muted-foreground">Carteira Flutuante</p>
+            <p className="text-2xl font-light tracking-tight mt-1">{formatCurrency(carteiraFlutuanteTotal)}</p>
           </div>
-        );
-      })()}
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        {getStageTotals().map(stage => (
-          <div key={stage.id} className={`border border-border p-3 ${stage.color}`}>
-            <p className="text-lg font-bold">{stage.count}</p>
-            <p className="text-xs text-muted-foreground uppercase tracking-wider truncate">{stage.name}</p>
-            <p className="text-xs font-medium mt-1">{formatCurrency(stage.total)}</p>
+          <div className="text-right">
+            <p className="text-xs text-muted-foreground">{carteiraFlutuanteProjects.length} projetos no funil</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Soma do último valor apresentado de cada projeto</p>
           </div>
-        ))}
+        </div>
       </div>
 
       {/* Table View */}
-      {(
-        <div className="border border-border overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-muted/50">
+      <div className="border border-border overflow-x-auto">
+        <table className="w-full">
+          <thead className="bg-muted/50">
+            <tr>
+              <th className="text-left p-3 text-xs uppercase tracking-wider">Projeto</th>
+              <th className="text-left p-3 text-xs uppercase tracking-wider">Cliente</th>
+              <th className="text-left p-3 text-xs uppercase tracking-wider">Consultor</th>
+              <th className="text-center p-3 text-xs uppercase tracking-wider">Última Apres.</th>
+              <th className="text-right p-3 text-xs uppercase tracking-wider">Valor Apres.</th>
+              <th className="text-center p-3 text-xs uppercase tracking-wider">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredProjects.length === 0 ? (
               <tr>
-                <th className="text-left p-3 text-xs uppercase tracking-wider">Projeto</th>
-                <th className="text-left p-3 text-xs uppercase tracking-wider">Cliente</th>
-                <th className="text-left p-3 text-xs uppercase tracking-wider">Consultor</th>
-                <th className="text-left p-3 text-xs uppercase tracking-wider">Estágio</th>
-                <th className="text-right p-3 text-xs uppercase tracking-wider">Valor Est.</th>
-                <th className="text-center p-3 text-xs uppercase tracking-wider" title="Dias entre Entrega Apresentação e Apresentação Comercial">Entrega → Apres.</th>
-                <th className="text-center p-3 text-xs uppercase tracking-wider" title="Dias entre Apresentação Comercial e Fechamento">Apres. → Fech.</th>
-                <th className="text-center p-3 text-xs uppercase tracking-wider" title="Total de dias entre Entrega Apresentação e Fechamento">Total</th>
-                <th className="text-center p-3 text-xs uppercase tracking-wider">Ações</th>
+                <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                  Nenhum projeto na Carteira Flutuante
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {filteredProjects.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="p-8 text-center text-muted-foreground">
-                    Nenhum projeto ativo encontrado
-                  </td>
-                </tr>
-              ) : (
-                filteredProjects.map(project => {
-                  const stageInfo = ACTIVE_STAGES.find(s => s.id === project.stage) || ACTIVE_STAGES[0];
-                  const consultant = teamMembers.find(m => m.id === project.responsible_id);
-                  const timeline = projectTimeline[project.id];
-
-                  const formatDays = (days: number | null | undefined) => {
-                    if (days === null || days === undefined) return <span className="text-muted-foreground">—</span>;
-                    return <span className={`font-mono font-medium ${days > 30 ? 'text-destructive' : days > 15 ? 'text-amber-600 dark:text-amber-400' : 'text-green-600 dark:text-green-400'}`}>{days}d</span>;
-                  };
-                  
-                  return (
-                    <tr key={project.id} className="border-t border-border hover:bg-muted/30">
-                      <td className="p-3">
-                        <div className="flex items-center gap-2">
-                          <Folder className="w-4 h-4 text-muted-foreground" />
-                          <div>
-                            <p className="font-medium">{project.name}</p>
-                            {project.focco_project_number && (
-                              <p className="text-xs text-primary font-mono">FOCCO: {project.focco_project_number}</p>
-                            )}
-                          </div>
+            ) : (
+              filteredProjects.map(project => {
+                const consultant = teamMembers.find(m => m.id === project.responsible_id);
+                return (
+                  <tr key={project.id} className="border-t border-border hover:bg-muted/30">
+                    <td className="p-3">
+                      <div className="flex items-center gap-2">
+                        <Folder className="w-4 h-4 text-muted-foreground" />
+                        <div>
+                          <p className="font-medium">{project.name}</p>
+                          {project.focco_project_number && (
+                            <p className="text-xs text-primary font-mono">FOCCO: {project.focco_project_number}</p>
+                          )}
                         </div>
-                      </td>
-                      <td className="p-3 text-sm">{project.clients?.name || '-'}</td>
-                      <td className="p-3 text-sm">{consultant?.name || '-'}</td>
-                      <td className="p-3">
-                        <Badge className={`${stageInfo.color} border-0`}>{stageInfo.name}</Badge>
-                      </td>
-                      <td className="p-3 text-right text-sm">{formatCurrency(project.estimated_value)}</td>
-                      <td className="p-3 text-center text-sm">{formatDays(timeline?.diasEntregaApres)}</td>
-                      <td className="p-3 text-center text-sm">{formatDays(timeline?.diasApresFech)}</td>
-                      <td className="p-3 text-center text-sm">{formatDays(timeline?.diasTotal)}</td>
-                      <td className="p-3">
-                        <div className="flex justify-center gap-1">
-                          <button
-                            onClick={() => handleEdit(project)}
-                            className="p-1.5 hover:bg-muted rounded"
-                            title="Editar"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleOpenLostModal(project)}
-                            className="p-1.5 hover:bg-destructive/20 rounded text-destructive"
-                            title="Marcar como Perdido"
-                          >
-                            <XCircle className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(project.id)}
-                            className="p-1.5 hover:bg-destructive/20 rounded text-destructive"
-                            title="Excluir"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* FOCCO Projects Summary */}
-      <div className="space-y-3 mt-6">
-        <h3 className="text-xs tracking-widest uppercase text-muted-foreground font-medium flex items-center gap-2">
-          <FileText className="h-4 w-4" />
-          Projetos FOCCO Cadastrados
-        </h3>
-        <FoccoProjectsTable />
+                      </div>
+                    </td>
+                    <td className="p-3 text-sm">{project.clients?.name || '-'}</td>
+                    <td className="p-3 text-sm">{consultant?.name || '-'}</td>
+                    <td className="p-3 text-center text-sm font-mono">{formatDate(project.lastPresentationDate)}</td>
+                    <td className="p-3 text-right text-sm font-medium">{formatCurrency(project.lastPresentedValue)}</td>
+                    <td className="p-3">
+                      <div className="flex justify-center gap-1">
+                        <button
+                          onClick={() => handleEdit(project)}
+                          className="p-1.5 hover:bg-muted rounded"
+                          title="Editar"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleOpenLostModal(project)}
+                          className="p-1.5 hover:bg-destructive/20 rounded text-destructive"
+                          title="Marcar como Perdido"
+                        >
+                          <XCircle className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(project.id)}
+                          className="p-1.5 hover:bg-destructive/20 rounded text-destructive"
+                          title="Excluir"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
       </div>
 
       {/* Edit Modal */}
