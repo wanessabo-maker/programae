@@ -87,7 +87,7 @@ interface AppContextType {
   
   // Actions
   addAction: (action: Omit<Action, 'id'>) => Promise<string | undefined>;
-  updateAction: (id: string, action: Partial<Action>) => void;
+  updateAction: (id: string, action: Partial<Action>) => Promise<unknown>;
   deleteAction: (id: string) => void;
   
   // Reminders
@@ -97,8 +97,8 @@ interface AppContextType {
   
   // Credits
   addCreditTransaction: (transaction: Omit<CreditTransaction, 'id'> & { actionTypeId?: string }) => void;
-  updateCreditTransaction: (id: string, updates: Partial<CreditTransaction>) => void;
-  deleteCreditTransaction: (id: string) => void;
+  updateCreditTransaction: (id: string, updates: Partial<CreditTransaction>) => Promise<unknown>;
+  deleteCreditTransaction: (id: string) => Promise<unknown>;
   getConsultantBalance: (consultantId: string) => number;
   
   // System Settings
@@ -587,7 +587,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [createAction]);
 
   const updateAction = useCallback((id: string, action: Partial<Action>) => {
-    updateActionMutation.mutate({
+    return updateActionMutation.mutateAsync({
       id,
       consultant_id: action.consultantId,
       professional_id: action.professionalId,
@@ -706,7 +706,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [createCreditTransaction, calculateExpirationDate]);
 
   const updateCreditTransaction = useCallback((id: string, updates: Partial<CreditTransaction>) => {
-    updateCreditTransactionMutation.mutate({
+    return updateCreditTransactionMutation.mutateAsync({
       id,
       expires_at: updates.expiresAt,
       status: updates.status,
@@ -718,7 +718,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [updateCreditTransactionMutation]);
 
   const deleteCreditTransaction = useCallback((id: string) => {
-    deleteCreditTransactionMutation.mutate(id);
+    return deleteCreditTransactionMutation.mutateAsync(id);
   }, [deleteCreditTransactionMutation]);
 
   // Get consultant balance - only count active credits
