@@ -601,6 +601,8 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
         queryClient.invalidateQueries({ queryKey: ['credit_transactions'] }),
         queryClient.invalidateQueries({ queryKey: ['carteira-flutuante-presentations'] }),
         queryClient.invalidateQueries({ queryKey: ['carteira-flutuante-value-history'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard-action-presented-values'] }),
+        queryClient.invalidateQueries({ queryKey: ['project_value_history'] }),
       ]);
       onOpenChange(false);
     } catch (error) {
