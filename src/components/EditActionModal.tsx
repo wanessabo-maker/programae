@@ -169,14 +169,12 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
 
   const selectedActionType = actionTypes.find(t => t.id === form.actionTypeId);
   const consultantProfessionals = professionals.filter(p => p.consultantId === form.consultantId);
+  const oldActionType = action ? actionTypes.find(t => t.id === action.actionTypeId) : null;
   const isVenda = selectedActionType?.classification === 'venda';
   const normalizedSelectedActionName = normalizeText(selectedActionType?.name);
   const normalizedOldActionName = normalizeText(oldActionType?.name);
   const isApresentacaoProjeto = normalizedSelectedActionName.startsWith('apresentacao de projeto') &&
     !normalizedSelectedActionName.includes('reforma');
-
-  // Check if the action type is changing TO venda (was not venda before)
-  const oldActionType = action ? actionTypes.find(t => t.id === action.actionTypeId) : null;
   
   
 
