@@ -940,7 +940,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             const existingProject = await findProjectByFocco(foccoNumber);
             
             if (existingProject) {
-              const { error: updateError } = await supabase
+              const { data: updatedRows, error: updateError } = await supabase
                 .from('projects')
                 .update({
                   stage: 'closed_won',
@@ -948,11 +948,14 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   closed_value: safeNumber(form.value, { min: 0 }) ?? existingProject.estimated_value,
                   apresentacao_projetista_id: form.assignedApresentacaoProjetistaId || (existingProject as any).apresentacao_projetista_id || null,
                 } as any)
-                .eq('id', existingProject.id);
+                .eq('id', existingProject.id)
+                .select('id');
               
-              if (updateError) {
-                console.error('Error updating project to closed_won:', updateError);
-                toast.error('Erro ao atualizar status do projeto');
+              if (updateError || !updatedRows || updatedRows.length === 0) {
+                console.error('Error updating project to closed_won:', updateError, 'rows:', updatedRows);
+                toast.error('Erro ao atualizar status do projeto. Verifique se você tem permissão.');
+                setIsSubmitting(false);
+                return;
               } else {
                 projectId = existingProject.id;
                 
