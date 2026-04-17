@@ -19,6 +19,7 @@ export function CleanlinessCheckBar() {
   const [hovered, setHovered] = useState<number | null>(null);
 
   if (isLoading) return null;
+  if (existing) return null;
 
   const handleSubmit = async (rating: number) => {
     try {
