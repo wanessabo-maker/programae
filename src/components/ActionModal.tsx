@@ -102,6 +102,9 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
   // Project environments creation
   const createEnvironment = useCreateProjectEnvironment();
 
+  // Query client for invalidating cached queries (e.g. dashboard value map)
+  const queryClient = useQueryClient();
+
   const activeMembers = teamMembers.filter(m => m.active);
 
   // Check if current user is a Projetista (from Projetos area - should see consultant selector instead of specifier)
