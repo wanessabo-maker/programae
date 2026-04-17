@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useApp } from '@/contexts/AppContext';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -100,6 +101,9 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
   
   // Project environments creation
   const createEnvironment = useCreateProjectEnvironment();
+
+  // Query client for invalidating cached queries (e.g. dashboard value map)
+  const queryClient = useQueryClient();
 
   const activeMembers = teamMembers.filter(m => m.active);
 
@@ -1381,6 +1385,17 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
       }
 
       toast.success('Ação registrada com sucesso!');
+
+      // Invalidate cached queries that depend on this action / value history
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['actions'] }),
+        queryClient.invalidateQueries({ queryKey: ['projects'] }),
+        queryClient.invalidateQueries({ queryKey: ['credit_transactions'] }),
+        queryClient.invalidateQueries({ queryKey: ['carteira-flutuante-presentations'] }),
+        queryClient.invalidateQueries({ queryKey: ['carteira-flutuante-value-history'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard-action-presented-values'] }),
+        queryClient.invalidateQueries({ queryKey: ['project_value_history'] }),
+      ]);
 
       // Reset form
       setForm(initialFormState);
