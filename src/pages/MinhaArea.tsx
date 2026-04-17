@@ -35,6 +35,7 @@ import { ProjetistaSection } from '@/components/minha-area/ProjetistaSection';
 import { ProjetistaTecnicoProjects } from '@/components/minha-area/ProjetistaTecnicoProjects';
 import { ManagementDashboard } from '@/components/minha-area/ManagementDashboard';
 import { StaleProjectsBanner } from '@/components/minha-area/StaleProjectsBanner';
+import { CleanlinessAdminPanel } from '@/components/minha-area/CleanlinessAdminPanel';
 import { useTeamMembers } from '@/hooks/useDatabase';
 
 interface ChecklistItemFull {
@@ -386,6 +387,9 @@ export default function MinhaArea() {
   return (
     <Layout>
       <div className="space-y-6">
+        {/* Admin: Cleanliness real-time panel */}
+        {isAdmin && <CleanlinessAdminPanel />}
+
         {/* Header */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
