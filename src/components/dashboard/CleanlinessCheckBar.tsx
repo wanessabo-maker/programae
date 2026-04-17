@@ -37,13 +37,13 @@ export function CleanlinessCheckBar() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
-            <Sparkles className="h-4 w-4 text-primary" />
+            <Sparkles className="h-4 w-4 text-card-foreground" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-foreground">
+            <p className="text-sm font-semibold text-card-foreground">
               Como anda a limpeza da loja hoje:
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs font-medium text-card-foreground/80">
               {existing
                 ? `Você já avaliou esta semana (${RATING_LABELS[currentRating!]}). Pode atualizar se quiser.`
                 : 'Selecione uma nota de 0 (muito ruim) a 5 (muito boa).'}
@@ -79,7 +79,7 @@ export function CleanlinessCheckBar() {
             );
           })}
           {displayRating !== undefined && displayRating !== null && (
-            <span className="ml-2 min-w-[80px] text-xs font-medium text-muted-foreground">
+            <span className="ml-2 min-w-[80px] text-xs font-semibold text-card-foreground">
               {RATING_LABELS[displayRating]}
             </span>
           )}
