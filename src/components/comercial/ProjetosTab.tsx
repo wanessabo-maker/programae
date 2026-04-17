@@ -438,6 +438,7 @@ export default function ProjetosTab() {
         <DialogContent className="bg-card text-card-foreground border-border max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>EDITAR PROJETO</DialogTitle>
+            <DialogDescription>Atualize os dados do projeto em negociação exibido na Carteira Flutuante.</DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
             <div className="md:col-span-2">
