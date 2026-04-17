@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useApp } from '@/contexts/AppContext';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useCurrentTeamMember } from '@/hooks/useCurrentTeamMember';
@@ -19,6 +19,13 @@ interface EditActionModalProps {
   onOpenChange: (open: boolean) => void;
   action: Action | null;
 }
+
+const normalizeText = (value: string | null | undefined) =>
+  (value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
 
 export function EditActionModal({ open, onOpenChange, action }: EditActionModalProps) {
   const { isAdmin } = useAuthContext();
@@ -162,13 +169,12 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
 
   const selectedActionType = actionTypes.find(t => t.id === form.actionTypeId);
   const consultantProfessionals = professionals.filter(p => p.consultantId === form.consultantId);
-  const isVenda = selectedActionType?.classification === 'venda';
-  const isApresentacaoProjeto = selectedActionType?.name?.toLowerCase().includes('apresentação') &&
-    selectedActionType?.name?.toLowerCase().includes('projeto') &&
-    !selectedActionType?.name?.toLowerCase().includes('reforma');
-
-  // Check if the action type is changing TO venda (was not venda before)
   const oldActionType = action ? actionTypes.find(t => t.id === action.actionTypeId) : null;
+  const isVenda = selectedActionType?.classification === 'venda';
+  const normalizedSelectedActionName = normalizeText(selectedActionType?.name);
+  const normalizedOldActionName = normalizeText(oldActionType?.name);
+  const isApresentacaoProjeto = normalizedSelectedActionName.startsWith('apresentacao de projeto') &&
+    !normalizedSelectedActionName.includes('reforma');
   
   
 
@@ -212,6 +218,12 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
       const newActionType = actionTypes.find(t => t.id === form.actionTypeId);
       const oldPoints = oldActionType?.programPoints || 0;
       const newPoints = newActionType?.programPoints || 0;
+      const newValue = safeNumber(form.value, { min: 0 });
+      const newPresentedValue = safeNumber(form.presentedValue, { min: 0 });
+      const oldWasVenda = oldActionType?.classification === 'venda';
+      const oldWasApresentacaoProjeto = normalizedOldActionName.startsWith('apresentacao de projeto') &&
+        !normalizedOldActionName.includes('reforma');
+      const valueChanged = (newValue ?? null) !== (action.value ?? null);
 
       // Update the action
       await updateAction(action.id, {
@@ -219,7 +231,7 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
         professionalId: form.professionalId || undefined,
         actionTypeId: form.actionTypeId,
         date: form.date,
-        value: safeNumber(form.value, { min: 0 }) ?? undefined,
+        value: newValue ?? undefined,
         clientName: form.clientName || undefined,
         clientAge: safeParseInt(form.clientAge, { min: 0, max: 150 }) ?? undefined,
         clientProfession: form.clientProfession || undefined,
@@ -241,12 +253,12 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
       
       if (existingCredit) {
         if (newPoints === 0) {
-          deleteCreditTransaction(existingCredit.id);
+          await deleteCreditTransaction(existingCredit.id);
         } else if (pointsChanged || consultantChanged) {
           const professional = form.professionalId ? professionals.find(p => p.id === form.professionalId) : null;
           const professionalName = professional?.name || 'Sem Especificador';
           
-          updateCreditTransaction(existingCredit.id, {
+          await updateCreditTransaction(existingCredit.id, {
             consultantId: form.consultantId,
             amount: newPoints,
             description: `${newActionType?.name} - ${professionalName}`,
@@ -430,12 +442,20 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
       }
 
       // If value changed for a sale, update project closed_value
-      if (action.projectId && form.value !== action.value?.toString()) {
-        const actionType = actionTypes.find(t => t.id === form.actionTypeId);
-        if (actionType?.classification === 'venda') {
+      if (action.projectId && valueChanged) {
+        if (newActionType?.classification === 'venda') {
           await supabase
             .from('projects')
-            .update({ closed_value: safeNumber(form.value, { min: 0 }) })
+            .update({
+              closed_value: newValue,
+              stage: 'closed_won',
+              closed_date: form.date,
+            })
+            .eq('id', action.projectId);
+        } else if (oldWasVenda && newActionType?.classification !== 'venda') {
+          await supabase
+            .from('projects')
+            .update({ closed_value: null })
             .eq('id', action.projectId);
         }
       }
@@ -443,7 +463,7 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
       // ===== APRESENTAÇÃO DE PROJETO FLOW: Create/Update project + client + value history =====
       if (isApresentacaoProjeto && form.foccoProjectNumber.trim()) {
         const foccoNumber = form.foccoProjectNumber.trim();
-        const presentedValueNum = safeNumber(form.presentedValue, { min: 0 });
+        const presentedValueNum = newPresentedValue;
 
         try {
           const existingProject = await findProjectByFocco(foccoNumber);
@@ -567,8 +587,21 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
         }
       }
 
+      if (!isApresentacaoProjeto && oldWasApresentacaoProjeto && action.projectId) {
+        await supabase
+          .from('projects')
+          .update({ estimated_value: null })
+          .eq('id', action.projectId);
+      }
+
       toast.success('Ação atualizada com sucesso!');
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['actions'] }),
+        queryClient.invalidateQueries({ queryKey: ['projects'] }),
+        queryClient.invalidateQueries({ queryKey: ['credit_transactions'] }),
+        queryClient.invalidateQueries({ queryKey: ['carteira-flutuante-presentations'] }),
+        queryClient.invalidateQueries({ queryKey: ['carteira-flutuante-value-history'] }),
+      ]);
       onOpenChange(false);
     } catch (error) {
       console.error('Error updating action:', error);
@@ -585,6 +618,7 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
       <DialogContent className="bg-card text-card-foreground border-black max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>EDITAR AÇÃO</DialogTitle>
+            <DialogDescription>Edite a ação e sincronize seus impactos em carteira flutuante, projeto e Programa E.</DialogDescription>
         </DialogHeader>
         
         {!canEdit ? (
