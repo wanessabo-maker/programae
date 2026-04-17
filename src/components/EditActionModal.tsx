@@ -442,8 +442,9 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
       }
 
       // If value changed for a sale, update project closed_value
+      const newClassification = newActionType?.classification as string | undefined;
       if (action.projectId && valueChanged) {
-        if (newActionType?.classification === 'venda') {
+        if (newClassification === 'venda') {
           await supabase
             .from('projects')
             .update({
@@ -452,7 +453,7 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
               closed_date: form.date,
             })
             .eq('id', action.projectId);
-        } else if (oldWasVenda && newActionType?.classification !== 'venda') {
+        } else if (oldWasVenda && newClassification !== 'venda') {
           await supabase
             .from('projects')
             .update({ closed_value: null })
