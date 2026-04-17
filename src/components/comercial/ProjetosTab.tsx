@@ -61,15 +61,14 @@ const normalizeText = (value: string | null | undefined) =>
     .toLowerCase()
     .trim();
 
+// "Apresentação de Projeto" (ação Comercial, gera valor R$) é diferente de "Projeto de Apresentação" (ação de Projetos, sem valor R$ — não entra na carteira).
+// Identificamos exclusivamente o tipo Comercial: nome começa com "Apresentação de Projeto".
 const isProjectPresentationAction = (action: PresentationActionRow) => {
-  const classification = normalizeText(action.action_types?.classification);
   const actionName = normalizeText(action.action_types?.name);
-
-  return classification === 'apresentacao' || (
-    actionName.includes('apresentacao') &&
-    actionName.includes('projeto') &&
-    !actionName.includes('reforma')
-  );
+  // Exclui "Projeto de Apresentação" (área Projetos) e variações de Reforma
+  if (actionName.includes('reforma')) return false;
+  // Aceita apenas "Apresentação de Projeto" / "Apresentação de Projetos"
+  return actionName.startsWith('apresentacao de projeto');
 };
 
 // Carteira Flutuante: somente Em Negociação (não vendidos nem perdidos)
