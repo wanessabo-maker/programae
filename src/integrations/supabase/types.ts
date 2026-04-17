@@ -1541,6 +1541,36 @@ export type Database = {
           },
         ]
       }
+      store_cleanliness_checks: {
+        Row: {
+          checked_at: string
+          created_at: string
+          id: string
+          notes: string | null
+          rating: number
+          team_member_id: string
+          week_start: string
+        }
+        Insert: {
+          checked_at?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          rating: number
+          team_member_id: string
+          week_start?: string
+        }
+        Update: {
+          checked_at?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          rating?: number
+          team_member_id?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
       system_settings: {
         Row: {
           created_at: string
@@ -1857,6 +1887,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      week_start_monday: { Args: { d: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "user"
