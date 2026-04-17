@@ -1266,6 +1266,30 @@ export type Database = {
           },
         ]
       }
+      project_review_snoozes: {
+        Row: {
+          created_at: string
+          id: string
+          project_id: string
+          snoozed_by: string
+          snoozed_until: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          project_id: string
+          snoozed_by: string
+          snoozed_until: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          project_id?: string
+          snoozed_by?: string
+          snoozed_until?: string
+        }
+        Relationships: []
+      }
       project_value_history: {
         Row: {
           action_id: string | null

@@ -34,6 +34,7 @@ import { CompleteActivityModal } from '@/components/minha-area/CompleteActivityM
 import { ProjetistaSection } from '@/components/minha-area/ProjetistaSection';
 import { ProjetistaTecnicoProjects } from '@/components/minha-area/ProjetistaTecnicoProjects';
 import { ManagementDashboard } from '@/components/minha-area/ManagementDashboard';
+import { StaleProjectsBanner } from '@/components/minha-area/StaleProjectsBanner';
 import { useTeamMembers } from '@/hooks/useDatabase';
 
 interface ChecklistItemFull {
@@ -499,6 +500,11 @@ export default function MinhaArea() {
               </button>
             )}
           </div>
+        )}
+
+        {/* Stale Projects Banner - Atualização Importante (only personal view) */}
+        {viewMode === 'my' && currentTeamMember?.id && (
+          <StaleProjectsBanner teamMemberId={currentTeamMember.id} />
         )}
 
         {/* Summary Cards */}
