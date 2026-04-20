@@ -36,7 +36,21 @@ export function CleanlinessAdminPanel() {
     const avg = total ? checks.reduce((acc, c) => acc + c.rating, 0) / total : 0;
     const respondedIds = new Set(checks.map((c) => c.team_member_id));
     const pending = activeMembers.filter((m: any) => !respondedIds.has(m.id));
-    return { total, avg, pending, totalActive: activeMembers.length };
+
+    // Distribuição por faixas de 1 ponto
+    const buckets = [
+      { label: '0–1', min: 0, max: 1, color: 'bg-destructive', text: 'text-destructive' },
+      { label: '1–2', min: 1, max: 2, color: 'bg-amber-500', text: 'text-amber-600 dark:text-amber-400' },
+      { label: '2–3', min: 2, max: 3, color: 'bg-yellow-500', text: 'text-yellow-700 dark:text-yellow-400' },
+      { label: '3–4', min: 3, max: 4, color: 'bg-emerald-400', text: 'text-emerald-700 dark:text-emerald-400' },
+      { label: '4–5', min: 4, max: 5.0001, color: 'bg-emerald-600', text: 'text-emerald-700 dark:text-emerald-400' },
+    ].map((b) => {
+      const count = checks.filter((c) => c.rating >= b.min && c.rating < b.max).length;
+      const pct = total ? Math.round((count / total) * 100) : 0;
+      return { ...b, count, pct };
+    });
+
+    return { total, avg, pending, totalActive: activeMembers.length, buckets };
   }, [checks, allMembers]);
 
   const weekLabel = format(parseISO(getCurrentWeekStart()), "'Semana de' dd 'de' MMMM", { locale: ptBR });
@@ -77,6 +91,32 @@ export function CleanlinessAdminPanel() {
 
         {/* Lista em tempo real */}
         <div>
+          {stats.total > 0 && (
+            <div className="mb-4">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Distribuição das notas
+              </p>
+              <div className="space-y-1.5">
+                {stats.buckets.map((b) => (
+                  <div key={b.label} className="flex items-center gap-2">
+                    <span className={cn('w-10 text-xs font-semibold tabular-nums', b.text)}>
+                      {b.label}
+                    </span>
+                    <div className="relative h-5 flex-1 overflow-hidden rounded-md bg-muted">
+                      <div
+                        className={cn('h-full rounded-md transition-all', b.color)}
+                        style={{ width: `${b.pct}%` }}
+                      />
+                    </div>
+                    <span className="w-16 text-right text-xs font-medium tabular-nums text-muted-foreground">
+                      {b.count} ({b.pct}%)
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Respostas (tempo real)
           </p>
