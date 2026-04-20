@@ -36,7 +36,21 @@ export function CleanlinessAdminPanel() {
     const avg = total ? checks.reduce((acc, c) => acc + c.rating, 0) / total : 0;
     const respondedIds = new Set(checks.map((c) => c.team_member_id));
     const pending = activeMembers.filter((m: any) => !respondedIds.has(m.id));
-    return { total, avg, pending, totalActive: activeMembers.length };
+
+    // Distribuição por faixas de 1 ponto
+    const buckets = [
+      { label: '0–1', min: 0, max: 1, color: 'bg-destructive', text: 'text-destructive' },
+      { label: '1–2', min: 1, max: 2, color: 'bg-amber-500', text: 'text-amber-600 dark:text-amber-400' },
+      { label: '2–3', min: 2, max: 3, color: 'bg-yellow-500', text: 'text-yellow-700 dark:text-yellow-400' },
+      { label: '3–4', min: 3, max: 4, color: 'bg-emerald-400', text: 'text-emerald-700 dark:text-emerald-400' },
+      { label: '4–5', min: 4, max: 5.0001, color: 'bg-emerald-600', text: 'text-emerald-700 dark:text-emerald-400' },
+    ].map((b) => {
+      const count = checks.filter((c) => c.rating >= b.min && c.rating < b.max).length;
+      const pct = total ? Math.round((count / total) * 100) : 0;
+      return { ...b, count, pct };
+    });
+
+    return { total, avg, pending, totalActive: activeMembers.length, buckets };
   }, [checks, allMembers]);
 
   const weekLabel = format(parseISO(getCurrentWeekStart()), "'Semana de' dd 'de' MMMM", { locale: ptBR });
