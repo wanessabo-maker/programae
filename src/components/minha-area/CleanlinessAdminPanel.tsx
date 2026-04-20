@@ -91,6 +91,32 @@ export function CleanlinessAdminPanel() {
 
         {/* Lista em tempo real */}
         <div>
+          {stats.total > 0 && (
+            <div className="mb-4">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Distribuição das notas
+              </p>
+              <div className="space-y-1.5">
+                {stats.buckets.map((b) => (
+                  <div key={b.label} className="flex items-center gap-2">
+                    <span className={cn('w-10 text-xs font-semibold tabular-nums', b.text)}>
+                      {b.label}
+                    </span>
+                    <div className="relative h-5 flex-1 overflow-hidden rounded-md bg-muted">
+                      <div
+                        className={cn('h-full rounded-md transition-all', b.color)}
+                        style={{ width: `${b.pct}%` }}
+                      />
+                    </div>
+                    <span className="w-16 text-right text-xs font-medium tabular-nums text-muted-foreground">
+                      {b.count} ({b.pct}%)
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Respostas (tempo real)
           </p>
