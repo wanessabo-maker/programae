@@ -104,6 +104,7 @@ export function useWeeklyCleanlinessList() {
         { event: '*', schema: 'public', table: 'store_cleanliness_checks' },
         () => {
           queryClient.invalidateQueries({ queryKey: ['cleanliness-week-list'] });
+          queryClient.invalidateQueries({ queryKey: ['cleanliness-month-list'] });
         }
       )
       .subscribe();
@@ -113,4 +114,25 @@ export function useWeeklyCleanlinessList() {
   }, [queryClient]);
 
   return query;
+}
+
+// All checks for current month (admin view)
+export function useMonthlyCleanlinessList() {
+  const now = new Date();
+  const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const monthEnd = `${nextMonth.getFullYear()}-${String(nextMonth.getMonth() + 1).padStart(2, '0')}-01`;
+
+  return useQuery({
+    queryKey: ['cleanliness-month-list', monthStart],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('store_cleanliness_checks')
+        .select('id, rating, checked_at, week_start')
+        .gte('checked_at', monthStart)
+        .lt('checked_at', monthEnd);
+      if (error) throw error;
+      return data || [];
+    },
+  });
 }
