@@ -4,7 +4,7 @@ import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useWeeklyCleanlinessList, getCurrentWeekStart } from '@/hooks/useStoreCleanliness';
+import { useWeeklyCleanlinessList, useMonthlyCleanlinessList, getCurrentWeekStart } from '@/hooks/useStoreCleanliness';
 import { useTeamMembers } from '@/hooks/useDatabase';
 import { cn } from '@/lib/utils';
 
@@ -28,6 +28,7 @@ const fmt = (n: number) => Number(n).toFixed(1).replace('.', ',');
 
 export function CleanlinessAdminPanel() {
   const { data: checks = [], isLoading } = useWeeklyCleanlinessList();
+  const { data: monthChecks = [] } = useMonthlyCleanlinessList();
   const { data: allMembers = [] } = useTeamMembers();
 
   const stats = useMemo(() => {
@@ -53,7 +54,13 @@ export function CleanlinessAdminPanel() {
     return { total, avg, pending, totalActive: activeMembers.length, buckets };
   }, [checks, allMembers]);
 
+  const monthAvg = useMemo(() => {
+    if (!monthChecks.length) return 0;
+    return monthChecks.reduce((acc: number, c: any) => acc + Number(c.rating), 0) / monthChecks.length;
+  }, [monthChecks]);
+
   const weekLabel = format(parseISO(getCurrentWeekStart()), "'Semana de' dd 'de' MMMM", { locale: ptBR });
+  const monthLabel = format(new Date(), "MMMM 'de' yyyy", { locale: ptBR });
 
   return (
     <Card className="border-border">
@@ -71,13 +78,23 @@ export function CleanlinessAdminPanel() {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Avg + summary */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
           <div className="rounded-md border border-border bg-background p-3">
             <p className="text-xs text-muted-foreground">Média da semana</p>
             <p className="mt-1 text-3xl font-bold text-foreground">
               {stats.total ? fmt(stats.avg) : '—'}
               <span className="ml-1 text-base font-normal text-muted-foreground">/ 5</span>
             </p>
+          </div>
+          <div className="rounded-md border border-border bg-background p-3">
+            <p className="text-xs text-muted-foreground">
+              Média do mês <span className="capitalize">({monthLabel})</span>
+            </p>
+            <p className="mt-1 text-3xl font-bold text-foreground">
+              {monthChecks.length ? fmt(monthAvg) : '—'}
+              <span className="ml-1 text-base font-normal text-muted-foreground">/ 5</span>
+            </p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">{monthChecks.length} avaliações</p>
           </div>
           <div className="rounded-md border border-border bg-background p-3">
             <p className="text-xs text-muted-foreground">Respostas</p>
