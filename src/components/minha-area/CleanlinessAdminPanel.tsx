@@ -9,14 +9,22 @@ import { useTeamMembers } from '@/hooks/useDatabase';
 import { cn } from '@/lib/utils';
 
 const ratingColor = (r: number) => {
-  if (r <= 1) return 'bg-destructive/15 text-destructive border-destructive/30';
-  if (r === 2) return 'bg-amber-500/15 text-amber-600 border-amber-500/30 dark:text-amber-400';
-  if (r === 3) return 'bg-yellow-500/15 text-yellow-700 border-yellow-500/30 dark:text-yellow-400';
+  if (r < 2) return 'bg-destructive/15 text-destructive border-destructive/30';
+  if (r < 3) return 'bg-amber-500/15 text-amber-600 border-amber-500/30 dark:text-amber-400';
+  if (r < 4) return 'bg-yellow-500/15 text-yellow-700 border-yellow-500/30 dark:text-yellow-400';
   return 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30 dark:text-emerald-400';
 };
 
-const ratingLabel = (r: number) =>
-  ({ 0: 'Muito ruim', 1: 'Ruim', 2: 'Regular', 3: 'Boa', 4: 'Ótima', 5: 'Muito boa' } as Record<number, string>)[r];
+const ratingLabel = (r: number) => {
+  if (r < 1) return 'Muito ruim';
+  if (r < 2) return 'Ruim';
+  if (r < 3) return 'Regular';
+  if (r < 4) return 'Boa';
+  if (r < 5) return 'Ótima';
+  return 'Muito boa';
+};
+
+const fmt = (n: number) => Number(n).toFixed(1).replace('.', ',');
 
 export function CleanlinessAdminPanel() {
   const { data: checks = [], isLoading } = useWeeklyCleanlinessList();
