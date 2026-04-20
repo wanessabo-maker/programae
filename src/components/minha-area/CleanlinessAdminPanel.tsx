@@ -61,7 +61,7 @@ export function CleanlinessAdminPanel() {
           <div className="rounded-md border border-border bg-background p-3">
             <p className="text-xs text-muted-foreground">Média da semana</p>
             <p className="mt-1 text-3xl font-bold text-foreground">
-              {stats.total ? stats.avg.toFixed(1) : '—'}
+              {stats.total ? fmt(stats.avg) : '—'}
               <span className="ml-1 text-base font-normal text-muted-foreground">/ 5</span>
             </p>
           </div>
@@ -100,7 +100,7 @@ export function CleanlinessAdminPanel() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant="outline" className={cn('font-semibold', ratingColor(c.rating))}>
-                      {c.rating} • {ratingLabel(c.rating)}
+                      {fmt(c.rating)} • {ratingLabel(c.rating)}
                     </Badge>
                   </div>
                 </li>
