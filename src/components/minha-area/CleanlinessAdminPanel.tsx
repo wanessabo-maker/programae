@@ -9,14 +9,22 @@ import { useTeamMembers } from '@/hooks/useDatabase';
 import { cn } from '@/lib/utils';
 
 const ratingColor = (r: number) => {
-  if (r <= 1) return 'bg-destructive/15 text-destructive border-destructive/30';
-  if (r === 2) return 'bg-amber-500/15 text-amber-600 border-amber-500/30 dark:text-amber-400';
-  if (r === 3) return 'bg-yellow-500/15 text-yellow-700 border-yellow-500/30 dark:text-yellow-400';
+  if (r < 2) return 'bg-destructive/15 text-destructive border-destructive/30';
+  if (r < 3) return 'bg-amber-500/15 text-amber-600 border-amber-500/30 dark:text-amber-400';
+  if (r < 4) return 'bg-yellow-500/15 text-yellow-700 border-yellow-500/30 dark:text-yellow-400';
   return 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30 dark:text-emerald-400';
 };
 
-const ratingLabel = (r: number) =>
-  ({ 0: 'Muito ruim', 1: 'Ruim', 2: 'Regular', 3: 'Boa', 4: 'Ótima', 5: 'Muito boa' } as Record<number, string>)[r];
+const ratingLabel = (r: number) => {
+  if (r < 1) return 'Muito ruim';
+  if (r < 2) return 'Ruim';
+  if (r < 3) return 'Regular';
+  if (r < 4) return 'Boa';
+  if (r < 5) return 'Ótima';
+  return 'Muito boa';
+};
+
+const fmt = (n: number) => Number(n).toFixed(1).replace('.', ',');
 
 export function CleanlinessAdminPanel() {
   const { data: checks = [], isLoading } = useWeeklyCleanlinessList();
@@ -53,7 +61,7 @@ export function CleanlinessAdminPanel() {
           <div className="rounded-md border border-border bg-background p-3">
             <p className="text-xs text-muted-foreground">Média da semana</p>
             <p className="mt-1 text-3xl font-bold text-foreground">
-              {stats.total ? stats.avg.toFixed(1) : '—'}
+              {stats.total ? fmt(stats.avg) : '—'}
               <span className="ml-1 text-base font-normal text-muted-foreground">/ 5</span>
             </p>
           </div>
@@ -92,7 +100,7 @@ export function CleanlinessAdminPanel() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant="outline" className={cn('font-semibold', ratingColor(c.rating))}>
-                      {c.rating} • {ratingLabel(c.rating)}
+                      {fmt(c.rating)} • {ratingLabel(c.rating)}
                     </Badge>
                   </div>
                 </li>

@@ -54,12 +54,13 @@ export function useSubmitCleanlinessCheck() {
   return useMutation({
     mutationFn: async (rating: number) => {
       if (!member?.id) throw new Error('Sem team member');
+      const safe = Math.max(0, Math.min(5, Math.round(rating * 10) / 10));
       const { error } = await supabase
         .from('store_cleanliness_checks')
         .upsert(
           {
             team_member_id: member.id,
-            rating,
+            rating: safe,
             week_start: weekStart,
             checked_at: new Date().toISOString(),
           },
