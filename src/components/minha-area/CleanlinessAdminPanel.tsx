@@ -58,6 +58,40 @@ export function CleanlinessAdminPanel() {
   const { data: checks = [], isLoading } = useWeeklyCleanlinessList();
   const { data: monthChecks = [] } = useMonthlyCleanlinessList();
   const { data: allMembers = [] } = useTeamMembers();
+  const { isAdmin } = useAuthContext();
+  const updateCheck = useUpdateCleanlinessCheck();
+  const deleteCheck = useDeleteCleanlinessCheck();
+
+  const [editing, setEditing] = useState<{ id: string; name: string; rating: number } | null>(null);
+  const [editValue, setEditValue] = useState<number>(0);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const openEdit = (id: string, name: string, rating: number) => {
+    setEditing({ id, name, rating });
+    setEditValue(rating);
+  };
+
+  const saveEdit = async () => {
+    if (!editing) return;
+    try {
+      await updateCheck.mutateAsync({ id: editing.id, rating: editValue });
+      toast.success('Avaliação atualizada');
+      setEditing(null);
+    } catch (e: any) {
+      toast.error(e?.message || 'Falha ao atualizar');
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingId) return;
+    try {
+      await deleteCheck.mutateAsync(deletingId);
+      toast.success('Avaliação excluída');
+      setDeletingId(null);
+    } catch (e: any) {
+      toast.error(e?.message || 'Falha ao excluir');
+    }
+  };
 
   const stats = useMemo(() => {
     const activeMembers = allMembers.filter((m: any) => m.active !== false);
