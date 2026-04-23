@@ -1,12 +1,40 @@
-import { useMemo } from 'react';
-import { Sparkles, Users } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Sparkles, Users, Pencil, Trash2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useWeeklyCleanlinessList, useMonthlyCleanlinessList, getCurrentWeekStart } from '@/hooks/useStoreCleanliness';
+import {
+  useWeeklyCleanlinessList,
+  useMonthlyCleanlinessList,
+  getCurrentWeekStart,
+  useUpdateCleanlinessCheck,
+  useDeleteCleanlinessCheck,
+} from '@/hooks/useStoreCleanliness';
 import { useTeamMembers } from '@/hooks/useDatabase';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 const ratingColor = (r: number) => {
   if (r < 2) return 'bg-destructive/15 text-destructive border-destructive/30';
