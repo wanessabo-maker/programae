@@ -221,6 +221,28 @@ export function CleanlinessAdminPanel() {
                     <Badge variant="outline" className={cn('font-semibold', ratingColor(c.rating))}>
                       {fmt(c.rating)} • {ratingLabel(c.rating)}
                     </Badge>
+                    {isAdmin && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          title="Editar avaliação"
+                          onClick={() => openEdit(c.id, c.team_member?.name || 'Colaborador', c.rating)}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
+                          title="Excluir avaliação"
+                          onClick={() => setDeletingId(c.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </li>
               ))}
@@ -244,6 +266,63 @@ export function CleanlinessAdminPanel() {
           </div>
         )}
       </CardContent>
+
+      {/* Edit Dialog */}
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar avaliação</DialogTitle>
+            <DialogDescription>
+              {editing?.name} — ajuste a nota entre 0 e 5 (1 casa decimal).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <Slider
+              value={[editValue]}
+              min={0}
+              max={5}
+              step={0.1}
+              onValueChange={(v) => setEditValue(v[0] ?? 0)}
+            />
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Nota</span>
+              <span className="text-2xl font-bold tabular-nums">
+                {fmt(editValue)} <span className="text-sm font-normal text-muted-foreground">/ 5</span>
+              </span>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditing(null)} disabled={updateCheck.isPending}>
+              Cancelar
+            </Button>
+            <Button onClick={saveEdit} disabled={updateCheck.isPending}>
+              {updateCheck.isPending ? 'Salvando…' : 'Salvar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirm */}
+      <AlertDialog open={!!deletingId} onOpenChange={(o) => !o && setDeletingId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir avaliação?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. O colaborador poderá votar novamente nesta semana.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteCheck.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              disabled={deleteCheck.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteCheck.isPending ? 'Excluindo…' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
