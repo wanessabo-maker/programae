@@ -197,17 +197,17 @@ export function CleanlinessAdminPanel() {
           )}
 
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Respostas (tempo real)
+            Respostas do mês <span className="capitalize text-muted-foreground/80">({monthLabel})</span>
           </p>
           {isLoading ? (
             <p className="text-sm text-muted-foreground">Carregando…</p>
-          ) : checks.length === 0 ? (
+          ) : monthChecks.length === 0 ? (
             <p className="rounded-md border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
-              Nenhuma avaliação registrada esta semana ainda.
+              Nenhuma avaliação registrada neste mês ainda.
             </p>
           ) : (
             <ul className="divide-y divide-border rounded-md border border-border">
-              {checks.map((c) => (
+              {monthChecks.map((c: any) => (
                 <li key={c.id} className="flex flex-col gap-2 p-3">
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
