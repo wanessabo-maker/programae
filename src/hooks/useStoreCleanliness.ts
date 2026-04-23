@@ -136,6 +136,8 @@ export function useWeeklyCleanlinessList() {
     refetchOnWindowFocus: true,
     refetchOnMount: 'always',
     staleTime: 0,
+    refetchInterval: 5000,
+    refetchIntervalInBackground: true,
   });
 
   useEffect(() => {
@@ -145,23 +147,19 @@ export function useWeeklyCleanlinessList() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'store_cleanliness_checks' },
-        () => {
+        (payload) => {
+          console.log('[cleanliness] realtime event', payload);
           queryClient.invalidateQueries({ queryKey: ['cleanliness-week-list'] });
           queryClient.invalidateQueries({ queryKey: ['cleanliness-month-list'] });
           queryClient.invalidateQueries({ queryKey: ['cleanliness-my-week'] });
         }
       )
-      .subscribe();
-
-    // Polling de segurança a cada 30s caso o realtime caia
-    const interval = setInterval(() => {
-      queryClient.invalidateQueries({ queryKey: ['cleanliness-week-list'] });
-      queryClient.invalidateQueries({ queryKey: ['cleanliness-month-list'] });
-    }, 30000);
+      .subscribe((status) => {
+        console.log('[cleanliness] channel status:', status);
+      });
 
     return () => {
       supabase.removeChannel(channel);
-      clearInterval(interval);
     };
   }, [queryClient]);
 
