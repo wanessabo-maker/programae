@@ -75,6 +75,45 @@ export function useSubmitCleanlinessCheck() {
   });
 }
 
+// Update an existing rating (admin)
+export function useUpdateCleanlinessCheck() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, rating }: { id: string; rating: number }) => {
+      const safe = Math.max(0, Math.min(5, Math.round(rating * 10) / 10));
+      const { error } = await supabase
+        .from('store_cleanliness_checks')
+        .update({ rating: safe })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cleanliness-week-list'] });
+      queryClient.invalidateQueries({ queryKey: ['cleanliness-month-list'] });
+      queryClient.invalidateQueries({ queryKey: ['cleanliness-my-week'] });
+    },
+  });
+}
+
+// Delete a rating (admin)
+export function useDeleteCleanlinessCheck() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('store_cleanliness_checks')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cleanliness-week-list'] });
+      queryClient.invalidateQueries({ queryKey: ['cleanliness-month-list'] });
+      queryClient.invalidateQueries({ queryKey: ['cleanliness-my-week'] });
+    },
+  });
+}
+
 // All checks for current week (admin view) with realtime
 export function useWeeklyCleanlinessList() {
   const queryClient = useQueryClient();
