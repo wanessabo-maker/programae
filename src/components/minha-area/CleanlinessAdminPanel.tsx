@@ -56,7 +56,7 @@ const fmt = (n: number) => Number(n).toFixed(1).replace('.', ',');
 
 export function CleanlinessAdminPanel() {
   const { data: checks = [], isLoading } = useWeeklyCleanlinessList();
-  const { data: monthChecks = [] } = useMonthlyCleanlinessList();
+  const { data: monthChecks = [] } = useMonthlyCleanlinessList() as { data: any[] };
   const { data: allMembers = [] } = useTeamMembers();
   const { isAdmin } = useAuthContext();
   const updateCheck = useUpdateCleanlinessCheck();
