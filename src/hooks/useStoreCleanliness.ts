@@ -94,22 +94,35 @@ export function useWeeklyCleanlinessList() {
         team_member: row.team_members,
       })) as CleanlinessCheck[];
     },
+    refetchOnWindowFocus: true,
+    refetchOnMount: 'always',
+    staleTime: 0,
   });
 
   useEffect(() => {
+    const channelName = `cleanliness-realtime-${Math.random().toString(36).slice(2)}`;
     const channel = supabase
-      .channel('cleanliness-realtime')
+      .channel(channelName)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'store_cleanliness_checks' },
         () => {
           queryClient.invalidateQueries({ queryKey: ['cleanliness-week-list'] });
           queryClient.invalidateQueries({ queryKey: ['cleanliness-month-list'] });
+          queryClient.invalidateQueries({ queryKey: ['cleanliness-my-week'] });
         }
       )
       .subscribe();
+
+    // Polling de segurança a cada 30s caso o realtime caia
+    const interval = setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: ['cleanliness-week-list'] });
+      queryClient.invalidateQueries({ queryKey: ['cleanliness-month-list'] });
+    }, 30000);
+
     return () => {
       supabase.removeChannel(channel);
+      clearInterval(interval);
     };
   }, [queryClient]);
 
