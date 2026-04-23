@@ -124,13 +124,24 @@ export function useWeeklyCleanlinessList() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('store_cleanliness_checks')
-        .select('id, team_member_id, rating, notes, checked_at, week_start, team_members(id, name)')
+        .select('id, team_member_id, rating, notes, checked_at, week_start')
         .eq('week_start', weekStart)
         .order('checked_at', { ascending: false });
       if (error) throw error;
-      return (data || []).map((row: any) => ({
+      const rows = data || [];
+      const ids = Array.from(new Set(rows.map((r: any) => r.team_member_id).filter(Boolean)));
+      let membersById: Record<string, { id: string; name: string }> = {};
+      if (ids.length) {
+        const { data: members, error: memErr } = await supabase
+          .from('team_members')
+          .select('id, name')
+          .in('id', ids);
+        if (memErr) throw memErr;
+        membersById = Object.fromEntries((members || []).map((m: any) => [m.id, m]));
+      }
+      return rows.map((row: any) => ({
         ...row,
-        team_member: row.team_members,
+        team_member: membersById[row.team_member_id] || null,
       })) as CleanlinessCheck[];
     },
     refetchOnWindowFocus: true,
