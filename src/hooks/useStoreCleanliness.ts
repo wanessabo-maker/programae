@@ -22,6 +22,7 @@ export interface CleanlinessCheck {
   notes: string | null;
   checked_at: string;
   week_start: string;
+  photos?: string[] | null;
   team_member?: { id: string; name: string } | null;
 }
 
@@ -52,15 +53,18 @@ export function useSubmitCleanlinessCheck() {
   const weekStart = getCurrentWeekStart();
 
   return useMutation({
-    mutationFn: async (rating: number) => {
+    mutationFn: async (input: number | { rating: number; notes?: string | null; photos?: string[] }) => {
       if (!member?.id) throw new Error('Sem team member');
-      const safe = Math.max(0, Math.min(5, Math.round(rating * 10) / 10));
+      const payload = typeof input === 'number' ? { rating: input } : input;
+      const safe = Math.max(0, Math.min(5, Math.round(payload.rating * 10) / 10));
       const { error } = await supabase
         .from('store_cleanliness_checks')
         .upsert(
           {
             team_member_id: member.id,
             rating: safe,
+            notes: payload.notes ?? null,
+            photos: payload.photos ?? [],
             week_start: weekStart,
             checked_at: new Date().toISOString(),
           },
@@ -124,7 +128,7 @@ export function useWeeklyCleanlinessList() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('store_cleanliness_checks')
-        .select('id, team_member_id, rating, notes, checked_at, week_start')
+        .select('id, team_member_id, rating, notes, photos, checked_at, week_start')
         .eq('week_start', weekStart)
         .order('checked_at', { ascending: false });
       if (error) throw error;

@@ -1547,6 +1547,7 @@ export type Database = {
           created_at: string
           id: string
           notes: string | null
+          photos: string[]
           rating: number
           team_member_id: string
           week_start: string
@@ -1556,6 +1557,7 @@ export type Database = {
           created_at?: string
           id?: string
           notes?: string | null
+          photos?: string[]
           rating: number
           team_member_id: string
           week_start?: string
@@ -1565,6 +1567,7 @@ export type Database = {
           created_at?: string
           id?: string
           notes?: string | null
+          photos?: string[]
           rating?: number
           team_member_id?: string
           week_start?: string
