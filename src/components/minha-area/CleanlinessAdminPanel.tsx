@@ -208,42 +208,64 @@ export function CleanlinessAdminPanel() {
           ) : (
             <ul className="divide-y divide-border rounded-md border border-border">
               {checks.map((c) => (
-                <li key={c.id} className="flex items-center justify-between gap-3 p-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-foreground">
-                      {c.team_member?.name || 'Colaborador'}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {format(parseISO(c.checked_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
-                    </p>
+                <li key={c.id} className="flex flex-col gap-2 p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {c.team_member?.name || 'Colaborador'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {format(parseISO(c.checked_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className={cn('font-semibold', ratingColor(c.rating))}>
+                        {fmt(c.rating)} • {ratingLabel(c.rating)}
+                      </Badge>
+                      {isAdmin && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            title="Editar avaliação"
+                            onClick={() => openEdit(c.id, c.team_member?.name || 'Colaborador', c.rating)}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive hover:text-destructive"
+                            title="Excluir avaliação"
+                            onClick={() => setDeletingId(c.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className={cn('font-semibold', ratingColor(c.rating))}>
-                      {fmt(c.rating)} • {ratingLabel(c.rating)}
-                    </Badge>
-                    {isAdmin && (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          title="Editar avaliação"
-                          onClick={() => openEdit(c.id, c.team_member?.name || 'Colaborador', c.rating)}
+                  {c.notes && (
+                    <p className="rounded-md bg-muted/50 p-2 text-xs text-foreground/90 whitespace-pre-wrap">
+                      {c.notes}
+                    </p>
+                  )}
+                  {Array.isArray(c.photos) && c.photos.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {c.photos.map((url) => (
+                        <a
+                          key={url}
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="h-16 w-16 overflow-hidden rounded-md border border-border transition-opacity hover:opacity-80"
                         >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-destructive hover:text-destructive"
-                          title="Excluir avaliação"
-                          onClick={() => setDeletingId(c.id)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </>
-                    )}
-                  </div>
+                          <img src={url} alt="Foto da avaliação" className="h-full w-full object-cover" />
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
