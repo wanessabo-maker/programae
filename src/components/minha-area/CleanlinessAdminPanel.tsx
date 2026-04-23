@@ -211,7 +211,7 @@ export function CleanlinessAdminPanel() {
                 <li key={c.id} className="flex flex-col gap-2 p-3">
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-foreground">
+                      <p className="truncate text-base font-bold text-card-foreground">
                         {c.team_member?.name || 'Colaborador'}
                       </p>
                       <p className="text-xs text-muted-foreground">
