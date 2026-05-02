@@ -4,6 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppProvider } from "@/contexts/AppContext";
+import { SetupProvider } from "@/contexts/SetupContext";
+import { ComercialProvider } from "@/contexts/ComercialContext";
 import { AuthProvider, useAuthContext } from "@/contexts/AuthContext";
 import { Layout } from "@/components/Layout";
 import Index from "./pages/Index";
@@ -182,15 +184,19 @@ function AppRoutes() {
 // Separate component that uses auth context - must be inside AuthProvider
 function AuthenticatedApp() {
   return (
-    <AppProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </TooltipProvider>
-    </AppProvider>
+    <SetupProvider>
+      <ComercialProvider>
+        <AppProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <AppRoutes />
+            </BrowserRouter>
+          </TooltipProvider>
+        </AppProvider>
+      </ComercialProvider>
+    </SetupProvider>
   );
 }
 
