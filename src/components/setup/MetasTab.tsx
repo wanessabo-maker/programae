@@ -91,10 +91,11 @@ export function MetasTab() {
     return metas.filter(m => {
       if (m.areaId !== areaId) return false;
       if (!m.teamMemberId) return false;
-      // Está dentro do intervalo do mês
+      // Considera meta do mês quando a data inicial cai dentro do mês
+      // selecionado. Isso cobre tanto o formato novo (start=01, end=último dia)
+      // quanto o legado "personalizada" (start=01, end=01 do mês seguinte).
       const start = m.startDate || '';
-      const end   = m.endDate || '';
-      return start === mesStart && end === mesEnd;
+      return start >= mesStart && start <= mesEnd;
     });
   }, [metas, areaId, mesStart, mesEnd]);
 
@@ -163,10 +164,11 @@ export function MetasTab() {
     const startAnterior = formatLocalDate(startOfMonth(mesAnterior));
     const endAnterior   = formatLocalDate(endOfMonth(mesAnterior));
 
-    const metasAnterior = metas.filter(m =>
-      m.areaId === areaId && m.teamMemberId &&
-      m.startDate === startAnterior && m.endDate === endAnterior
-    );
+    const metasAnterior = metas.filter(m => {
+      if (m.areaId !== areaId || !m.teamMemberId) return false;
+      const s = m.startDate || '';
+      return s >= startAnterior && s <= endAnterior;
+    });
 
     if (metasAnterior.length === 0) {
       toast.error('Nenhuma meta encontrada no mês anterior');
