@@ -493,6 +493,20 @@ export function useUpdateAction() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['actions'] });
       queryClient.invalidateQueries({ queryKey: ['professionals'] });
+      // Indicadores e dashboards derivados de ações precisam revalidar
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['credit_transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['project_value_history'] });
+      queryClient.invalidateQueries({ queryKey: ['project_environments'] });
+      // Indicadores comerciais / projetos / dashboard
+      queryClient.invalidateQueries({ queryKey: ['commercial-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['project-indicators-envs-v2'] });
+      queryClient.invalidateQueries({ queryKey: ['project-indicators-all-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['carteira-flutuante-presentations'] });
+      queryClient.invalidateQueries({ queryKey: ['carteira-flutuante-value-history'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-action-presented-values'] });
+      queryClient.invalidateQueries({ queryKey: ['consultant_balance'] });
     },
     onError: onMutationError('atualizar ação'),
   });
