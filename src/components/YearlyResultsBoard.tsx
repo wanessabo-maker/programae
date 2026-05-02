@@ -93,85 +93,85 @@ export function YearlyResultsBoard() {
       <div className="card-flat overflow-x-auto hidden lg:block">
         <table className="w-full min-w-[900px]">
           <thead>
-            <tr className="border-b border-black">
+            <tr className="border-b-2 border-foreground/40">
               <th className="table-header text-left p-3 w-32">Indicador</th>
               {MONTH_LABELS.map((month, idx) => (
                 <th 
                   key={month} 
-                  className={`table-header text-center p-2 text-xs ${idx === currentMonth ? 'bg-primary/10' : ''}`}
+                  className={`table-header text-center p-2 text-xs ${idx === currentMonth ? 'bg-primary/25 ring-1 ring-primary/40' : ''}`}
                 >
                   {month}
                 </th>
               ))}
-              <th className="table-header text-center p-2 bg-muted font-bold">Total</th>
+              <th className="table-header text-center p-2 bg-foreground/10 font-bold">Total</th>
             </tr>
           </thead>
           <tbody>
             {/* Valor Vendido Row */}
-            <tr className="border-b border-black/10">
+            <tr className="border-b-2 border-foreground/40/10">
               <td className="p-3 text-sm font-medium">Valor Vendido</td>
               {monthlyData.map((data, idx) => (
                 <td 
                   key={idx} 
-                  className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/10 font-medium' : ''} ${idx > currentMonth ? 'text-muted-foreground/50' : ''}`}
+                  className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/25 ring-1 ring-primary/40 font-medium' : ''} ${idx > currentMonth ? 'text-muted-foreground/70' : ''}`}
                   title={formatFullCurrency(data.valorVendido)}
                 >
                   {formatCurrency(data.valorVendido)}
                 </td>
               ))}
-              <td className="p-2 text-center text-sm font-bold bg-muted" title={formatFullCurrency(totals.valorVendido)}>
+              <td className="p-2 text-center text-sm font-bold bg-foreground/10" title={formatFullCurrency(totals.valorVendido)}>
                 {formatCurrency(totals.valorVendido)}
               </td>
             </tr>
 
             {/* Ticket Médio Row */}
-            <tr className="border-b border-black/10">
+            <tr className="border-b-2 border-foreground/40/10">
               <td className="p-3 text-sm font-medium">Ticket Médio</td>
               {monthlyData.map((data, idx) => {
                 const ticketMedio = calcTicketMedio(data.valorVendido, data.contratosFechados);
                 return (
                   <td 
                     key={idx} 
-                    className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/10 font-medium' : ''} ${idx > currentMonth ? 'text-muted-foreground/50' : ''}`}
+                    className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/25 ring-1 ring-primary/40 font-medium' : ''} ${idx > currentMonth ? 'text-muted-foreground/70' : ''}`}
                      title={formatFullCurrency(ticketMedio)}
                   >
                      {formatCurrency(ticketMedio)}
                   </td>
                 );
               })}
-              <td className="p-2 text-center text-sm font-bold bg-muted" title={formatFullCurrency(calcTicketMedio(totals.valorVendido, totals.contratosFechados))}>
+              <td className="p-2 text-center text-sm font-bold bg-foreground/10" title={formatFullCurrency(calcTicketMedio(totals.valorVendido, totals.contratosFechados))}>
                 {formatCurrency(calcTicketMedio(totals.valorVendido, totals.contratosFechados))}
               </td>
             </tr>
 
             {/* Captações Row */}
-            <tr className="border-b border-black/10">
+            <tr className="border-b-2 border-foreground/40/10">
               <td className="p-3 text-sm font-medium">Captações</td>
               {monthlyData.map((data, idx) => (
                 <td 
                   key={idx} 
-                  className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/10 font-medium' : ''} ${idx > currentMonth ? 'text-muted-foreground/50' : ''}`}
+                  className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/25 ring-1 ring-primary/40 font-medium' : ''} ${idx > currentMonth ? 'text-muted-foreground/70' : ''}`}
                 >
                   {data.captacoes}
                 </td>
               ))}
-              <td className="p-2 text-center text-sm font-bold bg-muted">
+              <td className="p-2 text-center text-sm font-bold bg-foreground/10">
                 {totals.captacoes}
               </td>
             </tr>
 
             {/* Ações com Especificador Row */}
-            <tr className="border-b border-black/10 last:border-0">
+            <tr className="border-b-2 border-foreground/40/10 last:border-0">
               <td className="p-3 text-sm font-medium">Ações c/ Especificador</td>
               {monthlyData.map((data, idx) => (
                 <td 
                   key={idx} 
-                  className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/10 font-medium' : ''} ${idx > currentMonth ? 'text-muted-foreground/50' : ''}`}
+                  className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/25 ring-1 ring-primary/40 font-medium' : ''} ${idx > currentMonth ? 'text-muted-foreground/70' : ''}`}
                 >
                   {data.acoesComEspecificador}
                 </td>
               ))}
-              <td className="p-2 text-center text-sm font-bold bg-muted">
+              <td className="p-2 text-center text-sm font-bold bg-foreground/10">
                 {totals.acoesComEspecificador}
               </td>
             </tr>
@@ -183,12 +183,12 @@ export function YearlyResultsBoard() {
       <div className="card-flat overflow-x-auto hidden md:block lg:hidden">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-black">
+            <tr className="border-b-2 border-foreground/40">
               <th className="table-header text-left p-3">Indicador</th>
               {MONTH_LABELS.slice(0, 6).map((month, idx) => (
                 <th 
                   key={month} 
-                  className={`table-header text-center p-2 text-xs ${idx === currentMonth ? 'bg-primary/10' : ''}`}
+                  className={`table-header text-center p-2 text-xs ${idx === currentMonth ? 'bg-primary/25 ring-1 ring-primary/40' : ''}`}
                 >
                   {month}
                 </th>
@@ -196,37 +196,37 @@ export function YearlyResultsBoard() {
             </tr>
           </thead>
           <tbody>
-            <tr className="border-b border-black/10">
+            <tr className="border-b-2 border-foreground/40/10">
               <td className="p-3 text-sm font-medium">Valor Vendido</td>
               {monthlyData.slice(0, 6).map((data, idx) => (
-                <td key={idx} className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/10' : ''}`}>
+                <td key={idx} className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/25 ring-1 ring-primary/40' : ''}`}>
                   {formatCurrency(data.valorVendido)}
                 </td>
               ))}
             </tr>
-            <tr className="border-b border-black/10">
+            <tr className="border-b-2 border-foreground/40/10">
               <td className="p-3 text-sm font-medium">Ticket Médio</td>
               {monthlyData.slice(0, 6).map((data, idx) => {
                 const ticketMedio = calcTicketMedio(data.valorVendido, data.contratosFechados);
                 return (
-                  <td key={idx} className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/10' : ''}`}>
+                  <td key={idx} className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/25 ring-1 ring-primary/40' : ''}`}>
                     {formatCurrency(ticketMedio)}
                   </td>
                 );
               })}
             </tr>
-            <tr className="border-b border-black/10">
+            <tr className="border-b-2 border-foreground/40/10">
               <td className="p-3 text-sm font-medium">Captações</td>
               {monthlyData.slice(0, 6).map((data, idx) => (
-                <td key={idx} className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/10' : ''}`}>
+                <td key={idx} className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/25 ring-1 ring-primary/40' : ''}`}>
                   {data.captacoes}
                 </td>
               ))}
             </tr>
-            <tr className="border-b border-black/10">
+            <tr className="border-b-2 border-foreground/40/10">
               <td className="p-3 text-sm font-medium">Ações c/ Espec.</td>
               {monthlyData.slice(0, 6).map((data, idx) => (
-                <td key={idx} className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/10' : ''}`}>
+                <td key={idx} className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/25 ring-1 ring-primary/40' : ''}`}>
                   {data.acoesComEspecificador}
                 </td>
               ))}
@@ -235,60 +235,60 @@ export function YearlyResultsBoard() {
         </table>
         <table className="w-full mt-4">
           <thead>
-            <tr className="border-b border-black">
+            <tr className="border-b-2 border-foreground/40">
               <th className="table-header text-left p-3">Indicador</th>
               {MONTH_LABELS.slice(6).map((month, idx) => (
                 <th 
                   key={month} 
-                  className={`table-header text-center p-2 text-xs ${(idx + 6) === currentMonth ? 'bg-primary/10' : ''}`}
+                  className={`table-header text-center p-2 text-xs ${(idx + 6) === currentMonth ? 'bg-primary/25 ring-1 ring-primary/40' : ''}`}
                 >
                   {month}
                 </th>
               ))}
-              <th className="table-header text-center p-2 bg-muted">Total</th>
+              <th className="table-header text-center p-2 bg-foreground/10">Total</th>
             </tr>
           </thead>
           <tbody>
-            <tr className="border-b border-black/10">
+            <tr className="border-b-2 border-foreground/40/10">
               <td className="p-3 text-sm font-medium">Valor Vendido</td>
               {monthlyData.slice(6).map((data, idx) => (
-                <td key={idx} className={`p-2 text-center text-xs ${(idx + 6) === currentMonth ? 'bg-primary/10' : ''}`}>
+                <td key={idx} className={`p-2 text-center text-xs ${(idx + 6) === currentMonth ? 'bg-primary/25 ring-1 ring-primary/40' : ''}`}>
                   {formatCurrency(data.valorVendido)}
                 </td>
               ))}
-              <td className="p-2 text-center text-sm font-bold bg-muted">{formatCurrency(totals.valorVendido)}</td>
+              <td className="p-2 text-center text-sm font-bold bg-foreground/10">{formatCurrency(totals.valorVendido)}</td>
             </tr>
-            <tr className="border-b border-black/10">
+            <tr className="border-b-2 border-foreground/40/10">
               <td className="p-3 text-sm font-medium">Ticket Médio</td>
               {monthlyData.slice(6).map((data, idx) => {
                 const ticketMedio = calcTicketMedio(data.valorVendido, data.contratosFechados);
                 return (
-                  <td key={idx} className={`p-2 text-center text-xs ${(idx + 6) === currentMonth ? 'bg-primary/10' : ''}`}>
+                  <td key={idx} className={`p-2 text-center text-xs ${(idx + 6) === currentMonth ? 'bg-primary/25 ring-1 ring-primary/40' : ''}`}>
                     {formatCurrency(ticketMedio)}
                   </td>
                 );
               })}
-              <td className="p-2 text-center text-sm font-bold bg-muted">
+              <td className="p-2 text-center text-sm font-bold bg-foreground/10">
                 {formatCurrency(calcTicketMedio(totals.valorVendido, totals.contratosFechados))}
               </td>
             </tr>
-            <tr className="border-b border-black/10">
+            <tr className="border-b-2 border-foreground/40/10">
               <td className="p-3 text-sm font-medium">Captações</td>
               {monthlyData.slice(6).map((data, idx) => (
-                <td key={idx} className={`p-2 text-center text-xs ${(idx + 6) === currentMonth ? 'bg-primary/10' : ''}`}>
+                <td key={idx} className={`p-2 text-center text-xs ${(idx + 6) === currentMonth ? 'bg-primary/25 ring-1 ring-primary/40' : ''}`}>
                   {data.captacoes}
                 </td>
               ))}
-              <td className="p-2 text-center text-sm font-bold bg-muted">{totals.captacoes}</td>
+              <td className="p-2 text-center text-sm font-bold bg-foreground/10">{totals.captacoes}</td>
             </tr>
-            <tr className="border-b border-black/10">
+            <tr className="border-b-2 border-foreground/40/10">
               <td className="p-3 text-sm font-medium">Ações c/ Espec.</td>
               {monthlyData.slice(6).map((data, idx) => (
-                <td key={idx} className={`p-2 text-center text-xs ${(idx + 6) === currentMonth ? 'bg-primary/10' : ''}`}>
+                <td key={idx} className={`p-2 text-center text-xs ${(idx + 6) === currentMonth ? 'bg-primary/25 ring-1 ring-primary/40' : ''}`}>
                   {data.acoesComEspecificador}
                 </td>
               ))}
-              <td className="p-2 text-center text-sm font-bold bg-muted">{totals.acoesComEspecificador}</td>
+              <td className="p-2 text-center text-sm font-bold bg-foreground/10">{totals.acoesComEspecificador}</td>
             </tr>
           </tbody>
         </table>
