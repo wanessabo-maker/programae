@@ -1,1 +1,4 @@
 project_id = "jkhvejsczbmwpqimjjun"
+
+[functions.stale-projects-notify]
+verify_jwt = false

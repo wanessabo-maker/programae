@@ -6,6 +6,7 @@ import { usePositions } from '@/hooks/usePositions';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { RelatorioExecutivoButton } from '@/components/relatorio/RelatorioExecutivoButton';
 
 export default function IndicadoresTab() {
   const { isAdmin } = useAuthContext();
@@ -55,11 +56,14 @@ export default function IndicadoresTab() {
   if (visibleIndicators.length === 0) {
     return (
       <div className="space-y-4">
-        <MonthSelector
-          label={monthLabel}
-          onPrev={goToPrevMonth}
-          onNext={goToNextMonth}
-        />
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <MonthSelector
+            label={monthLabel}
+            onPrev={goToPrevMonth}
+            onNext={goToNextMonth}
+          />
+          {isAdmin && <RelatorioExecutivoButton year={selectedYear} month={selectedMonth} />}
+        </div>
         <p className="text-sm text-muted-foreground">
           Nenhum colaborador comercial encontrado para este período.
         </p>
@@ -69,12 +73,15 @@ export default function IndicadoresTab() {
 
   return (
     <div className="space-y-6">
-      {/* Month Selector */}
-      <MonthSelector
-        label={monthLabel}
-        onPrev={goToPrevMonth}
-        onNext={goToNextMonth}
-      />
+      {/* Month Selector + Export */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <MonthSelector
+          label={monthLabel}
+          onPrev={goToPrevMonth}
+          onNext={goToNextMonth}
+        />
+        {isAdmin && <RelatorioExecutivoButton year={selectedYear} month={selectedMonth} />}
+      </div>
 
       {/* Per-collaborator indicators */}
       {visibleIndicators.map(ind => (
