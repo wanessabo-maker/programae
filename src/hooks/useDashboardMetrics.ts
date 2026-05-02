@@ -1,0 +1,164 @@
+/**
+ * useDashboardMetrics
+ *
+ * FASE 2: Lógica de cálculo de métricas extraída do Dashboard.tsx (que tinha 861 linhas).
+ * Antes: cálculos de metas mensais, métricas por consultor e agrupamento por área
+ *        todos misturados no corpo do componente, re-calculados a cada render.
+ * Agora: lógica isolada e memoizada neste hook, Dashboard.tsx apenas renderiza.
+ */
+
+import { useMemo } from 'react';
+import { isThisMonth, parseISO } from 'date-fns';
+import { useApp } from '@/contexts/AppContext';
+import { usePositions } from '@/hooks/usePositions';
+import { useMonthlyEnvironmentStats } from '@/hooks/useProjectEnvironments';
+
+const PROJETOS_AREA_ID = 'aad0d175-cabd-490d-ae7d-53b97dc8edc4';
+
+export function useDashboardMetrics() {
+  const {
+    actions, metas, areas, teamMembers, actionTypes,
+    professionals, professionalCategories,
+  } = useApp();
+  const { getMemberAreaIds, getAreaName } = usePositions();
+
+  const currentDate = new Date();
+  const { data: envStats } = useMonthlyEnvironmentStats(currentDate.getFullYear(), currentDate.getMonth() + 1);
+
+  const activeMembers = useMemo(() => teamMembers.filter(m => m.active), [teamMembers]);
+
+  // Metas ativas (dentro do período de validade)
+  const activeMetas = useMemo(() => {
+    const today = new Date();
+    return metas.filter(m => {
+      if (!m.isActive) return false;
+      if (m.endDate && new Date(m.endDate) < today) return false;
+      if (m.startDate && new Date(m.startDate) > today) return false;
+      return true;
+    });
+  }, [metas]);
+
+  // Ações do mês corrente (evita refiltragem em cada métrica)
+  const thisMonthActions = useMemo(
+    () => actions.filter(a => isThisMonth(parseISO(a.date))),
+    [actions]
+  );
+
+  // Métricas gerais do mês (KPIs do topo do Dashboard)
+  const monthlyMetrics = useMemo(() => {
+    const totalSales = thisMonthActions
+      .filter(a => actionTypes.find(t => t.id === a.actionTypeId)?.classification === 'venda')
+      .reduce((sum, a) => sum + (a.value || 0), 0);
+
+    const totalCaptacoes = thisMonthActions.filter(a =>
+      actionTypes.find(t => t.id === a.actionTypeId)?.impactsMetas.includes('captacao')
+    ).length;
+
+    const membersWithIndividualAcoesMeta = activeMetas.filter(m => m.type === 'acoes' && m.teamMemberId).map(m => m.teamMemberId);
+    const areasWithAcoesMeta = activeMetas.filter(m => m.type === 'acoes' && !m.teamMemberId).map(m => m.areaId);
+    const membersWithAcoesMeta = activeMembers
+      .filter(m => {
+        if (membersWithIndividualAcoesMeta.includes(m.id)) return true;
+        const memberAreaIds = getMemberAreaIds(m.id);
+        return memberAreaIds.some(aid => areasWithAcoesMeta.includes(aid)) || areasWithAcoesMeta.includes(m.areaId);
+      })
+      .map(m => m.id);
+
+    const totalAcoes = thisMonthActions.filter(a => membersWithAcoesMeta.includes(a.consultantId)).length;
+
+    const salesMeta = activeMetas.filter(m => m.type === 'vendas').reduce((s, m) => s + m.value, 0);
+    const captacaoMeta = activeMetas.filter(m => m.type === 'captacao').reduce((s, m) => s + m.value, 0);
+    const acoesMeta = activeMetas.filter(m => m.type === 'acoes').reduce((s, m) => s + m.value, 0);
+
+    return {
+      sales: { value: totalSales, meta: salesMeta, percentage: salesMeta > 0 ? (totalSales / salesMeta) * 100 : 0 },
+      captacoes: { value: totalCaptacoes, meta: captacaoMeta, percentage: captacaoMeta > 0 ? (totalCaptacoes / captacaoMeta) * 100 : 0 },
+      acoes: { value: totalAcoes, meta: acoesMeta, percentage: acoesMeta > 0 ? (totalAcoes / acoesMeta) * 100 : 0 },
+    };
+  }, [thisMonthActions, activeMetas, actionTypes, activeMembers, getMemberAreaIds]);
+
+  // Métricas individuais por consultor
+  const consultantMetrics = useMemo(() => {
+    return activeMembers.map(member => {
+      const memberAreaIds = getMemberAreaIds(member.id);
+      const primaryAreaId = memberAreaIds[0] || member.areaId;
+      const primaryAreaName = primaryAreaId ? getAreaName(primaryAreaId) : '';
+      const isProjectsArea = memberAreaIds.includes(PROJETOS_AREA_ID) || primaryAreaId === PROJETOS_AREA_ID;
+
+      const memberActions = thisMonthActions.filter(a => a.consultantId === member.id);
+      const totalSales = memberActions
+        .filter(a => actionTypes.find(t => t.id === a.actionTypeId)?.classification === 'venda')
+        .reduce((s, a) => s + (a.value || 0), 0);
+      const totalAcoes = memberActions.length;
+
+      const memberProfessionals = professionals.filter(p => p.consultantId === member.id);
+      const categoryOrder = ['ENCANTADO', 'CURIOSO', 'DISTANTE'];
+      const categoryBreakdown = professionalCategories
+        .map(cat => ({ name: cat.name, count: memberProfessionals.filter(p => p.categoryId === cat.id).length }))
+        .sort((a, b) => {
+          const ai = categoryOrder.indexOf(a.name.toUpperCase());
+          const bi = categoryOrder.indexOf(b.name.toUpperCase());
+          if (ai !== -1 && bi !== -1) return ai - bi;
+          if (ai !== -1) return -1;
+          if (bi !== -1) return 1;
+          return 0;
+        });
+
+      const memberMetas = activeMetas.filter(m => m.teamMemberId === member.id);
+      const areaMetas = memberMetas.length > 0
+        ? memberMetas
+        : activeMetas.filter(m => m.areaId === member.areaId && !m.teamMemberId);
+
+      const metricsForArea: Array<{
+        type: string; label: string; value: number | string; meta: number;
+        percentage: number; isCurrency?: boolean; isCategory?: boolean; isPrimary?: boolean; order?: number;
+      }> = [];
+
+      areaMetas.filter(meta => meta.value > 1).forEach(meta => {
+        const v = meta.value;
+        if (meta.type === 'vendas') {
+          metricsForArea.push({ type: 'vendas', label: 'VENDAS', value: totalSales, meta: v, percentage: v > 0 ? (totalSales / v) * 100 : 0, isCurrency: true, isPrimary: true, order: 1 });
+        } else if (meta.type === 'captacao') {
+          const total = memberActions.filter(a => actionTypes.find(t => t.id === a.actionTypeId)?.impactsMetas.includes('captacao')).length;
+          metricsForArea.push({ type: 'captacao', label: 'CAPTAÇÃO', value: total, meta: v, percentage: v > 0 ? (total / v) * 100 : 0, isPrimary: true, order: 2 });
+        } else if (meta.type === 'acoes') {
+          metricsForArea.push({ type: 'acoes', label: 'AÇÕES', value: totalAcoes, meta: v, percentage: v > 0 ? (totalAcoes / v) * 100 : 0, isPrimary: true, order: 3 });
+        } else if (meta.type === 'projeto') {
+          const memberEnvStats = envStats?.byProjetista?.[member.id];
+          const totalAmbientes = memberEnvStats ? (memberEnvStats.apresentacao || 0) + (memberEnvStats.tecnico || 0) : 0;
+          metricsForArea.push({ type: 'projeto', label: 'AMBIENTES', value: totalAmbientes, meta: v, percentage: v > 0 ? (totalAmbientes / v) * 100 : 0, isPrimary: false, order: 4 });
+        } else if (meta.type === 'categoria' && meta.categoryId) {
+          const catCount = memberProfessionals.filter(p => p.categoryId === meta.categoryId).length;
+          const pct = memberProfessionals.length > 0 ? (catCount / memberProfessionals.length) * 100 : 0;
+          const category = professionalCategories.find(c => c.id === meta.categoryId);
+          metricsForArea.push({ type: `categoria-${meta.categoryId}`, label: `% ${category?.name?.toUpperCase() || 'CATEGORIA'}`, value: `${pct.toFixed(0)}%`, meta: v, percentage: v > 0 ? (pct / v) * 100 : 0, isCategory: true, isPrimary: false, order: 10 });
+        }
+      });
+
+      metricsForArea.sort((a, b) => (a.order || 99) - (b.order || 99));
+
+      return {
+        id: member.id, name: member.name, areaId: primaryAreaId, areaName: primaryAreaName,
+        isProjectsArea, metricsForArea, categoryBreakdown,
+        totalProfessionals: memberProfessionals.length,
+        actionCount: totalAcoes,
+        hasActions: totalAcoes > 0,
+      };
+    });
+  }, [activeMembers, thisMonthActions, activeMetas, actionTypes, professionals, professionalCategories, getMemberAreaIds, getAreaName, envStats]);
+
+  // Agrupamento por área para renderização
+  const consultantsByArea = useMemo(() => {
+    const grouped: Record<string, typeof consultantMetrics> = {};
+    consultantMetrics
+      .filter(c => c.metricsForArea.length > 0 || c.hasActions)
+      .forEach(c => {
+        const key = c.areaName || 'Sem Área';
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(c);
+      });
+    return grouped;
+  }, [consultantMetrics]);
+
+  return { monthlyMetrics, consultantMetrics, consultantsByArea, activeMetas, thisMonthActions };
+}
