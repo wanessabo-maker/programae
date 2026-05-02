@@ -93,85 +93,85 @@ export function YearlyResultsBoard() {
       <div className="card-flat overflow-x-auto hidden lg:block">
         <table className="w-full min-w-[900px]">
           <thead>
-            <tr className="border-b-2 border-foreground/40 bg-foreground/5">
-              <th className="table-header text-left p-3 w-32 text-foreground">Indicador</th>
+            <tr className="border-b border-black">
+              <th className="table-header text-left p-3 w-32">Indicador</th>
               {MONTH_LABELS.map((month, idx) => (
                 <th 
                   key={month} 
-                  className={`table-header text-center p-2 text-xs ${idx === currentMonth ? 'bg-primary/30 text-primary-foreground font-bold' : 'text-foreground/80'}`}
+                  className={`table-header text-center p-2 text-xs ${idx === currentMonth ? 'bg-primary/10' : ''}`}
                 >
                   {month}
                 </th>
               ))}
-              <th className="table-header text-center p-2 bg-foreground/15 text-foreground font-bold border-l border-foreground/30">Total</th>
+              <th className="table-header text-center p-2 bg-muted font-bold">Total</th>
             </tr>
           </thead>
           <tbody>
             {/* Valor Vendido Row */}
-            <tr className="border-b border-foreground/15 hover:bg-foreground/5 transition-colors">
-              <td className="p-3 text-sm font-semibold text-foreground">Valor Vendido</td>
+            <tr className="border-b border-black/10">
+              <td className="p-3 text-sm font-medium">Valor Vendido</td>
               {monthlyData.map((data, idx) => (
                 <td 
                   key={idx} 
-                  className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/20 font-bold text-foreground' : ''} ${idx > currentMonth ? 'text-foreground/35' : 'text-foreground'}`}
+                  className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/10 font-medium' : ''} ${idx > currentMonth ? 'text-muted-foreground/50' : ''}`}
                   title={formatFullCurrency(data.valorVendido)}
                 >
                   {formatCurrency(data.valorVendido)}
                 </td>
               ))}
-              <td className="p-2 text-center text-sm font-bold bg-foreground/15 text-foreground border-l border-foreground/30" title={formatFullCurrency(totals.valorVendido)}>
+              <td className="p-2 text-center text-sm font-bold bg-muted" title={formatFullCurrency(totals.valorVendido)}>
                 {formatCurrency(totals.valorVendido)}
               </td>
             </tr>
 
             {/* Ticket Médio Row */}
-            <tr className="border-b border-foreground/15 hover:bg-foreground/5 transition-colors">
-              <td className="p-3 text-sm font-semibold text-foreground">Ticket Médio</td>
+            <tr className="border-b border-black/10">
+              <td className="p-3 text-sm font-medium">Ticket Médio</td>
               {monthlyData.map((data, idx) => {
                 const ticketMedio = calcTicketMedio(data.valorVendido, data.contratosFechados);
                 return (
                   <td 
                     key={idx} 
-                    className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/20 font-bold text-foreground' : ''} ${idx > currentMonth ? 'text-foreground/35' : 'text-foreground'}`}
+                    className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/10 font-medium' : ''} ${idx > currentMonth ? 'text-muted-foreground/50' : ''}`}
                      title={formatFullCurrency(ticketMedio)}
                   >
                      {formatCurrency(ticketMedio)}
                   </td>
                 );
               })}
-              <td className="p-2 text-center text-sm font-bold bg-foreground/15 text-foreground border-l border-foreground/30" title={formatFullCurrency(calcTicketMedio(totals.valorVendido, totals.contratosFechados))}>
+              <td className="p-2 text-center text-sm font-bold bg-muted" title={formatFullCurrency(calcTicketMedio(totals.valorVendido, totals.contratosFechados))}>
                 {formatCurrency(calcTicketMedio(totals.valorVendido, totals.contratosFechados))}
               </td>
             </tr>
 
             {/* Captações Row */}
-            <tr className="border-b border-foreground/15 hover:bg-foreground/5 transition-colors">
-              <td className="p-3 text-sm font-semibold text-foreground">Captações</td>
+            <tr className="border-b border-black/10">
+              <td className="p-3 text-sm font-medium">Captações</td>
               {monthlyData.map((data, idx) => (
                 <td 
                   key={idx} 
-                  className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/20 font-bold text-foreground' : ''} ${idx > currentMonth ? 'text-foreground/35' : 'text-foreground'}`}
+                  className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/10 font-medium' : ''} ${idx > currentMonth ? 'text-muted-foreground/50' : ''}`}
                 >
                   {data.captacoes}
                 </td>
               ))}
-              <td className="p-2 text-center text-sm font-bold bg-foreground/15 text-foreground border-l border-foreground/30">
+              <td className="p-2 text-center text-sm font-bold bg-muted">
                 {totals.captacoes}
               </td>
             </tr>
 
             {/* Ações com Especificador Row */}
-            <tr className="border-b border-foreground/15 last:border-0 hover:bg-foreground/5 transition-colors">
-              <td className="p-3 text-sm font-semibold text-foreground">Ações c/ Especificador</td>
+            <tr className="border-b border-black/10 last:border-0">
+              <td className="p-3 text-sm font-medium">Ações c/ Especificador</td>
               {monthlyData.map((data, idx) => (
                 <td 
                   key={idx} 
-                  className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/20 font-bold text-foreground' : ''} ${idx > currentMonth ? 'text-foreground/35' : 'text-foreground'}`}
+                  className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/10 font-medium' : ''} ${idx > currentMonth ? 'text-muted-foreground/50' : ''}`}
                 >
                   {data.acoesComEspecificador}
                 </td>
               ))}
-              <td className="p-2 text-center text-sm font-bold bg-foreground/15 text-foreground border-l border-foreground/30">
+              <td className="p-2 text-center text-sm font-bold bg-muted">
                 {totals.acoesComEspecificador}
               </td>
             </tr>
