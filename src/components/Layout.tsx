@@ -77,6 +77,7 @@ export function Layout({ children }: LayoutProps) {
 
     // Add admin-only routes
     if (isAdmin) {
+      filteredItems.push({ path: '/gestora', label: 'Gestora', area: null });
       filteredItems.push({ path: '/usuarios', label: 'Usuários', area: null });
     }
 
