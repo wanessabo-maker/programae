@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { generateCSActionsForCase } from '@/hooks/useCustomerSuccess';
 
 export interface Project {
   id: string;
@@ -32,6 +34,7 @@ export const PROJECT_STAGES = [
   { id: 'em_negociacao', name: 'Em Negociação', color: 'bg-yellow-500/20' },
   { id: 'closed_lost', name: 'Perdido', color: 'bg-red-500/20' },
   { id: 'closed_won', name: 'Vendido', color: 'bg-green-500/20' },
+  { id: 'delivered', name: 'Entregue', color: 'bg-blue-500/20' },
 ] as const;
 
 export function useProjects() {
@@ -101,15 +104,84 @@ export function useUpdateProject() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Project> & { id: string }) => {
-      const { data, error } = await supabase.from('projects').update(updates).eq('id', id).select().single();
+      const { data, error } = await supabase
+        .from('projects')
+        .update(updates)
+        .eq('id', id)
+        .select('*, clients(name, contract_number), responsible:team_members!projects_responsible_id_fkey(name)')
+        .single();
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: async (updatedProject: any) => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.refetchQueries({ queryKey: ['projects'] });
+      if (updatedProject?.stage === 'delivered' || updatedProject?.actual_delivery) {
+        await autoCreateCSCase(updatedProject, queryClient);
+      }
     },
   });
+}
+
+async function autoCreateCSCase(project: any, queryClient: any) {
+  try {
+    const { data: existingCase } = await supabase
+      .from('cs_cases')
+      .select('id')
+      .eq('project_id', project.id)
+      .maybeSingle();
+    if (existingCase) return;
+
+    const { data: schedules, error: schedulesError } = await supabase
+      .from('cs_contact_schedules')
+      .select('*')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true });
+    if (schedulesError || !schedules?.length) {
+      console.error('CS: cronograma de contatos não encontrado', schedulesError);
+      return;
+    }
+
+    const signatureDate = project.actual_delivery
+      || project.expected_delivery
+      || new Date().toISOString().split('T')[0];
+
+    const contractNumber = project.clients?.contract_number
+      || project.focco_project_number
+      || `CS-${project.id.slice(0, 8).toUpperCase()}`;
+
+    const { data: newCase, error: caseError } = await supabase
+      .from('cs_cases')
+      .insert({
+        client_id: project.client_id,
+        project_id: project.id,
+        contract_number: contractNumber,
+        signature_date: signatureDate,
+        responsible_id: project.responsible_id,
+        status: 'active',
+        notes: `Caso criado automaticamente após entrega do projeto em ${signatureDate}.`,
+      })
+      .select()
+      .single();
+    if (caseError) throw caseError;
+
+    await generateCSActionsForCase(newCase.id, signatureDate, schedules);
+
+    queryClient.invalidateQueries({ queryKey: ['cs_cases'] });
+    queryClient.invalidateQueries({ queryKey: ['cs_actions'] });
+
+    const clientName = project.clients?.name || 'Cliente';
+    toast.success(`CS aberto automaticamente para ${clientName}`, {
+      description: `${schedules.length} contato(s) agendado(s) a partir de ${signatureDate}`,
+      duration: 6000,
+    });
+  } catch (err: any) {
+    console.error('Erro ao criar CS automático:', err);
+    toast.error('Atenção: não foi possível criar o caso CS automaticamente', {
+      description: 'Acesse CS & AT para criar manualmente.',
+      duration: 8000,
+    });
+  }
 }
 
 export function useDeleteProject() {
