@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import logo from '@/assets/logo.png';
+import logo from '@/assets/logo-dark.svg';
 
 type AuthMode = 'login' | 'signup' | 'forgot';
 
