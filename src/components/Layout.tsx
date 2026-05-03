@@ -114,7 +114,7 @@ export function Layout({ children }: LayoutProps) {
               <img 
                 src={logo} 
                 alt="Evviva Logo" 
-                className="h-5 sm:h-6 w-auto"
+                className="h-10 sm:h-12 w-auto"
               />
             </div>
             
