@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Profissionais from './Profissionais';
-import ClientesTab from '@/components/comercial/ClientesTab';
+import PerfilClientesTab from '@/components/comercial/PerfilClientesTab';
 import ProjetosTab from '@/components/comercial/ProjetosTab';
 import ContratosTab from '@/components/comercial/ContratosTab';
 import IndicadoresTab from '@/components/comercial/IndicadoresTab';
 
 export default function Comercial() {
-  const [activeTab, setActiveTab] = useState('profissionais');
+  // Indicadores agora é a aba padrão — primeira coisa que a gestora vê
+  const [activeTab, setActiveTab] = useState('indicadores');
 
   return (
     <div className="space-y-6">
@@ -20,47 +21,58 @@ export default function Comercial() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-5 bg-background border border-border">
-          <TabsTrigger 
-            value="profissionais" 
-            className="text-xs tracking-widest uppercase data-[state=active]:bg-foreground data-[state=active]:text-background"
-          >
-            Profissionais
-          </TabsTrigger>
-          <TabsTrigger 
-            value="clientes"
-            className="text-xs tracking-widest uppercase data-[state=active]:bg-foreground data-[state=active]:text-background"
-          >
-            Clientes
-          </TabsTrigger>
-          <TabsTrigger 
-            value="projetos"
-            className="text-xs tracking-widest uppercase data-[state=active]:bg-foreground data-[state=active]:text-background"
-          >
-            Projetos
-          </TabsTrigger>
-          <TabsTrigger 
-            value="contratos"
-            className="text-xs tracking-widest uppercase data-[state=active]:bg-foreground data-[state=active]:text-background"
-          >
-            Contratos
-          </TabsTrigger>
-          <TabsTrigger 
+
+          {/* 1 — Indicadores: primeiro porque é o que a gestora quer ver ao abrir */}
+          <TabsTrigger
             value="indicadores"
             className="text-xs tracking-widest uppercase data-[state=active]:bg-foreground data-[state=active]:text-background"
           >
             Indicadores
           </TabsTrigger>
+
+          {/* 2 — Especificadores: nome correto para o que antes era "Profissionais" */}
+          <TabsTrigger
+            value="especificadores"
+            className="text-xs tracking-widest uppercase data-[state=active]:bg-foreground data-[state=active]:text-background"
+          >
+            Especificadores
+          </TabsTrigger>
+
+          {/* 3 — Carteira Flutuante: nome correto para o que antes era "Projetos" */}
+          <TabsTrigger
+            value="carteira"
+            className="text-xs tracking-widest uppercase data-[state=active]:bg-foreground data-[state=active]:text-background"
+          >
+            Carteira Flutuante
+          </TabsTrigger>
+
+          {/* 4 — Contratos: mantido igual */}
+          <TabsTrigger
+            value="contratos"
+            className="text-xs tracking-widest uppercase data-[state=active]:bg-foreground data-[state=active]:text-background"
+          >
+            Contratos
+          </TabsTrigger>
+
+          {/* 5 — Perfil de Clientes: substitui "Clientes" com análise real de conversão */}
+          <TabsTrigger
+            value="perfil"
+            className="text-xs tracking-widest uppercase data-[state=active]:bg-foreground data-[state=active]:text-background"
+          >
+            Perfil de Clientes
+          </TabsTrigger>
+
         </TabsList>
 
-        <TabsContent value="profissionais" className="mt-6">
+        <TabsContent value="indicadores" className="mt-6">
+          <IndicadoresTab />
+        </TabsContent>
+
+        <TabsContent value="especificadores" className="mt-6">
           <Profissionais embedded />
         </TabsContent>
 
-        <TabsContent value="clientes" className="mt-6">
-          <ClientesTab />
-        </TabsContent>
-
-        <TabsContent value="projetos" className="mt-6">
+        <TabsContent value="carteira" className="mt-6">
           <ProjetosTab />
         </TabsContent>
 
@@ -68,9 +80,10 @@ export default function Comercial() {
           <ContratosTab />
         </TabsContent>
 
-        <TabsContent value="indicadores" className="mt-6">
-          <IndicadoresTab />
+        <TabsContent value="perfil" className="mt-6">
+          <PerfilClientesTab />
         </TabsContent>
+
       </Tabs>
     </div>
   );
