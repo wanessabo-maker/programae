@@ -20,6 +20,7 @@ const ROUTE_AREA_MAP: Record<string, FunctionalArea | null> = {
   '/programa-e-mais': null, // Programa E+ - always accessible
   '/minha-area': null, // Minha Área - always accessible to logged in users
   '/usuarios': null, // Admin only, handled separately
+  '/gestora': null, // Admin only, handled separately
 };
 
 export function Layout({ children }: LayoutProps) {
@@ -34,6 +35,10 @@ export function Layout({ children }: LayoutProps) {
     
     // Admin routes
     if (path === '/usuarios') return isAdmin;
+    if (path === '/gestora') return isAdmin;
+
+    // Cliente timeline accessible to any authenticated user (deep link from modules)
+    if (path.startsWith('/cliente/')) return true;
     
     // CS & AT is accessible to users with customer_success, assistencia_tecnica, or comercial areas
     if (path === '/customer-success') {
@@ -77,6 +82,7 @@ export function Layout({ children }: LayoutProps) {
 
     // Add admin-only routes
     if (isAdmin) {
+      filteredItems.push({ path: '/gestora', label: 'Gestora', area: null });
       filteredItems.push({ path: '/usuarios', label: 'Usuários', area: null });
     }
 

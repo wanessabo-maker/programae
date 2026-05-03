@@ -19,6 +19,8 @@ import MinhaArea from "./pages/MinhaArea";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
+import ClienteTimelinePage from "./pages/ClienteTimelinePage";
+import GestoraDashboard from "./pages/GestoraDashboard";
 
 const queryClient = new QueryClient();
 
@@ -172,6 +174,26 @@ function AppRoutes() {
           <AdminRoute>
             <Layout>
               <Usuarios />
+            </Layout>
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/cliente/:clientId"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <ClienteTimelinePage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/gestora"
+        element={
+          <AdminRoute>
+            <Layout>
+              <GestoraDashboard />
             </Layout>
           </AdminRoute>
         }
