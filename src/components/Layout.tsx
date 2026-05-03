@@ -4,7 +4,7 @@ import { Settings, LogOut, Menu, X } from 'lucide-react';
 import { SetupModal } from './SetupModal';
 import { useAuthContext, FunctionalArea } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import logo from '@/assets/logo.png';
+import logo from '@/assets/logo.svg';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 interface LayoutProps {
