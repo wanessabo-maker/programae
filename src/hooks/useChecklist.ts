@@ -1,6 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { format, startOfMonth } from 'date-fns';
+
+const PROJETISTA_AREA = 'projetista_tecnico';
 
 export interface ChecklistTemplate {
   id: string;
@@ -508,10 +511,19 @@ export function useCompleteChecklistItem() {
       notes?: string; 
       completedBy: string;
     }) => {
-      // Get the current item
+      // Get the current item with template + project info
       const { data: currentItem, error: fetchError } = await supabase
         .from('checklist_items')
-        .select('*, checklist:contract_checklists(*)')
+        .select(`
+          *,
+          checklist:contract_checklists(
+            *,
+            project:projects(id, focco_project_number, client_id, responsible_id)
+          ),
+          template:checklist_templates!checklist_items_template_id_fkey(
+            id, name, step_order, responsible_area, points_per_environment
+          )
+        `)
         .eq('id', itemId)
         .single();
 
@@ -605,15 +617,89 @@ export function useCompleteChecklistItem() {
           .eq('id', currentItem.checklist_id);
       }
 
-      return { success: true };
+      // ── PONTOS AUTOMÁTICOS PARA PROJETISTA ──────────────────────────────
+      const tpl: any = (currentItem as any).template;
+      const isProjetistaStep = tpl?.responsible_area === PROJETISTA_AREA;
+      const pointsPerEnv = tpl?.points_per_environment || 0;
+      const project: any = (currentItem as any).checklist?.project;
+      let pointsAwarded = 0;
+      let ambientesUsados = 0;
+
+      if (isProjetistaStep && pointsPerEnv > 0 && project?.id) {
+        // Evitar duplicata
+        const { data: existingCredit } = await supabase
+          .from('credit_transactions')
+          .select('id')
+          .eq('checklist_item_id', itemId)
+          .maybeSingle();
+
+        if (!existingCredit) {
+          const { data: environments } = await supabase
+            .from('project_environments')
+            .select('environment_count')
+            .eq('project_id', project.id)
+            .eq('environment_type', 'tecnico');
+
+          const totalAmbientes = (environments || [])
+            .reduce((sum: number, e: any) => sum + (e.environment_count || 0), 0);
+          const ambientes = totalAmbientes > 0 ? totalAmbientes : 1;
+          const totalPoints = ambientes * pointsPerEnv;
+
+          await supabase.from('credit_transactions').insert({
+            consultant_id: completedBy,
+            points: totalPoints,
+            description: `${tpl.name} — ${ambientes} ambiente(s) × ${pointsPerEnv} pts`,
+            transaction_date: new Date().toISOString().split('T')[0],
+            checklist_item_id: itemId,
+            status: 'active',
+          });
+
+          const { data: existingEnv } = await supabase
+            .from('project_environments')
+            .select('id')
+            .eq('checklist_item_id', itemId)
+            .maybeSingle();
+
+          if (!existingEnv) {
+            await supabase.from('project_environments').insert({
+              environment_type: 'tecnico',
+              environment_count: ambientes,
+              project_id: project.id,
+              projetista_id: completedBy,
+              checklist_item_id: itemId,
+              competence_month: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
+              notes: `Auto: ${tpl.name}`,
+            });
+          }
+
+          pointsAwarded = totalPoints;
+          ambientesUsados = ambientes;
+        }
+      }
+
+      return { success: true, pointsAwarded, ambientesUsados, stepName: tpl?.name };
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['contract-checklist'] });
       queryClient.invalidateQueries({ queryKey: ['my-active-checklist-items'] });
       queryClient.invalidateQueries({ queryKey: ['my-all-checklist-items'] });
       queryClient.invalidateQueries({ queryKey: ['all-project-checklist-items'] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
-      toast.success('Atividade concluída com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['credit_transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['project-environments'] });
+      queryClient.invalidateQueries({ queryKey: ['overdue-checklist-alert'] });
+
+      if (data?.pointsAwarded > 0) {
+        toast.success(
+          `✓ Etapa concluída — +${data.pointsAwarded} pontos no Programa E+`,
+          {
+            description: `${data.ambientesUsados} ambiente(s) — ${data.stepName}`,
+            duration: 5000,
+          }
+        );
+      } else {
+        toast.success('Atividade concluída com sucesso!');
+      }
     },
     onError: (error: any) => {
       console.error('Error completing checklist item:', error);
