@@ -60,7 +60,7 @@ export function ChecklistSetupTab() {
         .update({ points_per_environment: pts })
         .eq('id', templateId);
       if (error) throw error;
-      queryClient.invalidateQueries({ queryKey: ['checklist_templates'] });
+      queryClient.invalidateQueries({ queryKey: ['checklist-templates'] });
       setEditedPoints(prev => { const s = { ...prev }; delete s[templateId]; return s; });
       toast.success(`Pontuação atualizada: ${pts} pts/ambiente`);
     } catch (err: any) {
