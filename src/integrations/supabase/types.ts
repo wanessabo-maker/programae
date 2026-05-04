@@ -372,6 +372,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           name: string
+          points_per_environment: number | null
           responsible_area: string
           step_order: number
           workflow_status: Database["public"]["Enums"]["contract_workflow_status"]
@@ -382,6 +383,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name: string
+          points_per_environment?: number | null
           responsible_area: string
           step_order: number
           workflow_status: Database["public"]["Enums"]["contract_workflow_status"]
@@ -392,6 +394,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name?: string
+          points_per_environment?: number | null
           responsible_area?: string
           step_order?: number
           workflow_status?: Database["public"]["Enums"]["contract_workflow_status"]
@@ -630,6 +633,7 @@ export type Database = {
       credit_transactions: {
         Row: {
           action_id: string | null
+          checklist_item_id: string | null
           consultant_id: string | null
           created_at: string | null
           description: string | null
@@ -642,6 +646,7 @@ export type Database = {
         }
         Insert: {
           action_id?: string | null
+          checklist_item_id?: string | null
           consultant_id?: string | null
           created_at?: string | null
           description?: string | null
@@ -654,6 +659,7 @@ export type Database = {
         }
         Update: {
           action_id?: string | null
+          checklist_item_id?: string | null
           consultant_id?: string | null
           created_at?: string | null
           description?: string | null
@@ -670,6 +676,13 @@ export type Database = {
             columns: ["action_id"]
             isOneToOne: false
             referencedRelation: "actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_transactions_checklist_item_id_fkey"
+            columns: ["checklist_item_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_items"
             referencedColumns: ["id"]
           },
           {
