@@ -115,11 +115,12 @@ export function Layout({ children }: LayoutProps) {
                 src={logo} 
                 alt="Evviva Logo" 
                 className="h-40 sm:h-48 w-auto"
+                className="h-4 sm:h-5 w-auto"
               />
             </div>
             
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-8">
+            <nav className="hidden md:flex items-center gap-5 lg:gap-6">
               {navItems.map((item) => (
                 <Link
                   key={item.path}
