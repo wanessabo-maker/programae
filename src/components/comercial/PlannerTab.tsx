@@ -304,6 +304,11 @@ function Card({ card, onEdit }: { card: PlannerCard; onEdit: (c: PlannerCard) =>
     : null;
   const isFinal = card.planner_status === "VENDIDO" || card.planner_status === "PERDIDO";
   const isLate = days !== null && days > 10 && !isFinal;
+  const showProjetista =
+    card.planner_status === "INICIADO" ||
+    card.planner_status === "CONCLUIDO" ||
+    card.planner_status === "PERDIDO" ||
+    card.planner_status === "VENDIDO";
   return (
     <div
       onClick={() => onEdit(card)}
@@ -327,6 +332,18 @@ function Card({ card, onEdit }: { card: PlannerCard; onEdit: (c: PlannerCard) =>
           </span>
         )}
       </div>
+      {card.responsible?.name && (
+        <div className="flex items-center gap-1.5 text-[11px] text-white/70">
+          <User className="h-3 w-3 shrink-0" />
+          <span className="truncate">{card.responsible.name}</span>
+        </div>
+      )}
+      {showProjetista && card.apresentacao_projetista?.name && (
+        <div className="flex items-center gap-1.5 text-[11px] text-white/70">
+          <Palette className="h-3 w-3 shrink-0" />
+          <span className="truncate">{card.apresentacao_projetista.name}</span>
+        </div>
+      )}
       {card.planner_observacao && (
         <div className="flex items-start gap-1.5 text-xs text-white/60">
           <MessageSquare className="h-3 w-3 mt-0.5 shrink-0" />
