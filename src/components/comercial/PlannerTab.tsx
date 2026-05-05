@@ -2,358 +2,418 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Search, MoreHorizontal, Clock, AlertTriangle } from "lucide-react";
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+} from "@/components/ui/dialog";
+import { Plus, ExternalLink, MessageSquare, Loader2, Search } from "lucide-react";
+import { useAuthContext } from "@/contexts/AuthContext";
 
-// ── Tipos ────────────────────────────────────────────────────────────────────
 type PlannerStatus =
-  | "AGUARDANDO_INICIO"
-  | "INICIADO"
-  | "CONCLUIDO"
-  | "VENDIDO"
-  | "PERDIDO"
-  | "PAUSADO";
+  | "AGUARDANDO_INICIO" | "INICIADO" | "CONCLUIDO" | "VENDIDO" | "PERDIDO";
 
-interface PlannerRow {
+const COLUMNS: { id: PlannerStatus; label: string; accent: string }[] = [
+  { id: "AGUARDANDO_INICIO", label: "Aguardando Início", accent: "border-amber-400/60" },
+  { id: "INICIADO",          label: "Iniciado",          accent: "border-white/40" },
+  { id: "CONCLUIDO",         label: "Concluído",         accent: "border-green-400/60" },
+  { id: "VENDIDO",           label: "Vendido",           accent: "border-green-400" },
+  { id: "PERDIDO",           label: "Perdido",           accent: "border-white/15" },
+];
+
+interface PlannerCard {
   id: string;
   name: string;
-  planner_status: PlannerStatus;
-  data_captacao: string | null;
-  planner_data_aguardando: string | null;
-  planner_data_iniciado: string | null;
-  planner_data_concluido: string | null;
-  planner_dias_ate_aguardando: number | null;
-  planner_dias_aguardando: number | null;
-  planner_dias_iniciado: number | null;
-  projetista_nome: string | null;
-  consultor_nome: string | null;
-  cliente_nome: string | null;
-  contract_number: string | null;
-  qtd_ambientes: number;
+  planner_status: PlannerStatus | null;
+  planner_observacao: string | null;
+  planner_link: string | null;
+  planner_motivo_perda: string | null;
+  closed_value: number | null;
+  client_id: string | null;
+  clients?: { id: string; name: string } | null;
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-const STATUS_LABEL: Record<PlannerStatus, string> = {
-  AGUARDANDO_INICIO: "Aguardando Início",
-  INICIADO: "Iniciado",
-  CONCLUIDO: "Concluído",
-  VENDIDO: "Vendido",
-  PERDIDO: "Perdido",
-  PAUSADO: "Pausado",
-};
-
-// Design system: preto/branco/neutro com green-400 e amber-400
-const STATUS_BADGE: Record<PlannerStatus, string> = {
-  AGUARDANDO_INICIO: "border border-amber-400 text-amber-400 bg-transparent",
-  INICIADO:          "border border-white/40 text-white bg-transparent",
-  CONCLUIDO:         "border border-green-400 text-green-400 bg-transparent",
-  VENDIDO:           "bg-green-400 text-black",
-  PERDIDO:           "border border-white/20 text-white/40 bg-transparent",
-  PAUSADO:           "border border-white/20 text-white/40 bg-transparent",
-};
-
-const PROXIMOS: Record<PlannerStatus, PlannerStatus[]> = {
-  AGUARDANDO_INICIO: ["INICIADO", "PAUSADO", "PERDIDO"],
-  INICIADO:          ["CONCLUIDO", "PAUSADO", "PERDIDO"],
-  CONCLUIDO:         ["VENDIDO", "PERDIDO"],
-  VENDIDO:           [],
-  PERDIDO:           [],
-  PAUSADO:           ["AGUARDANDO_INICIO", "INICIADO", "PERDIDO"],
-};
-
-function diasLabel(dias: number | null): string {
-  if (dias === null) return "—";
-  if (dias === 0) return "hoje";
-  return `${dias}d`;
-}
-
-function DiasCell({
-  dias,
-  alerta,
-}: {
-  dias: number | null;
-  alerta: number;
-}) {
-  if (dias === null) return <span className="text-white/30">—</span>;
-  const over = dias >= alerta;
-  return (
-    <span
-      className={`flex items-center gap-1 text-xs ${
-        over ? "text-amber-400" : "text-white/60"
-      }`}
-    >
-      {over && <AlertTriangle className="h-3 w-3" />}
-      {diasLabel(dias)}
-    </span>
-  );
-}
-
-// ── Hook de dados ─────────────────────────────────────────────────────────────
-function usePlannerRows(filtroStatus: string) {
+// ── Hooks ────────────────────────────────────────────────────────────
+function useCards() {
   return useQuery({
-    queryKey: ["planner_apresentacao", filtroStatus],
+    queryKey: ["planner_kanban"],
     queryFn: async () => {
-      let q = supabase
-        .from("vw_planner_apresentacao")
-        .select("*")
-        .order("planner_data_aguardando", { ascending: true });
-
-      if (filtroStatus && filtroStatus !== "TODOS") {
-        q = q.eq("planner_status", filtroStatus);
-      }
-
-      const { data, error } = await q;
+      const { data, error } = await supabase
+        .from("projects")
+        .select("id, name, planner_status, planner_observacao, planner_link, planner_motivo_perda, closed_value, client_id, clients(id, name)")
+        .not("planner_status", "is", null)
+        .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as PlannerRow[];
+      return (data ?? []) as unknown as PlannerCard[];
     },
   });
 }
 
-function useAtualizarStatus() {
+function useUpdateStatus() {
   const qc = useQueryClient();
   const { toast } = useToast();
-
   return useMutation({
-    mutationFn: async ({
-      id,
-      status,
-    }: {
-      id: string;
-      status: PlannerStatus;
-    }) => {
+    mutationFn: async (vars: { id: string; status: PlannerStatus; extra?: Record<string, any> }) => {
       const { error } = await supabase
         .from("projects")
-        .update({ planner_status: status })
-        .eq("id", id);
+        .update({ planner_status: vars.status, ...(vars.extra ?? {}) })
+        .eq("id", vars.id);
       if (error) throw error;
     },
-    onSuccess: (_, vars) => {
-      qc.invalidateQueries({ queryKey: ["planner_apresentacao"] });
-      // Quando VENDIDO ou PERDIDO, invalida também contratos e comercial
-      if (vars.status === "VENDIDO" || vars.status === "PERDIDO") {
-        qc.invalidateQueries({ queryKey: ["clients"] });
-        qc.invalidateQueries({ queryKey: ["projects"] });
-      }
-      toast({ title: `Status atualizado: ${STATUS_LABEL[vars.status]}` });
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["planner_kanban"] });
+      toast({ title: "Status atualizado" });
     },
-    onError: (err: any) => {
-      toast({
-        title: "Erro ao atualizar status",
-        description: err.message,
-        variant: "destructive",
-      });
-    },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 }
 
-// ── Componente principal ──────────────────────────────────────────────────────
-export function PlannerTab() {
-  const [busca, setBusca] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState("TODOS");
+// ── Modal Novo Projeto ───────────────────────────────────────────────
+function NovoProjetoModal({ open, onOpenChange }: { open: boolean; onOpenChange: (b: boolean) => void }) {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const { user } = useAuthContext();
+  const [clienteBusca, setClienteBusca] = useState("");
+  const [clienteSelecionado, setClienteSelecionado] = useState<{ id: string; name: string } | null>(null);
+  const [novoCliente, setNovoCliente] = useState("");
+  const [observacao, setObservacao] = useState("");
+  const [link, setLink] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const { data: rows = [], isLoading } = usePlannerRows(filtroStatus);
-  const { mutate: atualizar, isPending } = useAtualizarStatus();
+  const { data: clientes = [] } = useQuery({
+    queryKey: ["planner_clientes_busca", clienteBusca],
+    queryFn: async () => {
+      if (clienteBusca.length < 2) return [];
+      const { data } = await supabase
+        .from("clients").select("id, name").ilike("name", `%${clienteBusca}%`).limit(8);
+      return data ?? [];
+    },
+    enabled: clienteBusca.length >= 2 && !clienteSelecionado,
+  });
 
-  const filtrado = rows.filter((r) =>
-    !busca ||
-    r.name.toLowerCase().includes(busca.toLowerCase()) ||
-    (r.cliente_nome ?? "").toLowerCase().includes(busca.toLowerCase()) ||
-    (r.projetista_nome ?? "").toLowerCase().includes(busca.toLowerCase())
+  const reset = () => {
+    setClienteBusca(""); setClienteSelecionado(null); setNovoCliente("");
+    setObservacao(""); setLink("");
+  };
+
+  const handleSave = async () => {
+    if (!clienteSelecionado && !novoCliente.trim()) {
+      toast({ title: "Informe um cliente", variant: "destructive" });
+      return;
+    }
+    setSaving(true);
+    try {
+      // Get team_member_id
+      const { data: tm } = await supabase
+        .from("team_members").select("id").eq("user_id", user?.id).maybeSingle();
+
+      let clientId = clienteSelecionado?.id;
+      let clientName = clienteSelecionado?.name;
+
+      if (!clientId) {
+        const { data: novo, error: ce } = await supabase
+          .from("clients")
+          .insert({ name: novoCliente.trim(), created_by: tm?.id })
+          .select("id, name").single();
+        if (ce) throw ce;
+        clientId = novo.id;
+        clientName = novo.name;
+      }
+
+      const { error: pe } = await supabase.from("projects").insert({
+        name: clientName ?? "Novo projeto",
+        client_id: clientId,
+        planner_status: "AGUARDANDO_INICIO",
+        planner_observacao: observacao || null,
+        planner_link: link || null,
+        created_by: tm?.id,
+        responsible_id: tm?.id,
+        stage: "lead",
+        status: "prospecting",
+        origin_type: "planner",
+      });
+      if (pe) throw pe;
+
+      qc.invalidateQueries({ queryKey: ["planner_kanban"] });
+      toast({ title: "Projeto adicionado ao Planner" });
+      reset();
+      onOpenChange(false);
+    } catch (e: any) {
+      toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(b) => { onOpenChange(b); if (!b) reset(); }}>
+      <DialogContent className="bg-background border-border">
+        <DialogHeader>
+          <DialogTitle>Novo projeto no Planner</DialogTitle>
+          <DialogDescription>Cliente, observação e link dos dados do projeto.</DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          {clienteSelecionado ? (
+            <div className="flex items-center justify-between border border-border rounded p-2">
+              <div className="text-sm">{clienteSelecionado.name}</div>
+              <Button size="sm" variant="ghost" onClick={() => setClienteSelecionado(null)}>Trocar</Button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label>Cliente</Label>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  className="pl-8"
+                  placeholder="Buscar cliente existente..."
+                  value={clienteBusca}
+                  onChange={(e) => setClienteBusca(e.target.value)}
+                />
+              </div>
+              {clientes.length > 0 && (
+                <div className="border border-border rounded max-h-40 overflow-auto">
+                  {clientes.map((c: any) => (
+                    <button
+                      key={c.id}
+                      onClick={() => { setClienteSelecionado(c); setClienteBusca(""); }}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-muted"
+                    >
+                      {c.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="text-xs text-muted-foreground">Ou cadastre um novo:</div>
+              <Input
+                placeholder="Nome do novo cliente"
+                value={novoCliente}
+                onChange={(e) => setNovoCliente(e.target.value)}
+              />
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label>Observação</Label>
+            <Textarea
+              placeholder="Notas, contexto, particularidades..."
+              value={observacao}
+              onChange={(e) => setObservacao(e.target.value)}
+              rows={3}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Link dados do projeto</Label>
+            <Input
+              type="url"
+              placeholder="https://..."
+              value={link}
+              onChange={(e) => setLink(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Adicionar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
+}
+
+// ── Modal Vendido ────────────────────────────────────────────────────
+function VendidoModal({ card, onClose }: { card: PlannerCard | null; onClose: () => void }) {
+  const upd = useUpdateStatus();
+  const [valor, setValor] = useState("");
+  const handleSave = () => {
+    if (!card) return;
+    upd.mutate(
+      { id: card.id, status: "VENDIDO", extra: { closed_value: parseFloat(valor) || null, closed_date: new Date().toISOString().slice(0, 10), stage: "closed_won" } },
+      { onSuccess: () => { setValor(""); onClose(); } }
+    );
+  };
+  return (
+    <Dialog open={!!card} onOpenChange={(b) => !b && onClose()}>
+      <DialogContent className="bg-background border-border">
+        <DialogHeader>
+          <DialogTitle>Marcar como Vendido</DialogTitle>
+          <DialogDescription>{card?.name}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2 py-2">
+          <Label>Valor da venda (R$)</Label>
+          <Input type="number" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={handleSave} disabled={upd.isPending}>Confirmar Venda</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Modal Perdido ────────────────────────────────────────────────────
+function PerdidoModal({ card, onClose }: { card: PlannerCard | null; onClose: () => void }) {
+  const upd = useUpdateStatus();
+  const [motivo, setMotivo] = useState("");
+  const handleSave = () => {
+    if (!card) return;
+    upd.mutate(
+      { id: card.id, status: "PERDIDO", extra: { planner_motivo_perda: motivo || null, stage: "closed_lost" } },
+      { onSuccess: () => { setMotivo(""); onClose(); } }
+    );
+  };
+  return (
+    <Dialog open={!!card} onOpenChange={(b) => !b && onClose()}>
+      <DialogContent className="bg-background border-border">
+        <DialogHeader>
+          <DialogTitle>Marcar como Perdido</DialogTitle>
+          <DialogDescription>{card?.name}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2 py-2">
+          <Label>Motivo da perda</Label>
+          <Textarea rows={3} value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Por que esse projeto foi perdido?" />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={handleSave} disabled={upd.isPending}>Confirmar Perda</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Card ─────────────────────────────────────────────────────────────
+function Card({ card }: { card: PlannerCard }) {
+  return (
+    <div className="bg-neutral-900 border border-white/10 rounded p-3 space-y-2 hover:border-white/30 transition-colors">
+      <div className="text-sm font-medium text-white truncate">
+        {card.clients?.name || card.name}
+      </div>
+      {card.planner_observacao && (
+        <div className="flex items-start gap-1.5 text-xs text-white/60">
+          <MessageSquare className="h-3 w-3 mt-0.5 shrink-0" />
+          <span className="line-clamp-2">{card.planner_observacao}</span>
+        </div>
+      )}
+      {card.planner_link && (
+        <a
+          href={card.planner_link}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="flex items-center gap-1.5 text-xs text-amber-400 hover:underline truncate"
+        >
+          <ExternalLink className="h-3 w-3 shrink-0" />
+          <span className="truncate">Dados do projeto</span>
+        </a>
+      )}
+      {card.planner_status === "VENDIDO" && card.closed_value && (
+        <div className="text-xs text-green-400">R$ {card.closed_value.toLocaleString("pt-BR")}</div>
+      )}
+      {card.planner_status === "PERDIDO" && card.planner_motivo_perda && (
+        <div className="text-xs text-white/40 italic line-clamp-2">{card.planner_motivo_perda}</div>
+      )}
+    </div>
+  );
+}
+
+// ── Componente principal ─────────────────────────────────────────────
+export function PlannerTab() {
+  const { data: cards = [], isLoading } = useCards();
+  const upd = useUpdateStatus();
+  const [novoOpen, setNovoOpen] = useState(false);
+  const [vendidoCard, setVendidoCard] = useState<PlannerCard | null>(null);
+  const [perdidoCard, setPerdidoCard] = useState<PlannerCard | null>(null);
+
+  const grouped = COLUMNS.reduce((acc, col) => {
+    acc[col.id] = cards.filter((c) => c.planner_status === col.id);
+    return acc;
+  }, {} as Record<PlannerStatus, PlannerCard[]>);
+
+  const handleDragEnd = (result: DropResult) => {
+    const { destination, source, draggableId } = result;
+    if (!destination || destination.droppableId === source.droppableId) return;
+
+    const dest = destination.droppableId as PlannerStatus;
+    const card = cards.find((c) => c.id === draggableId);
+    if (!card) return;
+
+    if (dest === "VENDIDO") { setVendidoCard(card); return; }
+    if (dest === "PERDIDO") { setPerdidoCard(card); return; }
+
+    upd.mutate({ id: draggableId, status: dest });
+  };
 
   return (
     <div className="space-y-4">
-      {/* Barra de filtros */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-white/40" />
-          <Input
-            className="pl-8 h-9 bg-transparent border-white/20 text-white placeholder:text-white/30"
-            placeholder="Buscar projeto ou cliente..."
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-          />
-        </div>
-
-        <Select value={filtroStatus} onValueChange={setFiltroStatus}>
-          <SelectTrigger className="w-48 h-9 bg-transparent border-white/20 text-white">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="TODOS">Todos os status</SelectItem>
-            {(Object.keys(STATUS_LABEL) as PlannerStatus[]).map((s) => (
-              <SelectItem key={s} value={s}>
-                {STATUS_LABEL[s]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <span className="text-xs text-white/40 ml-auto">
-          {filtrado.length} projeto{filtrado.length !== 1 ? "s" : ""}
-        </span>
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-white/50">
+          Arraste os cards entre as colunas para mudar o status.
+        </p>
+        <Button onClick={() => setNovoOpen(true)} size="sm" className="gap-2">
+          <Plus className="h-4 w-4" /> Novo projeto
+        </Button>
       </div>
 
-      {/* Tabela — Table View conforme memória do projeto */}
-      <div className="rounded-md border border-white/10 overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-white/10 hover:bg-transparent">
-              <TableHead className="text-white/60 font-medium">Projeto / Cliente</TableHead>
-              <TableHead className="text-white/60 font-medium">Status</TableHead>
-              <TableHead className="text-white/60 font-medium">Projetista</TableHead>
-              <TableHead className="text-white/60 font-medium text-center">Amb.</TableHead>
-              <TableHead className="text-white/60 font-medium text-center">
-                <span className="flex items-center gap-1 justify-center">
-                  <Clock className="h-3.5 w-3.5" />
-                  Fila
-                </span>
-              </TableHead>
-              <TableHead className="text-white/60 font-medium text-center">
-                <span className="flex items-center gap-1 justify-center">
-                  <Clock className="h-3.5 w-3.5" />
-                  Aguard.
-                </span>
-              </TableHead>
-              <TableHead className="text-white/60 font-medium text-center">
-                <span className="flex items-center gap-1 justify-center">
-                  <Clock className="h-3.5 w-3.5" />
-                  Execução
-                </span>
-              </TableHead>
-              <TableHead className="text-white/60 font-medium w-10" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center text-white/30 py-8">
-                  Carregando...
-                </TableCell>
-              </TableRow>
-            ) : filtrado.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center text-white/30 py-8">
-                  Nenhum projeto encontrado
-                </TableCell>
-              </TableRow>
-            ) : (
-              filtrado.map((row) => {
-                const proximos = PROXIMOS[row.planner_status] ?? [];
-                return (
-                  <TableRow
-                    key={row.id}
-                    className="border-white/10 hover:bg-white/5"
+      {isLoading ? (
+        <div className="text-center text-white/40 py-12">Carregando...</div>
+      ) : (
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            {COLUMNS.map((col) => (
+              <Droppable droppableId={col.id} key={col.id}>
+                {(provided, snapshot) => (
+                  <div
+                    ref={provided.innerRef}
+                    {...provided.droppableProps}
+                    className={`border-t-2 ${col.accent} bg-white/[0.02] rounded p-2 min-h-[300px] transition-colors ${
+                      snapshot.isDraggingOver ? "bg-white/5" : ""
+                    }`}
                   >
-                    {/* Nome + cliente */}
-                    <TableCell>
-                      <div className="font-medium text-white text-sm">{row.name}</div>
-                      {row.cliente_nome && (
-                        <div className="text-xs text-white/40">{row.cliente_nome}</div>
-                      )}
-                    </TableCell>
-
-                    {/* Status badge */}
-                    <TableCell>
-                      <Badge className={`text-xs px-2 py-0.5 ${STATUS_BADGE[row.planner_status]}`}>
-                        {STATUS_LABEL[row.planner_status]}
-                      </Badge>
-                    </TableCell>
-
-                    {/* Projetista */}
-                    <TableCell className="text-white/70 text-sm">
-                      {row.projetista_nome ?? <span className="text-white/30">—</span>}
-                    </TableCell>
-
-                    {/* Ambientes */}
-                    <TableCell className="text-center text-white/70 text-sm">
-                      {row.qtd_ambientes > 0 ? row.qtd_ambientes : <span className="text-white/30">—</span>}
-                    </TableCell>
-
-                    {/* Dias captação → aguardando */}
-                    <TableCell className="text-center">
-                      <DiasCell dias={row.planner_dias_ate_aguardando} alerta={3} />
-                    </TableCell>
-
-                    {/* Dias parado em aguardando */}
-                    <TableCell className="text-center">
-                      {row.planner_status === "AGUARDANDO_INICIO" || row.planner_status === "PAUSADO" ? (
-                        <DiasCell dias={row.planner_dias_aguardando} alerta={5} />
-                      ) : (
-                        <span className="text-white/30 text-xs">—</span>
-                      )}
-                    </TableCell>
-
-                    {/* Dias em iniciado */}
-                    <TableCell className="text-center">
-                      {row.planner_status === "INICIADO" ? (
-                        <DiasCell dias={row.planner_dias_iniciado} alerta={7} />
-                      ) : row.planner_dias_iniciado != null ? (
-                        <span className="text-white/30 text-xs">{diasLabel(row.planner_dias_iniciado)}</span>
-                      ) : (
-                        <span className="text-white/30 text-xs">—</span>
-                      )}
-                    </TableCell>
-
-                    {/* Ações */}
-                    <TableCell>
-                      {proximos.length > 0 && (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-white/40 hover:text-white hover:bg-white/10"
-                              disabled={isPending}
+                    <div className="flex items-center justify-between px-1 pb-2">
+                      <h3 className="text-[10px] tracking-widest uppercase text-white/70 font-medium">
+                        {col.label}
+                      </h3>
+                      <span className="text-xs text-white/40">{grouped[col.id].length}</span>
+                    </div>
+                    <div className="space-y-2">
+                      {grouped[col.id].map((card, i) => (
+                        <Draggable draggableId={card.id} index={i} key={card.id}>
+                          {(p, snap) => (
+                            <div
+                              ref={p.innerRef}
+                              {...p.draggableProps}
+                              {...p.dragHandleProps}
+                              style={p.draggableProps.style}
+                              className={snap.isDragging ? "opacity-80" : ""}
                             >
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuSeparator />
-                            {proximos.map((s) => (
-                              <DropdownMenuItem
-                                key={s}
-                                onClick={() => atualizar({ id: row.id, status: s })}
-                              >
-                                Mover para {STATUS_LABEL[s]}
-                              </DropdownMenuItem>
-                            ))}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
+                              <Card card={card} />
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
+                    </div>
+                  </div>
+                )}
+              </Droppable>
+            ))}
+          </div>
+        </DragDropContext>
+      )}
+
+      <NovoProjetoModal open={novoOpen} onOpenChange={setNovoOpen} />
+      <VendidoModal card={vendidoCard} onClose={() => setVendidoCard(null)} />
+      <PerdidoModal card={perdidoCard} onClose={() => setPerdidoCard(null)} />
     </div>
   );
 }
