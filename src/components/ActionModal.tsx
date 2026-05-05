@@ -1713,7 +1713,26 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           )}
 
           {/* Assigned Professionals for Checklist - For Venda and Apresentação de Projeto */}
-          {(isVenda || isApresentacaoProjeto) && (
+          {isVendaAditivo && (
+            <div className="border border-amber-500/40 rounded-md p-3 bg-amber-500/5 space-y-2">
+              <label className="text-xs tracking-widest uppercase text-muted-foreground block">
+                Aditivo — Destino do Checklist <span className="text-red-500">*</span>
+              </label>
+              <div className="flex flex-col gap-2">
+                <label className="flex items-start gap-2 text-sm cursor-pointer">
+                  <input type="radio" name="aditivoLink" checked={form.aditivoLinkExisting}
+                    onChange={() => setForm(prev => ({ ...prev, aditivoLinkExisting: true }))} className="mt-1" />
+                  <span><span className="font-medium">Vincular ao checklist da venda inicial</span> — apenas soma o valor ao contrato existente do FOCCO.</span>
+                </label>
+                <label className="flex items-start gap-2 text-sm cursor-pointer">
+                  <input type="radio" name="aditivoLink" checked={!form.aditivoLinkExisting}
+                    onChange={() => setForm(prev => ({ ...prev, aditivoLinkExisting: false }))} className="mt-1" />
+                  <span><span className="font-medium">Criar novo checklist</span> — gera um projeto/contrato separado para este aditivo.</span>
+                </label>
+              </div>
+            </div>
+          )}
+          {((isVenda && !(isVendaAditivo && form.aditivoLinkExisting)) || isApresentacaoProjeto) && (
             <div className={`border rounded-md p-3 space-y-3 bg-muted/30 ${errors.assignedProjetistaId || errors.assignedLogisticaId || errors.assignedApresentacaoProjetistaId ? 'border-red-500' : 'border-border'}`}>
               <label className="text-xs tracking-widest uppercase text-muted-foreground block">
                 {isVenda ? 'Atribuir Responsáveis do Checklist' : 'Projetista de Apresentação'} <span className="text-red-500">*</span>
