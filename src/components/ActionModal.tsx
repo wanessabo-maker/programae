@@ -49,6 +49,8 @@ interface FormState {
   environmentCount: string;
   // Commercial consultant served (for Projetista de Apresentação)
   commercialConsultantId: string;
+  // Aditivo: link to existing sale checklist (true) or create a new checklist (false)
+  aditivoLinkExisting: boolean;
 }
 
 const initialFormState: FormState = {
@@ -75,6 +77,7 @@ const initialFormState: FormState = {
   assignedApresentacaoProjetistaId: '',
   environmentCount: '',
   commercialConsultantId: '',
+  aditivoLinkExisting: true,
 };
 
 export function ActionModal({ open, onOpenChange }: ActionModalProps) {
