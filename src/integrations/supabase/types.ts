@@ -1423,6 +1423,7 @@ export type Database = {
           planner_motivo_perda: string | null
           planner_observacao: string | null
           planner_status: string | null
+          planner_status_at: string | null
           professional_id: string | null
           responsible_id: string | null
           stage: string | null
@@ -1455,6 +1456,7 @@ export type Database = {
           planner_motivo_perda?: string | null
           planner_observacao?: string | null
           planner_status?: string | null
+          planner_status_at?: string | null
           professional_id?: string | null
           responsible_id?: string | null
           stage?: string | null
@@ -1487,6 +1489,7 @@ export type Database = {
           planner_motivo_perda?: string | null
           planner_observacao?: string | null
           planner_status?: string | null
+          planner_status_at?: string | null
           professional_id?: string | null
           responsible_id?: string | null
           stage?: string | null
