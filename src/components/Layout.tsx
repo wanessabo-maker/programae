@@ -65,6 +65,7 @@ export function Layout({ children }: LayoutProps) {
       { path: '/projetos', label: 'Projetos', area: 'projetos' as FunctionalArea },
       { path: '/customer-success', label: 'CS & AT', area: 'customer_success' as FunctionalArea },
       { path: '/programa-e-mais', label: 'Programa E+', area: null },
+      { path: '/planner-apresentacao', label: 'Planner Apres.', area: 'comercial' as FunctionalArea },
     ];
 
     const filteredItems = allItems.filter(item => {
@@ -82,7 +83,6 @@ export function Layout({ children }: LayoutProps) {
 
     // Add admin-only routes
     if (isAdmin) {
-      filteredItems.push({ path: '/gestora', label: 'Gestora', area: null });
       filteredItems.push({ path: '/usuarios', label: 'Usuários', area: null });
     }
 
