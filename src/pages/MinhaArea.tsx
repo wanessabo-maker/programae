@@ -37,6 +37,7 @@ import { ManagementDashboard } from '@/components/minha-area/ManagementDashboard
 import { StaleProjectsBanner } from '@/components/minha-area/StaleProjectsBanner';
 import { CleanlinessAdminPanel } from '@/components/minha-area/CleanlinessAdminPanel';
 import GestoraDashboard from '@/pages/GestoraDashboard';
+import IndicadoresTab from '@/components/comercial/IndicadoresTab';
 import { useTeamMembers } from '@/hooks/useDatabase';
 
 interface ChecklistItemFull {
@@ -469,6 +470,12 @@ export default function MinhaArea() {
             <TabsContent value="gestora" className="mt-0 space-y-8">
               {isAdmin && <GestoraDashboard />}
               <ManagementDashboard />
+              <div className="space-y-4">
+                <h2 className="text-xs tracking-widest uppercase text-muted-foreground font-medium">
+                  Indicadores de Performance Comercial
+                </h2>
+                <IndicadoresTab />
+              </div>
             </TabsContent>
           </Tabs>
         ) : (
