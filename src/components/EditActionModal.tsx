@@ -763,8 +763,27 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
               </div>
             )}
 
-            {/* Assigned Professionals for Checklist - Only for Venda when no project exists */}
-            {isVenda && !action.projectId && (
+            {/* Aditivo: link to principal sale or create separate checklist */}
+            {isVendaAditivo && (
+              <div className="border border-amber-500/40 rounded-md p-3 bg-amber-500/5 space-y-2">
+                <label className="text-xs tracking-widest uppercase text-muted-foreground block">
+                  Aditivo — Destino do Checklist
+                </label>
+                <div className="flex flex-col gap-2">
+                  <label className="flex items-start gap-2 text-sm cursor-pointer">
+                    <input type="radio" name="editAditivoLink" checked={form.aditivoLinkExisting}
+                      onChange={() => setForm({ ...form, aditivoLinkExisting: true })} className="mt-1" />
+                    <span><span className="font-medium">Vincular ao checklist da venda inicial</span> — soma o valor ao contrato existente. Se já houver checklist criado por este aditivo, ele será removido.</span>
+                  </label>
+                  <label className="flex items-start gap-2 text-sm cursor-pointer">
+                    <input type="radio" name="editAditivoLink" checked={!form.aditivoLinkExisting}
+                      onChange={() => setForm({ ...form, aditivoLinkExisting: false })} className="mt-1" />
+                    <span><span className="font-medium">Manter/Criar checklist próprio</span> para este aditivo.</span>
+                  </label>
+                </div>
+              </div>
+            )}
+            {isVenda && !isVendaAditivo && !action.projectId && (
               <div className="border border-border rounded-md p-3 space-y-3 bg-muted/30">
                 <label className="text-xs tracking-widest uppercase text-muted-foreground block">
                   Atribuir Responsáveis do Checklist
