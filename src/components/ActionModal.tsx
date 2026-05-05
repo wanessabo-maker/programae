@@ -49,6 +49,8 @@ interface FormState {
   environmentCount: string;
   // Commercial consultant served (for Projetista de Apresentação)
   commercialConsultantId: string;
+  // Aditivo: link to existing sale checklist (true) or create a new checklist (false)
+  aditivoLinkExisting: boolean;
 }
 
 const initialFormState: FormState = {
@@ -75,6 +77,7 @@ const initialFormState: FormState = {
   assignedApresentacaoProjetistaId: '',
   environmentCount: '',
   commercialConsultantId: '',
+  aditivoLinkExisting: true,
 };
 
 export function ActionModal({ open, onOpenChange }: ActionModalProps) {
@@ -557,7 +560,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     }
     
     // For Venda (including Aditivo), checklist assignment is mandatory
-    if (isVenda) {
+    // EXCEPT when Aditivo is configured to link to the existing sale's checklist
+    if (isVenda && !(isVendaAditivo && form.aditivoLinkExisting)) {
       if (!form.assignedProjetistaId) newErrors.assignedProjetistaId = true;
       if (!form.assignedLogisticaId) newErrors.assignedLogisticaId = true;
       if (!form.assignedApresentacaoProjetistaId) newErrors.assignedApresentacaoProjetistaId = true;
@@ -839,7 +843,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           if (foccoNumber) {
             const existingProject = await findProjectByFocco(foccoNumber);
             
-            if (existingProject) {
+            if (existingProject && form.aditivoLinkExisting) {
               projectId = existingProject.id;
               clientId = existingProject.client_id || null;
               
@@ -870,10 +874,62 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                     notes: `Aditivo: +${aditivoValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`,
                   });
                 
-                toast.success(`Aditivo de ${aditivoValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} adicionado ao FOCCO ${foccoNumber}!`);
+                toast.success(`Aditivo de ${aditivoValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} vinculado ao checklist da venda inicial (FOCCO ${foccoNumber})`);
               }
+            } else if (existingProject && !form.aditivoLinkExisting) {
+              // Project exists but user opted to create a SEPARATE project + new checklist for this aditivo
+              const aditivoValue = safeNumber(form.value, { min: 0 }) ?? 0;
+              const aditivoName = `Projeto FOCCO ${foccoNumber} - Aditivo ${format(new Date(form.date), 'dd/MM/yyyy')}`;
+              const { data: newProject, error: projectError } = await supabase
+                .from('projects')
+                .insert({
+                  name: aditivoName,
+                  focco_project_number: foccoNumber,
+                  professional_id: professionalId || existingProject.professional_id || null,
+                  responsible_id: form.consultantId,
+                  created_by: form.consultantId,
+                  client_id: existingProject.client_id || null,
+                  stage: 'closed_won',
+                  start_date: form.date,
+                  closed_date: form.date,
+                  closed_value: aditivoValue,
+                  estimated_value: aditivoValue,
+                  origin_type: 'venda_direta',
+                  apresentacao_projetista_id: form.assignedApresentacaoProjetistaId || null,
+                } as any)
+                .select('id')
+                .single();
+
+              if (projectError) {
+                console.error('Error creating aditivo project:', projectError);
+                toast.error('Erro ao criar projeto do aditivo');
+                setIsSubmitting(false);
+                return;
+              }
+
+              if (newProject) {
+                projectId = newProject.id;
+                clientId = existingProject.client_id || null;
+                await supabase.from('project_value_history').insert({
+                  project_id: newProject.id,
+                  presented_value: aditivoValue,
+                  consultant_id: form.consultantId,
+                  notes: `Aditivo (checklist próprio) do FOCCO ${foccoNumber}`,
+                });
+                await createChecklistForProject(newProject.id, {
+                  assignedProjetistaId: form.assignedProjetistaId || undefined,
+                  assignedLogisticaId: form.assignedLogisticaId || undefined,
+                  assignedApresentacaoProjetistaId: form.assignedApresentacaoProjetistaId || undefined,
+                  commercialResponsibleId: form.consultantId,
+                });
+                toast.success(`Aditivo registrado com checklist próprio (FOCCO ${foccoNumber})`);
+              }
+            } else if (!existingProject && form.aditivoLinkExisting) {
+              toast.error(`Nenhum projeto encontrado com FOCCO ${foccoNumber}. Para vincular ao checklist da venda inicial, o projeto principal precisa existir.`);
+              setIsSubmitting(false);
+              return;
             } else {
-              // Project doesn't exist - create it and link professional
+              // Project doesn't exist and user wants new checklist - create from scratch
               const { data: newProject, error: projectError } = await supabase
                 .from('projects')
                 .insert({
@@ -1657,7 +1713,26 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           )}
 
           {/* Assigned Professionals for Checklist - For Venda and Apresentação de Projeto */}
-          {(isVenda || isApresentacaoProjeto) && (
+          {isVendaAditivo && (
+            <div className="border border-amber-500/40 rounded-md p-3 bg-amber-500/5 space-y-2">
+              <label className="text-xs tracking-widest uppercase text-muted-foreground block">
+                Aditivo — Destino do Checklist <span className="text-red-500">*</span>
+              </label>
+              <div className="flex flex-col gap-2">
+                <label className="flex items-start gap-2 text-sm cursor-pointer">
+                  <input type="radio" name="aditivoLink" checked={form.aditivoLinkExisting}
+                    onChange={() => setForm(prev => ({ ...prev, aditivoLinkExisting: true }))} className="mt-1" />
+                  <span><span className="font-medium">Vincular ao checklist da venda inicial</span> — apenas soma o valor ao contrato existente do FOCCO.</span>
+                </label>
+                <label className="flex items-start gap-2 text-sm cursor-pointer">
+                  <input type="radio" name="aditivoLink" checked={!form.aditivoLinkExisting}
+                    onChange={() => setForm(prev => ({ ...prev, aditivoLinkExisting: false }))} className="mt-1" />
+                  <span><span className="font-medium">Criar novo checklist</span> — gera um projeto/contrato separado para este aditivo.</span>
+                </label>
+              </div>
+            </div>
+          )}
+          {((isVenda && !(isVendaAditivo && form.aditivoLinkExisting)) || isApresentacaoProjeto) && (
             <div className={`border rounded-md p-3 space-y-3 bg-muted/30 ${errors.assignedProjetistaId || errors.assignedLogisticaId || errors.assignedApresentacaoProjetistaId ? 'border-red-500' : 'border-border'}`}>
               <label className="text-xs tracking-widest uppercase text-muted-foreground block">
                 {isVenda ? 'Atribuir Responsáveis do Checklist' : 'Projetista de Apresentação'} <span className="text-red-500">*</span>

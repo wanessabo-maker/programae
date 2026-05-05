@@ -58,6 +58,7 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
     presentedValue: '',
     assignedProjetistaId: '',
     assignedLogisticaId: '',
+    aditivoLinkExisting: true,
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -140,6 +141,7 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
         presentedValue: '',
         assignedProjetistaId: '',
         assignedLogisticaId: '',
+        aditivoLinkExisting: true,
       });
       // Load presented value from project if exists
       const loadPresentedValue = async () => {
@@ -171,6 +173,7 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
   const consultantProfessionals = professionals.filter(p => p.consultantId === form.consultantId);
   const oldActionType = action ? actionTypes.find(t => t.id === action.actionTypeId) : null;
   const isVenda = selectedActionType?.classification === 'venda';
+  const isVendaAditivo = isVenda && (selectedActionType?.name?.toLowerCase().includes('aditivo') ?? false);
   const normalizedSelectedActionName = normalizeText(selectedActionType?.name);
   const normalizedOldActionName = normalizeText(oldActionType?.name);
   const isApresentacaoProjeto = normalizedSelectedActionName.startsWith('apresentacao de projeto') &&
@@ -282,7 +285,45 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
       }
 
       // ===== VENDA FLOW: Create project + checklist when changing to Venda =====
-      if (isVenda && !action.projectId) {
+      // If switching aditivo to "link existing", remove the checklist+project that this action created.
+      if (isVendaAditivo && form.aditivoLinkExisting && action.projectId) {
+        try {
+          // Only auto-cleanup if this project was clearly created by this action (origin venda_direta and only this action linked)
+          const { data: linkedActions } = await supabase
+            .from('actions').select('id').eq('project_id', action.projectId);
+          if (linkedActions && linkedActions.length <= 1) {
+            // Delete checklist and unlink action
+            const { data: cl } = await supabase
+              .from('contract_checklists').select('id').eq('project_id', action.projectId);
+            if (cl) {
+              for (const c of cl) {
+                await supabase.from('checklist_items').delete().eq('checklist_id', c.id);
+                await supabase.from('contract_checklists').delete().eq('id', c.id);
+              }
+            }
+            await supabase.from('actions').update({ project_id: null }).eq('id', action.id);
+            await supabase.from('projects').delete().eq('id', action.projectId);
+            toast.info('Checklist do aditivo removido — valor será somado ao contrato principal.');
+          }
+
+          // Now sum the value to the principal project
+          const foccoNumber = form.foccoProjectNumber.trim();
+          if (foccoNumber) {
+            const principal = await findProjectByFocco(foccoNumber);
+            if (principal) {
+              const aditivoValue = newValue ?? 0;
+              const current = principal.closed_value ?? principal.estimated_value ?? 0;
+              await supabase.from('projects').update({
+                closed_value: Number(current) + aditivoValue,
+                estimated_value: Number(current) + aditivoValue,
+              }).eq('id', principal.id);
+              await supabase.from('actions').update({ project_id: principal.id }).eq('id', action.id);
+            }
+          }
+        } catch (err) {
+          console.error('Error converting aditivo to linked:', err);
+        }
+      } else if (isVenda && !isVendaAditivo && !action.projectId) {
         // Check if there's already a project for this action (via projectId or checklist)
         const existingChecklist = action.projectId ? await supabase
           .from('contract_checklists')
@@ -722,8 +763,27 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
               </div>
             )}
 
-            {/* Assigned Professionals for Checklist - Only for Venda when no project exists */}
-            {isVenda && !action.projectId && (
+            {/* Aditivo: link to principal sale or create separate checklist */}
+            {isVendaAditivo && (
+              <div className="border border-amber-500/40 rounded-md p-3 bg-amber-500/5 space-y-2">
+                <label className="text-xs tracking-widest uppercase text-muted-foreground block">
+                  Aditivo — Destino do Checklist
+                </label>
+                <div className="flex flex-col gap-2">
+                  <label className="flex items-start gap-2 text-sm cursor-pointer">
+                    <input type="radio" name="editAditivoLink" checked={form.aditivoLinkExisting}
+                      onChange={() => setForm({ ...form, aditivoLinkExisting: true })} className="mt-1" />
+                    <span><span className="font-medium">Vincular ao checklist da venda inicial</span> — soma o valor ao contrato existente. Se já houver checklist criado por este aditivo, ele será removido.</span>
+                  </label>
+                  <label className="flex items-start gap-2 text-sm cursor-pointer">
+                    <input type="radio" name="editAditivoLink" checked={!form.aditivoLinkExisting}
+                      onChange={() => setForm({ ...form, aditivoLinkExisting: false })} className="mt-1" />
+                    <span><span className="font-medium">Manter/Criar checklist próprio</span> para este aditivo.</span>
+                  </label>
+                </div>
+              </div>
+            )}
+            {isVenda && !isVendaAditivo && !action.projectId && (
               <div className="border border-border rounded-md p-3 space-y-3 bg-muted/30">
                 <label className="text-xs tracking-widest uppercase text-muted-foreground block">
                   Atribuir Responsáveis do Checklist
