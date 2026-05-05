@@ -11,6 +11,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
 import { Plus, ExternalLink, MessageSquare, Loader2, Search } from "lucide-react";
+import { Clock } from "lucide-react";
 import { useAuthContext } from "@/contexts/AuthContext";
 
 type PlannerStatus =
@@ -33,6 +34,7 @@ interface PlannerCard {
   planner_motivo_perda: string | null;
   closed_value: number | null;
   client_id: string | null;
+  planner_status_at: string | null;
   clients?: { id: string; name: string } | null;
 }
 
@@ -43,7 +45,7 @@ function useCards() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects")
-        .select("id, name, planner_status, planner_observacao, planner_link, planner_motivo_perda, closed_value, client_id, clients(id, name)")
+        .select("id, name, planner_status, planner_observacao, planner_link, planner_motivo_perda, closed_value, client_id, planner_status_at, clients(id, name)")
         .not("planner_status", "is", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -293,10 +295,30 @@ function PerdidoModal({ card, onClose }: { card: PlannerCard | null; onClose: ()
 
 // ── Card ─────────────────────────────────────────────────────────────
 function Card({ card }: { card: PlannerCard }) {
+  const days = card.planner_status_at
+    ? Math.max(0, Math.floor((Date.now() - new Date(card.planner_status_at).getTime()) / 86400000))
+    : null;
+  const isFinal = card.planner_status === "VENDIDO" || card.planner_status === "PERDIDO";
+  const isLate = days !== null && days > 10 && !isFinal;
   return (
     <div className="bg-neutral-900 border border-white/10 rounded p-3 space-y-2 hover:border-white/30 transition-colors">
-      <div className="text-sm font-medium text-white truncate">
-        {card.clients?.name || card.name}
+      <div className="flex items-start justify-between gap-2">
+        <div className="text-sm font-medium text-white truncate">
+          {card.clients?.name || card.name}
+        </div>
+        {days !== null && !isFinal && (
+          <span
+            className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded shrink-0 ${
+              isLate
+                ? "bg-amber-400/15 text-amber-400 border border-amber-400/40"
+                : "bg-white/5 text-white/50 border border-white/10"
+            }`}
+            title={`Nesta coluna há ${days} dia(s)`}
+          >
+            <Clock className="h-3 w-3" />
+            {days}d
+          </span>
+        )}
       </div>
       {card.planner_observacao && (
         <div className="flex items-start gap-1.5 text-xs text-white/60">
