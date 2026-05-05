@@ -560,7 +560,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     }
     
     // For Venda (including Aditivo), checklist assignment is mandatory
-    if (isVenda) {
+    // EXCEPT when Aditivo is configured to link to the existing sale's checklist
+    if (isVenda && !(isVendaAditivo && form.aditivoLinkExisting)) {
       if (!form.assignedProjetistaId) newErrors.assignedProjetistaId = true;
       if (!form.assignedLogisticaId) newErrors.assignedLogisticaId = true;
       if (!form.assignedApresentacaoProjetistaId) newErrors.assignedApresentacaoProjetistaId = true;
