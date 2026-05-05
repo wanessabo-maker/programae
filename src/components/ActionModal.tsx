@@ -51,6 +51,8 @@ interface FormState {
   commercialConsultantId: string;
   // Aditivo: link to existing sale checklist (true) or create a new checklist (false)
   aditivoLinkExisting: boolean;
+  // Aditivo: original contract number (required when linking to principal)
+  aditivoOriginalContract: string;
 }
 
 const initialFormState: FormState = {
@@ -78,6 +80,7 @@ const initialFormState: FormState = {
   environmentCount: '',
   commercialConsultantId: '',
   aditivoLinkExisting: true,
+  aditivoOriginalContract: '',
 };
 
 export function ActionModal({ open, onOpenChange }: ActionModalProps) {
@@ -558,6 +561,11 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     if (isSeletiva && !form.contractNumber.trim()) {
       newErrors.contractNumber = true;
     }
+
+    // For Aditivo "vincular ao principal": original contract number is mandatory
+    if (isVendaAditivo && form.aditivoLinkExisting && !form.aditivoOriginalContract.trim()) {
+      newErrors.aditivoOriginalContract = true;
+    }
     
     // For Venda (including Aditivo), checklist assignment is mandatory
     // EXCEPT when Aditivo is configured to link to the existing sale's checklist
@@ -838,10 +846,34 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
       // Handle Venda Aditivo - just update existing project value, no new checklist
       if (isVendaAditivo) {
         const foccoNumber = form.foccoProjectNumber.trim();
+        const originalContract = form.aditivoOriginalContract.trim();
         
         try {
-          if (foccoNumber) {
-            const existingProject = await findProjectByFocco(foccoNumber);
+          if (foccoNumber || (form.aditivoLinkExisting && originalContract)) {
+            // When linking to principal, locate by original contract number first
+            let existingProject: any = null;
+            if (form.aditivoLinkExisting && originalContract) {
+              const { data: clientWithContract } = await supabase
+                .from('clients')
+                .select('id')
+                .eq('contract_number', originalContract)
+                .maybeSingle();
+              if (clientWithContract) {
+                const { data: proj } = await supabase
+                  .from('projects')
+                  .select('id, client_id, professional_id, closed_value, estimated_value, focco_project_number')
+                  .eq('client_id', clientWithContract.id)
+                  .order('closed_date', { ascending: false })
+                  .limit(1)
+                  .maybeSingle();
+                existingProject = proj;
+              }
+              if (!existingProject && foccoNumber) {
+                existingProject = await findProjectByFocco(foccoNumber);
+              }
+            } else if (foccoNumber) {
+              existingProject = await findProjectByFocco(foccoNumber);
+            }
             
             if (existingProject && form.aditivoLinkExisting) {
               projectId = existingProject.id;
@@ -874,7 +906,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                     notes: `Aditivo: +${aditivoValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`,
                   });
                 
-                toast.success(`Aditivo de ${aditivoValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} vinculado ao checklist da venda inicial (FOCCO ${foccoNumber})`);
+                toast.success(`Aditivo de ${aditivoValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} vinculado ao contrato ${originalContract || `FOCCO ${foccoNumber}`}`);
               }
             } else if (existingProject && !form.aditivoLinkExisting) {
               // Project exists but user opted to create a SEPARATE project + new checklist for this aditivo
@@ -925,7 +957,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 toast.success(`Aditivo registrado com checklist próprio (FOCCO ${foccoNumber})`);
               }
             } else if (!existingProject && form.aditivoLinkExisting) {
-              toast.error(`Nenhum projeto encontrado com FOCCO ${foccoNumber}. Para vincular ao checklist da venda inicial, o projeto principal precisa existir.`);
+              toast.error(`Nenhum contrato encontrado com número "${originalContract}". Verifique o número do contrato original.`);
               setIsSubmitting(false);
               return;
             } else {
@@ -982,7 +1014,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
               }
             }
           } else {
-            toast.error('Informe o número FOCCO do projeto para o aditivo');
+            toast.error('Informe o número do contrato original (para vincular) ou o FOCCO (para criar checklist próprio).');
             setIsSubmitting(false);
             return;
           }
@@ -1730,6 +1762,23 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   <span><span className="font-medium">Criar novo checklist</span> — gera um projeto/contrato separado para este aditivo.</span>
                 </label>
               </div>
+              {form.aditivoLinkExisting && (
+                <div className="pt-2">
+                  <label className={`text-xs tracking-widest uppercase block mb-1 ${errors.aditivoOriginalContract ? 'text-destructive' : 'text-muted-foreground'}`}>
+                    Nº do Contrato Original <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={form.aditivoOriginalContract}
+                    onChange={(e) => setForm(prev => ({ ...prev, aditivoOriginalContract: e.target.value }))}
+                    placeholder="Ex: 12345"
+                    className={`input-flat w-full text-card-foreground ${errors.aditivoOriginalContract ? 'border-destructive ring-1 ring-destructive' : ''}`}
+                  />
+                  {errors.aditivoOriginalContract && (
+                    <span className="text-xs text-destructive mt-1">Informe o nº do contrato original para vincular o aditivo.</span>
+                  )}
+                </div>
+              )}
             </div>
           )}
           {((isVenda && !(isVendaAditivo && form.aditivoLinkExisting)) || isApresentacaoProjeto) && (

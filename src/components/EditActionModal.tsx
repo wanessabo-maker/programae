@@ -59,6 +59,7 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
     assignedProjetistaId: '',
     assignedLogisticaId: '',
     aditivoLinkExisting: true,
+    aditivoOriginalContract: '',
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -142,6 +143,7 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
         assignedProjetistaId: '',
         assignedLogisticaId: '',
         aditivoLinkExisting: true,
+        aditivoOriginalContract: '',
       });
       // Load presented value from project if exists
       const loadPresentedValue = async () => {
@@ -287,6 +289,13 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
       // ===== VENDA FLOW: Create project + checklist when changing to Venda =====
       // If switching aditivo to "link existing", remove the checklist+project that this action created.
       if (isVendaAditivo && form.aditivoLinkExisting && action.projectId) {
+        // Validate original contract number when linking
+        if (!form.aditivoOriginalContract.trim()) {
+          setErrors({ aditivoOriginalContract: true });
+          toast.error('Informe o número do contrato original.');
+          setIsSubmitting(false);
+          return;
+        }
         try {
           // Only auto-cleanup if this project was clearly created by this action (origin venda_direta and only this action linked)
           const { data: linkedActions } = await supabase
@@ -306,10 +315,28 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
             toast.info('Checklist do aditivo removido — valor será somado ao contrato principal.');
           }
 
-          // Now sum the value to the principal project
+          // Now sum the value to the principal project (locate by original contract first)
           const foccoNumber = form.foccoProjectNumber.trim();
-          if (foccoNumber) {
-            const principal = await findProjectByFocco(foccoNumber);
+          const originalContract = form.aditivoOriginalContract.trim();
+          let principal: any = null;
+          if (originalContract) {
+            const { data: clientWithContract } = await supabase
+              .from('clients').select('id').eq('contract_number', originalContract).maybeSingle();
+            if (clientWithContract) {
+              const { data: proj } = await supabase
+                .from('projects')
+                .select('id, closed_value, estimated_value')
+                .eq('client_id', clientWithContract.id)
+                .order('closed_date', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+              principal = proj;
+            }
+          }
+          if (!principal && foccoNumber) {
+            principal = await findProjectByFocco(foccoNumber);
+          }
+          {
             if (principal) {
               const aditivoValue = newValue ?? 0;
               const current = principal.closed_value ?? principal.estimated_value ?? 0;
@@ -318,6 +345,8 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
                 estimated_value: Number(current) + aditivoValue,
               }).eq('id', principal.id);
               await supabase.from('actions').update({ project_id: principal.id }).eq('id', action.id);
+            } else {
+              toast.error(`Nenhum contrato encontrado com nº "${originalContract}".`);
             }
           }
         } catch (err) {
@@ -781,6 +810,20 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
                     <span><span className="font-medium">Manter/Criar checklist próprio</span> para este aditivo.</span>
                   </label>
                 </div>
+                {form.aditivoLinkExisting && (
+                  <div className="pt-2">
+                    <label className={`text-xs tracking-widest uppercase block mb-1 ${errors.aditivoOriginalContract ? 'text-destructive' : 'text-muted-foreground'}`}>
+                      Nº do Contrato Original <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={form.aditivoOriginalContract}
+                      onChange={(e) => setForm({ ...form, aditivoOriginalContract: e.target.value })}
+                      placeholder="Ex: 12345"
+                      className={`input-flat w-full text-card-foreground ${errors.aditivoOriginalContract ? 'border-destructive ring-1 ring-destructive' : ''}`}
+                    />
+                  </div>
+                )}
               </div>
             )}
             {isVenda && !isVendaAditivo && !action.projectId && (
