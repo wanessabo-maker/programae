@@ -58,6 +58,7 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
     presentedValue: '',
     assignedProjetistaId: '',
     assignedLogisticaId: '',
+    aditivoLinkExisting: true,
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -140,6 +141,7 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
         presentedValue: '',
         assignedProjetistaId: '',
         assignedLogisticaId: '',
+        aditivoLinkExisting: true,
       });
       // Load presented value from project if exists
       const loadPresentedValue = async () => {
@@ -171,6 +173,7 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
   const consultantProfessionals = professionals.filter(p => p.consultantId === form.consultantId);
   const oldActionType = action ? actionTypes.find(t => t.id === action.actionTypeId) : null;
   const isVenda = selectedActionType?.classification === 'venda';
+  const isVendaAditivo = isVenda && (selectedActionType?.name?.toLowerCase().includes('aditivo') ?? false);
   const normalizedSelectedActionName = normalizeText(selectedActionType?.name);
   const normalizedOldActionName = normalizeText(oldActionType?.name);
   const isApresentacaoProjeto = normalizedSelectedActionName.startsWith('apresentacao de projeto') &&
