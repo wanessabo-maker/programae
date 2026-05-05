@@ -796,6 +796,7 @@ export function PlannerTab() {
   const [novoOpen, setNovoOpen] = useState(false);
   const [vendidoCard, setVendidoCard] = useState<PlannerCard | null>(null);
   const [perdidoCard, setPerdidoCard] = useState<PlannerCard | null>(null);
+  const [concluidoCard, setConcluidoCard] = useState<PlannerCard | null>(null);
   const [editCard, setEditCard] = useState<PlannerCard | null>(null);
   const [revertConfirm, setRevertConfirm] = useState<{
     card: PlannerCard;
@@ -817,14 +818,15 @@ export function PlannerTab() {
     const card = cards.find((c) => c.id === draggableId);
     if (!card) return;
 
-    // Reverter de VENDIDO/PERDIDO precisa de confirmação e limpeza
-    if (src === "VENDIDO" || src === "PERDIDO") {
+    // Reverter de VENDIDO/PERDIDO/CONCLUIDO precisa de confirmação e limpeza
+    if (src === "VENDIDO" || src === "PERDIDO" || src === "CONCLUIDO") {
       setRevertConfirm({ card, dest, from: src });
       return;
     }
 
     if (dest === "VENDIDO") { setVendidoCard(card); return; }
     if (dest === "PERDIDO") { setPerdidoCard(card); return; }
+    if (dest === "CONCLUIDO") { setConcluidoCard(card); return; }
 
     upd.mutate({ id: draggableId, status: dest });
   };
@@ -851,16 +853,19 @@ export function PlannerTab() {
         await supabase.from("clients").update({ status: "active" }).eq("id", card.client_id);
       }
 
-      // Se vinha de VENDIDO, remover Action de venda + créditos auto-gerados
-      if (from === "VENDIDO") {
+      // Se vinha de VENDIDO/CONCLUIDO, remover Actions auto-geradas + créditos + ambientes
+      if (from === "VENDIDO" || from === "CONCLUIDO") {
+        const tag = from === "VENDIDO" ? "%Pipeline%VENDIDO%" : "%Pipeline%CONCLUIDO%";
         const { data: autoActions } = await supabase
           .from("actions")
           .select("id")
           .eq("project_id", card.id)
-          .ilike("notes", "%Pipeline%VENDIDO%");
+          .ilike("notes", tag);
         const ids = (autoActions ?? []).map((a) => a.id);
         if (ids.length) {
           await supabase.from("credit_transactions").delete().in("action_id", ids);
+          await supabase.from("project_environments").delete().in("action_id", ids);
+          await supabase.from("project_value_history").delete().in("action_id", ids);
           await supabase.from("actions").delete().in("id", ids);
         }
       }
@@ -870,11 +875,14 @@ export function PlannerTab() {
       qc.invalidateQueries({ queryKey: ["actions"] });
       qc.invalidateQueries({ queryKey: ["credit_transactions"] });
       qc.invalidateQueries({ queryKey: ["clients"] });
+      qc.invalidateQueries({ queryKey: ["project-environments"] });
       toast({
         title: "Card revertido",
         description: from === "VENDIDO"
           ? "Ação de venda e pontos do Programa E+ foram removidos."
-          : "Status de perda removido.",
+          : from === "CONCLUIDO"
+            ? "Ação, ambientes e pontos do Programa E+ foram removidos."
+            : "Status de perda removido.",
       });
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
@@ -944,18 +952,27 @@ export function PlannerTab() {
       <NovoProjetoModal open={novoOpen} onOpenChange={setNovoOpen} />
       <VendidoModal card={vendidoCard} onClose={() => setVendidoCard(null)} />
       <PerdidoModal card={perdidoCard} onClose={() => setPerdidoCard(null)} />
+      <ConcluidoModal card={concluidoCard} onClose={() => setConcluidoCard(null)} />
       <EditCardModal card={editCard} onClose={() => setEditCard(null)} />
 
       <Dialog open={!!revertConfirm} onOpenChange={(b) => !b && setRevertConfirm(null)}>
         <DialogContent className="bg-background border-border">
           <DialogHeader>
-            <DialogTitle>Reverter card de {revertConfirm?.from === "VENDIDO" ? "Vendido" : "Perdido"}?</DialogTitle>
+            <DialogTitle>
+              Reverter card de {revertConfirm?.from === "VENDIDO" ? "Vendido" : revertConfirm?.from === "CONCLUIDO" ? "Concluído" : "Perdido"}?
+            </DialogTitle>
             <DialogDescription>
               {revertConfirm?.from === "VENDIDO" ? (
                 <>
                   Isto vai <strong>excluir a ação de Venda</strong> gerada automaticamente,
                   remover os <strong>pontos do Programa E+</strong> dela e zerar o valor fechado do projeto.
                   Ações de venda criadas manualmente (pelo Registro de Ação) não serão tocadas.
+                </>
+              ) : revertConfirm?.from === "CONCLUIDO" ? (
+                <>
+                  Isto vai <strong>excluir a ação de Projeto de Apresentação</strong> gerada automaticamente,
+                  os <strong>ambientes registrados</strong> e os <strong>pontos do Programa E+</strong> dela.
+                  Registros criados manualmente não serão tocados.
                 </>
               ) : (
                 <>Isto vai limpar o motivo da perda e devolver o cliente ao status ativo.</>
