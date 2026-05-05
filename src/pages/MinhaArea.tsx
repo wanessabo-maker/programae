@@ -83,7 +83,7 @@ export default function MinhaArea() {
   const [completeModalOpen, setCompleteModalOpen] = useState(false);
   const [expandedContracts, setExpandedContracts] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<'my' | 'team'>('my');
-  const [activeTab, setActiveTab] = useState<'activities' | 'indicators' | 'gestora'>('activities');
+  const [activeTab, setActiveTab] = useState<'activities' | 'gestora'>('activities');
   const [teamFilterMemberId, setTeamFilterMemberId] = useState<string>('');
 
   // Check if user has management position (Gerencia or Gerente)
@@ -395,8 +395,8 @@ export default function MinhaArea() {
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-light tracking-tight">
-              {activeTab === 'indicators' 
-                ? 'Indicadores de Resultados'
+              {activeTab === 'gestora' 
+                ? 'Gestora'
                 : viewMode === 'team' 
                   ? 'Visão Geral da Equipe' 
                   : `Olá, ${currentTeamMember?.name?.split(' ')[0] || 'Usuário'}`}
@@ -431,8 +431,8 @@ export default function MinhaArea() {
             )}
           </div>
           <p className="text-muted-foreground">
-            {activeTab === 'indicators'
-              ? 'Acompanhe a evolução mês a mês por colaborador e área em relação às metas'
+            {activeTab === 'gestora'
+              ? 'Funil do mês, alertas operacionais e indicadores anuais por colaborador'
               : viewMode === 'team' 
                 ? 'Acompanhe o andamento de todos os contratos e checklists da equipe'
                 : 'Atividades liberadas para sua execução e aguardando liberação de outras áreas'}
@@ -441,20 +441,22 @@ export default function MinhaArea() {
 
         {/* Main Tab Navigation for Managers/Admins */}
         {(isManagement || isAdmin) ? (
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'activities' | 'indicators' | 'gestora')}>
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'activities' | 'gestora')}>
             <TabsList className="mb-4">
               <TabsTrigger value="activities" className="flex items-center gap-1.5">
                 <ListChecks className="h-4 w-4" />
                 Atividades
               </TabsTrigger>
-              <TabsTrigger value="indicators" className="flex items-center gap-1.5">
-                <BarChart3 className="h-4 w-4" />
-                Indicadores
-              </TabsTrigger>
               {isAdmin && (
                 <TabsTrigger value="gestora" className="flex items-center gap-1.5">
-                  <Users className="h-4 w-4" />
+                  <BarChart3 className="h-4 w-4" />
                   Gestora
+                </TabsTrigger>
+              )}
+              {!isAdmin && isManagement && (
+                <TabsTrigger value="gestora" className="flex items-center gap-1.5">
+                  <BarChart3 className="h-4 w-4" />
+                  Indicadores
                 </TabsTrigger>
               )}
             </TabsList>
@@ -464,15 +466,10 @@ export default function MinhaArea() {
               {renderActivitiesContent()}
             </TabsContent>
 
-            <TabsContent value="indicators" className="mt-0">
+            <TabsContent value="gestora" className="mt-0 space-y-8">
+              {isAdmin && <GestoraDashboard />}
               <ManagementDashboard />
             </TabsContent>
-
-            {isAdmin && (
-              <TabsContent value="gestora" className="mt-0">
-                <GestoraDashboard />
-              </TabsContent>
-            )}
           </Tabs>
         ) : (
           /* Regular users see activities only */
