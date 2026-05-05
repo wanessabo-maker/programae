@@ -30,6 +30,7 @@ export default function ContratosTab() {
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('month');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
+  const [consultantFilter, setConsultantFilter] = useState<string>('all');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -45,38 +46,45 @@ export default function ContratosTab() {
     return projects.filter(p => p.stage === 'closed_won');
   }, [projects]);
 
-  // Filter by period
+  // Filter by period + consultant
   const filteredProjects = useMemo(() => {
-    if (periodFilter === 'all') return closedProjects;
-    
-    const now = new Date();
-    let start: Date;
-    let end: Date;
-    
-    switch (periodFilter) {
-      case 'month':
-        start = startOfMonth(now);
-        end = endOfMonth(now);
-        break;
-      case 'year':
-        start = startOfYear(now);
-        end = endOfYear(now);
-        break;
-      case 'custom':
-        if (!customStart || !customEnd) return closedProjects;
-        start = parseISO(customStart);
-        end = parseISO(customEnd);
-        break;
-      default:
-        return closedProjects;
+    let list = closedProjects;
+    if (periodFilter !== 'all') {
+      const now = new Date();
+      let start: Date | null = null;
+      let end: Date | null = null;
+      if (periodFilter === 'month') { start = startOfMonth(now); end = endOfMonth(now); }
+      else if (periodFilter === 'year') { start = startOfYear(now); end = endOfYear(now); }
+      else if (periodFilter === 'custom' && customStart && customEnd) {
+        start = parseISO(customStart); end = parseISO(customEnd);
+      }
+      if (start && end) {
+        list = list.filter(p => {
+          if (!p.closed_date) return false;
+          try { return isWithinInterval(parseISO(p.closed_date), { start: start!, end: end! }); }
+          catch { return false; }
+        });
+      }
     }
-    
-    return closedProjects.filter(p => {
-      if (!p.closed_date) return false;
-      const closedDate = parseISO(p.closed_date);
-      return isWithinInterval(closedDate, { start, end });
+    if (consultantFilter !== 'all') {
+      list = list.filter(p => p.responsible_id === consultantFilter);
+    }
+    return list;
+  }, [closedProjects, periodFilter, customStart, customEnd, consultantFilter]);
+
+  // Count number of "Apresentação de Projeto" actions per project (used to show conversion effort)
+  const presentationCountByProject = useMemo(() => {
+    const map: Record<string, number> = {};
+    actions.forEach(a => {
+      const t = actionTypes.find(at => at.id === a.actionTypeId);
+      const name = (t?.name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      if (!a.projectId) return;
+      if (name.startsWith('apresentacao de projeto') && !name.includes('reforma')) {
+        map[a.projectId] = (map[a.projectId] || 0) + 1;
+      }
     });
-  }, [closedProjects, periodFilter, customStart, customEnd]);
+    return map;
+  }, [actions, actionTypes]);
 
   // Calculate totals
   const totalValue = useMemo(() => {
@@ -279,9 +287,22 @@ export default function ContratosTab() {
             />
           </div>
         )}
+        <div className="flex items-center gap-2 ml-auto">
+          <span className="text-xs tracking-widest uppercase text-muted-foreground">Consultor:</span>
+          <select
+            value={consultantFilter}
+            onChange={(e) => setConsultantFilter(e.target.value)}
+            className="input-flat text-sm"
+          >
+            <option value="all">Todos</option>
+            {teamMembers.filter(m => m.active).map(m => (
+              <option key={m.id} value={m.id}>{m.name}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      {/* Contracts Table */}
+      {/* Contracts List (analysis cards) */}
       {filteredProjects.length === 0 ? (
         <div className="border border-border p-8 text-center">
           <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-4" />
@@ -291,84 +312,76 @@ export default function ContratosTab() {
           </p>
         </div>
       ) : (
-        <div className="border border-border overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border bg-muted/30">
-                <th className="text-left p-3 text-xs tracking-widest uppercase text-muted-foreground">Nº Contrato</th>
-                <th className="text-left p-3 text-xs tracking-widest uppercase text-muted-foreground">Projeto FOCCO</th>
-                <th className="text-left p-3 text-xs tracking-widest uppercase text-muted-foreground">Cliente</th>
-                <th className="text-left p-3 text-xs tracking-widest uppercase text-muted-foreground">Profissional</th>
-                <th className="text-left p-3 text-xs tracking-widest uppercase text-muted-foreground">Consultor</th>
-                <th className="text-left p-3 text-xs tracking-widest uppercase text-muted-foreground">Data Venda</th>
-                <th className="text-right p-3 text-xs tracking-widest uppercase text-muted-foreground">Valor</th>
-                <th className="text-center p-3 text-xs tracking-widest uppercase text-muted-foreground">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredProjects.map((project) => {
-                const client = getClientForProject(project.id);
-                const saleAction = getSaleAction(project.id);
-                const contractNumber = client?.contract_number || saleAction?.presentationNumber || '-';
-                
-                return (
-                  <tr key={project.id} className="border-b border-border hover:bg-muted/20">
-                    <td className="p-3">
-                      <span className="text-sm font-mono bg-green-500/10 text-green-700 px-2 py-0.5 rounded">
-                        {contractNumber}
-                      </span>
-                    </td>
-                    <td className="p-3 text-sm font-mono">{project.focco_project_number || '-'}</td>
-                    <td className="p-3 text-sm">{project.clients?.name || client?.name || '-'}</td>
-                    <td className="p-3 text-sm">{project.professionals?.name || '-'}</td>
-                    <td className="p-3 text-sm">{project.responsible?.name || '-'}</td>
-                    <td className="p-3 text-sm">
-                      {project.closed_date 
-                        ? format(parseISO(project.closed_date), 'dd/MM/yyyy', { locale: ptBR })
-                        : '-'
-                      }
-                    </td>
-                    <td className="p-3 text-sm text-right font-medium">
-                      {formatCurrency(project.closed_value || project.estimated_value)}
-                    </td>
-                    <td className="p-3 text-center flex items-center justify-center gap-1">
-                      <button
-                        onClick={() => handleEditProject(project)}
-                        className="p-1 hover:bg-muted rounded"
-                        title="Editar contrato"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleViewProject(project)}
-                        className="p-1 hover:bg-muted rounded"
-                        title="Ver detalhes"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          setDeleteProjectId(project.id);
-                          setDeleteProjectName(project.name || project.focco_project_number || 'Sem nome');
-                        }}
-                        className="p-1 hover:bg-destructive/10 rounded text-destructive/70 hover:text-destructive"
-                        title="Excluir contrato"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-            <tfoot>
-              <tr className="bg-muted/30">
-                <td colSpan={6} className="p-3 text-sm font-medium text-right">Total:</td>
-                <td className="p-3 text-sm text-right font-bold">{formatCurrency(totalValue)}</td>
-                <td></td>
-              </tr>
-            </tfoot>
-          </table>
+        <div className="space-y-3">
+          {filteredProjects.map((project) => {
+            const client = getClientForProject(project.id);
+            const clientName = project.clients?.name || client?.name || 'Cliente sem nome';
+            const value = project.closed_value || project.estimated_value || 0;
+            const presCount = presentationCountByProject[project.id] || 0;
+            const projetistaApres = teamMembers.find(m => m.id === project.apresentacao_projetista_id);
+            const profName = project.professionals?.name || '—';
+            const consultantName = project.responsible?.name || '—';
+
+            return (
+              <div key={project.id} className="border border-border p-4 hover:bg-muted/20 transition-colors">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm leading-relaxed">
+                      <span className="font-medium">{clientName}</span>
+                      {' fechou o contrato no valor de '}
+                      <span className="font-semibold text-green-600">{formatCurrency(value)}</span>
+                      {'. '}
+                      {presCount > 0 ? (
+                        <>
+                          {'Foram necessárias '}
+                          <span className="font-semibold">{presCount}</span>
+                          {presCount === 1 ? ' apresentação ' : ' apresentações '}
+                          para convertê-lo(a).
+                        </>
+                      ) : (
+                        <span className="text-muted-foreground italic">Sem apresentações registradas antes da venda.</span>
+                      )}
+                    </p>
+                    <div className="flex flex-wrap gap-x-5 gap-y-1 mt-2 text-xs text-muted-foreground">
+                      <span><span className="uppercase tracking-wider">Consultor:</span> <span className="text-foreground">{consultantName}</span></span>
+                      <span><span className="uppercase tracking-wider">Arquiteto:</span> <span className="text-foreground">{profName}</span></span>
+                      <span><span className="uppercase tracking-wider">Projetista Apres.:</span> <span className="text-foreground">{projetistaApres?.name || '—'}</span></span>
+                      <span><span className="uppercase tracking-wider">FOCCO:</span> <span className="text-foreground font-mono">{project.focco_project_number || '—'}</span></span>
+                      {project.closed_date && (
+                        <span><span className="uppercase tracking-wider">Data:</span> <span className="text-foreground">{format(parseISO(project.closed_date), 'dd/MM/yyyy', { locale: ptBR })}</span></span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={() => handleEditProject(project)}
+                      className="p-2 hover:bg-muted rounded"
+                      title="Editar contrato"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleViewProject(project)}
+                      className="p-2 hover:bg-muted rounded"
+                      title="Ver detalhes"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setDeleteProjectId(project.id);
+                        setDeleteProjectName(project.name || project.focco_project_number || 'Sem nome');
+                      }}
+                      className="p-2 hover:bg-destructive/10 rounded text-destructive/70 hover:text-destructive"
+                      title="Excluir contrato"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 

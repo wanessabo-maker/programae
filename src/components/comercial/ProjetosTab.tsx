@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Search, Folder, Edit2, Trash2, XCircle } from 'lucide-react';
+import { Search, Folder, Edit2, Trash2, XCircle, Filter } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useProjects, useUpdateProject, useDeleteProject, PROJECT_STAGES, Project } from '@/hooks/useProjects';
 import { useClients, useUpdateClient } from '@/hooks/useClients';
@@ -7,6 +7,7 @@ import { useProfessionals, useTeamMembers } from '@/hooks/useDatabase';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { parseISO, isWithinInterval, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
 
 interface ProjectFormData {
   name: string;
@@ -82,6 +83,10 @@ export default function ProjetosTab() {
   const [lostReason, setLostReason] = useState('');
   const [form, setForm] = useState<ProjectFormData>(emptyForm);
   const [searchTerm, setSearchTerm] = useState('');
+  const [periodFilter, setPeriodFilter] = useState<'all' | 'month' | 'year' | 'custom'>('all');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
+  const [consultantFilter, setConsultantFilter] = useState<string>('all');
 
   const { data: projects = [], isLoading } = useProjects();
   const { data: clients = [] } = useClients();
@@ -121,7 +126,7 @@ export default function ProjetosTab() {
 
   // Build map: project_id -> { lastPresentationDate, lastPresentedValue }
   const presentationMap = useMemo(() => {
-    const map: Record<string, { lastPresentationDate: string; lastPresentedValue: number | null }> = {};
+    const map: Record<string, { lastPresentationDate: string; lastPresentedValue: number | null; count: number }> = {};
 
     // Index latest presentation date per project (by project_id OR focco_project_number)
     presentationActions.forEach((a) => {
@@ -133,11 +138,17 @@ export default function ProjetosTab() {
       if (!project) return;
 
       const existing = map[project.id];
-      if (!existing || a.action_date > existing.lastPresentationDate) {
+      if (!existing) {
         map[project.id] = {
           lastPresentationDate: a.action_date,
-          lastPresentedValue: existing?.lastPresentedValue ?? null,
+          lastPresentedValue: null,
+          count: 1,
         };
+      } else {
+        existing.count += 1;
+        if (a.action_date > existing.lastPresentationDate) {
+          existing.lastPresentationDate = a.action_date;
+        }
       }
     });
 
@@ -148,6 +159,7 @@ export default function ProjetosTab() {
         map[h.project_id] = {
           lastPresentationDate: project?.start_date || project?.created_at || '',
           lastPresentedValue: h.presented_value,
+          count: 0,
         };
       } else if (map[h.project_id].lastPresentedValue === null) {
         map[h.project_id].lastPresentedValue = h.presented_value;
@@ -165,19 +177,49 @@ export default function ProjetosTab() {
         ...p,
         lastPresentationDate: presentationMap[p.id]?.lastPresentationDate || p.start_date || p.created_at || '',
         lastPresentedValue: presentationMap[p.id]?.lastPresentedValue ?? p.estimated_value ?? null,
+        presentationCount: presentationMap[p.id]?.count ?? 0,
       }))
       .sort((a, b) => (b.lastPresentationDate || '').localeCompare(a.lastPresentationDate || ''));
   }, [projects, presentationMap]);
 
   const filteredProjects = useMemo(() => {
-    if (!searchTerm.trim()) return carteiraFlutuanteProjects;
-    const term = searchTerm.toLowerCase();
-    return carteiraFlutuanteProjects.filter(project =>
-      project.name.toLowerCase().includes(term) ||
-      project.clients?.name?.toLowerCase().includes(term) ||
-      project.focco_project_number?.toLowerCase().includes(term)
-    );
-  }, [carteiraFlutuanteProjects, searchTerm]);
+    let list = carteiraFlutuanteProjects;
+
+    // Period filter (by lastPresentationDate)
+    if (periodFilter !== 'all') {
+      const now = new Date();
+      let start: Date | null = null;
+      let end: Date | null = null;
+      if (periodFilter === 'month') { start = startOfMonth(now); end = endOfMonth(now); }
+      else if (periodFilter === 'year') { start = startOfYear(now); end = endOfYear(now); }
+      else if (periodFilter === 'custom' && customStart && customEnd) {
+        start = parseISO(customStart); end = parseISO(customEnd);
+      }
+      if (start && end) {
+        list = list.filter(p => {
+          if (!p.lastPresentationDate) return false;
+          try { return isWithinInterval(parseISO(p.lastPresentationDate), { start: start!, end: end! }); }
+          catch { return false; }
+        });
+      }
+    }
+
+    // Consultant filter
+    if (consultantFilter !== 'all') {
+      list = list.filter(p => p.responsible_id === consultantFilter);
+    }
+
+    // Search
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      list = list.filter(project =>
+        project.name.toLowerCase().includes(term) ||
+        project.clients?.name?.toLowerCase().includes(term) ||
+        project.focco_project_number?.toLowerCase().includes(term)
+      );
+    }
+    return list;
+  }, [carteiraFlutuanteProjects, searchTerm, periodFilter, customStart, customEnd, consultantFilter]);
 
   const handleEdit = (project: Project) => {
     setForm({
@@ -359,46 +401,96 @@ export default function ProjetosTab() {
         </div>
       </div>
 
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3 border border-border p-3">
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <span className="text-xs tracking-widest uppercase text-muted-foreground">Período:</span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {([
+            { id: 'all', label: 'Todos' },
+            { id: 'month', label: 'Este Mês' },
+            { id: 'year', label: 'Este Ano' },
+            { id: 'custom', label: 'Personalizado' },
+          ] as const).map(opt => (
+            <button
+              key={opt.id}
+              onClick={() => setPeriodFilter(opt.id)}
+              className={`px-3 py-1 text-xs tracking-widest uppercase border ${periodFilter === opt.id ? 'bg-foreground text-background' : 'border-border hover:bg-muted'}`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        {periodFilter === 'custom' && (
+          <div className="flex gap-2 items-center">
+            <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="input-flat text-sm" />
+            <span className="text-muted-foreground text-xs">até</span>
+            <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="input-flat text-sm" />
+          </div>
+        )}
+        <div className="flex items-center gap-2 ml-auto">
+          <span className="text-xs tracking-widest uppercase text-muted-foreground">Consultor:</span>
+          <select
+            value={consultantFilter}
+            onChange={(e) => setConsultantFilter(e.target.value)}
+            className="input-flat text-sm"
+          >
+            <option value="all">Todos</option>
+            {activeTeamMembers.map(m => (
+              <option key={m.id} value={m.id}>{m.name}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       {/* Table View */}
       <div className="border border-border overflow-x-auto">
         <table className="w-full">
           <thead className="bg-muted/50">
             <tr>
-              <th className="text-left p-3 text-xs uppercase tracking-wider">Projeto</th>
-              <th className="text-left p-3 text-xs uppercase tracking-wider">Cliente</th>
-              <th className="text-left p-3 text-xs uppercase tracking-wider">Consultor</th>
               <th className="text-center p-3 text-xs uppercase tracking-wider">Última Apres.</th>
-              <th className="text-right p-3 text-xs uppercase tracking-wider">Valor Apres.</th>
+              <th className="text-left p-3 text-xs uppercase tracking-wider">Cliente / Projeto</th>
+              <th className="text-left p-3 text-xs uppercase tracking-wider">Consultor</th>
+              <th className="text-left p-3 text-xs uppercase tracking-wider">Projetista</th>
+              <th className="text-right p-3 text-xs uppercase tracking-wider">Valor</th>
+              <th className="text-center p-3 text-xs uppercase tracking-wider">Nº Apres.</th>
               <th className="text-center p-3 text-xs uppercase tracking-wider">Ações</th>
             </tr>
           </thead>
           <tbody>
             {filteredProjects.length === 0 ? (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                <td colSpan={7} className="p-8 text-center text-muted-foreground">
                   Nenhum projeto na Carteira Flutuante
                 </td>
               </tr>
             ) : (
               filteredProjects.map(project => {
                 const consultant = teamMembers.find(m => m.id === project.responsible_id);
+                const projetista = teamMembers.find(m => m.id === project.apresentacao_projetista_id);
                 return (
                   <tr key={project.id} className="border-t border-border hover:bg-muted/30">
+                    <td className="p-3 text-center text-sm font-mono">{formatDate(project.lastPresentationDate)}</td>
                     <td className="p-3">
                       <div className="flex items-center gap-2">
                         <Folder className="w-4 h-4 text-muted-foreground" />
                         <div>
-                          <p className="font-medium">{project.name}</p>
+                          <p className="font-medium">{project.clients?.name || project.name}</p>
+                          {project.clients?.name && project.name !== project.clients.name && (
+                            <p className="text-[11px] text-muted-foreground">{project.name}</p>
+                          )}
                           {project.focco_project_number && (
                             <p className="text-xs text-primary font-mono">FOCCO: {project.focco_project_number}</p>
                           )}
                         </div>
                       </div>
                     </td>
-                    <td className="p-3 text-sm">{project.clients?.name || '-'}</td>
                     <td className="p-3 text-sm">{consultant?.name || '-'}</td>
-                    <td className="p-3 text-center text-sm font-mono">{formatDate(project.lastPresentationDate)}</td>
+                    <td className="p-3 text-sm">{projetista?.name || '-'}</td>
                     <td className="p-3 text-right text-sm font-medium">{formatCurrency(project.lastPresentedValue)}</td>
+                    <td className="p-3 text-center text-sm font-medium">{project.presentationCount}</td>
                     <td className="p-3">
                       <div className="flex justify-center gap-1">
                         <button

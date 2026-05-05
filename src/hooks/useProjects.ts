@@ -24,6 +24,7 @@ export interface Project {
   updated_at?: string | null;
   focco_project_number?: string | null;
   origin_type?: string | null; // 'standard' | 'venda_direta' | 'certificado_sem_venda'
+  apresentacao_projetista_id?: string | null;
   // Joined data
   clients?: { name: string } | null;
   professionals?: { name: string } | null;
