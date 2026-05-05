@@ -22,6 +22,7 @@ import { Action } from '@/types';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { CleanlinessCheckBar } from '@/components/dashboard/CleanlinessCheckBar';
+import { PlannerTab } from '@/components/comercial/PlannerTab';
 
 export default function Dashboard() {
   // State hooks first
@@ -503,6 +504,12 @@ export default function Dashboard() {
             subtitle={`Meta: ${monthlyMetrics.acoes.meta}`}
           />
         </div>
+      </section>
+
+      {/* Pipeline de Apresentações */}
+      <section>
+        <h2 className="title-section mb-4">Pipeline de Apresentações</h2>
+        <PlannerTab />
       </section>
 
       {/* Yearly Results Board - Admin Only */}
