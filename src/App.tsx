@@ -21,7 +21,6 @@ import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import ClienteTimelinePage from "./pages/ClienteTimelinePage";
 import GestoraDashboard from "./pages/GestoraDashboard";
-import PlannerApresentacao from "./pages/PlannerApresentacao";
 
 const queryClient = new QueryClient();
 
