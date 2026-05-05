@@ -590,7 +590,7 @@ export function PlannerTab() {
                       </h3>
                       <span className="text-xs text-white/40">{grouped[col.id].length}</span>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-2 max-h-[640px] overflow-y-auto pr-1">
                       {grouped[col.id].map((card, i) => (
                         <Draggable draggableId={card.id} index={i} key={card.id}>
                           {(p, snap) => (
