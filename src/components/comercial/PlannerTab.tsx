@@ -11,7 +11,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
 import { Plus, ExternalLink, MessageSquare, Loader2, Search } from "lucide-react";
-import { Clock } from "lucide-react";
+import { Clock, Pencil } from "lucide-react";
 import { useAuthContext } from "@/contexts/AuthContext";
 
 type PlannerStatus =
@@ -294,14 +294,17 @@ function PerdidoModal({ card, onClose }: { card: PlannerCard | null; onClose: ()
 }
 
 // ── Card ─────────────────────────────────────────────────────────────
-function Card({ card }: { card: PlannerCard }) {
+function Card({ card, onEdit }: { card: PlannerCard; onEdit: (c: PlannerCard) => void }) {
   const days = card.planner_status_at
     ? Math.max(0, Math.floor((Date.now() - new Date(card.planner_status_at).getTime()) / 86400000))
     : null;
   const isFinal = card.planner_status === "VENDIDO" || card.planner_status === "PERDIDO";
   const isLate = days !== null && days > 10 && !isFinal;
   return (
-    <div className="bg-neutral-900 border border-white/10 rounded p-3 space-y-2 hover:border-white/30 transition-colors">
+    <div
+      onClick={() => onEdit(card)}
+      className="bg-neutral-900 border border-white/10 rounded p-3 space-y-2 hover:border-white/30 transition-colors cursor-pointer"
+    >
       <div className="flex items-start justify-between gap-2">
         <div className="text-sm font-medium text-white truncate">
           {card.clients?.name || card.name}
@@ -348,6 +351,116 @@ function Card({ card }: { card: PlannerCard }) {
   );
 }
 
+// ── Modal Editar Card ────────────────────────────────────────────────
+function EditCardModal({ card, onClose }: { card: PlannerCard | null; onClose: () => void }) {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const [clienteNome, setClienteNome] = useState("");
+  const [observacao, setObservacao] = useState("");
+  const [link, setLink] = useState("");
+  const [statusAt, setStatusAt] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  // Sync state when card changes
+  useState(() => {});
+  if (card && clienteNome === "" && observacao === "" && link === "" && statusAt === "") {
+    setClienteNome(card.clients?.name || card.name);
+    setObservacao(card.planner_observacao || "");
+    setLink(card.planner_link || "");
+    setStatusAt(card.planner_status_at ? card.planner_status_at.slice(0, 10) : "");
+  }
+
+  const handleClose = () => {
+    setClienteNome(""); setObservacao(""); setLink(""); setStatusAt("");
+    onClose();
+  };
+
+  const handleSave = async () => {
+    if (!card) return;
+    setSaving(true);
+    try {
+      // Update client name if changed and there's a client
+      if (card.client_id && clienteNome.trim() && clienteNome !== card.clients?.name) {
+        const { error: ce } = await supabase
+          .from("clients")
+          .update({ name: clienteNome.trim() })
+          .eq("id", card.client_id);
+        if (ce) throw ce;
+      }
+
+      // Update project planner fields
+      const updates: any = {
+        name: clienteNome.trim() || card.name,
+        planner_observacao: observacao || null,
+        planner_link: link || null,
+      };
+      if (statusAt) {
+        // store as ISO at noon to avoid TZ shift
+        updates.planner_status_at = new Date(`${statusAt}T12:00:00`).toISOString();
+      }
+      const { error: pe } = await supabase
+        .from("projects")
+        .update(updates)
+        .eq("id", card.id);
+      if (pe) throw pe;
+
+      qc.invalidateQueries({ queryKey: ["planner_kanban"] });
+      toast({ title: "Card atualizado" });
+      handleClose();
+    } catch (e: any) {
+      toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={!!card} onOpenChange={(b) => !b && handleClose()}>
+      <DialogContent className="bg-background border-border">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Pencil className="h-4 w-4" /> Editar card
+          </DialogTitle>
+          <DialogDescription>Atualize os dados deste projeto no Pipeline.</DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          <div className="space-y-2">
+            <Label>Nome do cliente</Label>
+            <Input value={clienteNome} onChange={(e) => setClienteNome(e.target.value)} />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Data de adição a esta coluna</Label>
+            <Input type="date" value={statusAt} onChange={(e) => setStatusAt(e.target.value)} />
+            <p className="text-xs text-muted-foreground">
+              Define a partir de qual dia o contador "dias na coluna" deve começar.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Observação</Label>
+            <Textarea rows={3} value={observacao} onChange={(e) => setObservacao(e.target.value)} />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Link dados do projeto</Label>
+            <Input type="url" placeholder="https://..." value={link} onChange={(e) => setLink(e.target.value)} />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={handleClose} disabled={saving}>Cancelar</Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Salvar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ── Componente principal ─────────────────────────────────────────────
 export function PlannerTab() {
   const { data: cards = [], isLoading } = useCards();
@@ -355,6 +468,7 @@ export function PlannerTab() {
   const [novoOpen, setNovoOpen] = useState(false);
   const [vendidoCard, setVendidoCard] = useState<PlannerCard | null>(null);
   const [perdidoCard, setPerdidoCard] = useState<PlannerCard | null>(null);
+  const [editCard, setEditCard] = useState<PlannerCard | null>(null);
 
   const grouped = COLUMNS.reduce((acc, col) => {
     acc[col.id] = cards.filter((c) => c.planner_status === col.id);
@@ -418,7 +532,7 @@ export function PlannerTab() {
                               style={p.draggableProps.style}
                               className={snap.isDragging ? "opacity-80" : ""}
                             >
-                              <Card card={card} />
+                              <Card card={card} onEdit={setEditCard} />
                             </div>
                           )}
                         </Draggable>
@@ -436,6 +550,7 @@ export function PlannerTab() {
       <NovoProjetoModal open={novoOpen} onOpenChange={setNovoOpen} />
       <VendidoModal card={vendidoCard} onClose={() => setVendidoCard(null)} />
       <PerdidoModal card={perdidoCard} onClose={() => setPerdidoCard(null)} />
+      <EditCardModal card={editCard} onClose={() => setEditCard(null)} />
     </div>
   );
 }
