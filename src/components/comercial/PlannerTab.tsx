@@ -640,10 +640,17 @@ function EditCardModal({ card, onClose }: { card: PlannerCard | null; onClose: (
 export function PlannerTab() {
   const { data: cards = [], isLoading } = useCards();
   const upd = useUpdateStatus();
+  const qc = useQueryClient();
+  const { toast } = useToast();
   const [novoOpen, setNovoOpen] = useState(false);
   const [vendidoCard, setVendidoCard] = useState<PlannerCard | null>(null);
   const [perdidoCard, setPerdidoCard] = useState<PlannerCard | null>(null);
   const [editCard, setEditCard] = useState<PlannerCard | null>(null);
+  const [revertConfirm, setRevertConfirm] = useState<{
+    card: PlannerCard;
+    dest: PlannerStatus;
+    from: PlannerStatus;
+  } | null>(null);
 
   const grouped = COLUMNS.reduce((acc, col) => {
     acc[col.id] = cards.filter((c) => c.planner_status === col.id);
@@ -655,13 +662,74 @@ export function PlannerTab() {
     if (!destination || destination.droppableId === source.droppableId) return;
 
     const dest = destination.droppableId as PlannerStatus;
+    const src = source.droppableId as PlannerStatus;
     const card = cards.find((c) => c.id === draggableId);
     if (!card) return;
+
+    // Reverter de VENDIDO/PERDIDO precisa de confirmação e limpeza
+    if (src === "VENDIDO" || src === "PERDIDO") {
+      setRevertConfirm({ card, dest, from: src });
+      return;
+    }
 
     if (dest === "VENDIDO") { setVendidoCard(card); return; }
     if (dest === "PERDIDO") { setPerdidoCard(card); return; }
 
     upd.mutate({ id: draggableId, status: dest });
+  };
+
+  const handleRevert = async () => {
+    if (!revertConfirm) return;
+    const { card, dest, from } = revertConfirm;
+    try {
+      const projectUpdates: any = {
+        planner_status: dest,
+        stage: dest === "CONCLUIDO" || dest === "INICIADO" || dest === "AGUARDANDO_INICIO"
+          ? "em_negociacao"
+          : null,
+        status: "prospecting",
+        closed_value: null,
+        closed_date: null,
+      };
+      if (from === "PERDIDO") projectUpdates.planner_motivo_perda = null;
+      const { error: pe } = await supabase.from("projects").update(projectUpdates).eq("id", card.id);
+      if (pe) throw pe;
+
+      // Cliente volta para activo
+      if (card.client_id) {
+        await supabase.from("clients").update({ status: "active" }).eq("id", card.client_id);
+      }
+
+      // Se vinha de VENDIDO, remover Action de venda + créditos auto-gerados
+      if (from === "VENDIDO") {
+        const { data: autoActions } = await supabase
+          .from("actions")
+          .select("id")
+          .eq("project_id", card.id)
+          .ilike("notes", "%Pipeline%VENDIDO%");
+        const ids = (autoActions ?? []).map((a) => a.id);
+        if (ids.length) {
+          await supabase.from("credit_transactions").delete().in("action_id", ids);
+          await supabase.from("actions").delete().in("id", ids);
+        }
+      }
+
+      qc.invalidateQueries({ queryKey: ["planner_kanban"] });
+      qc.invalidateQueries({ queryKey: ["projects"] });
+      qc.invalidateQueries({ queryKey: ["actions"] });
+      qc.invalidateQueries({ queryKey: ["credit_transactions"] });
+      qc.invalidateQueries({ queryKey: ["clients"] });
+      toast({
+        title: "Card revertido",
+        description: from === "VENDIDO"
+          ? "Ação de venda e pontos do Programa E+ foram removidos."
+          : "Status de perda removido.",
+      });
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setRevertConfirm(null);
+    }
   };
 
   return (
@@ -726,6 +794,29 @@ export function PlannerTab() {
       <VendidoModal card={vendidoCard} onClose={() => setVendidoCard(null)} />
       <PerdidoModal card={perdidoCard} onClose={() => setPerdidoCard(null)} />
       <EditCardModal card={editCard} onClose={() => setEditCard(null)} />
+
+      <Dialog open={!!revertConfirm} onOpenChange={(b) => !b && setRevertConfirm(null)}>
+        <DialogContent className="bg-background border-border">
+          <DialogHeader>
+            <DialogTitle>Reverter card de {revertConfirm?.from === "VENDIDO" ? "Vendido" : "Perdido"}?</DialogTitle>
+            <DialogDescription>
+              {revertConfirm?.from === "VENDIDO" ? (
+                <>
+                  Isto vai <strong>excluir a ação de Venda</strong> gerada automaticamente,
+                  remover os <strong>pontos do Programa E+</strong> dela e zerar o valor fechado do projeto.
+                  Ações de venda criadas manualmente (pelo Registro de Ação) não serão tocadas.
+                </>
+              ) : (
+                <>Isto vai limpar o motivo da perda e devolver o cliente ao status ativo.</>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRevertConfirm(null)}>Cancelar</Button>
+            <Button variant="destructive" onClick={handleRevert}>Confirmar reversão</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
