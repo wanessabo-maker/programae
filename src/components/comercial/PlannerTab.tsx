@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
-import { Plus, ExternalLink, MessageSquare, Loader2, Search } from "lucide-react";
+import { Plus, ExternalLink, MessageSquare, Loader2, Search, User, Palette } from "lucide-react";
 import { Clock, Pencil } from "lucide-react";
 import { useAuthContext } from "@/contexts/AuthContext";
 
@@ -35,7 +35,11 @@ interface PlannerCard {
   closed_value: number | null;
   client_id: string | null;
   planner_status_at: string | null;
+  responsible_id: string | null;
+  apresentacao_projetista_id: string | null;
   clients?: { id: string; name: string } | null;
+  responsible?: { id: string; name: string } | null;
+  apresentacao_projetista?: { id: string; name: string } | null;
 }
 
 // ── Hooks ────────────────────────────────────────────────────────────
@@ -45,7 +49,7 @@ function useCards() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects")
-        .select("id, name, planner_status, planner_observacao, planner_link, planner_motivo_perda, closed_value, client_id, planner_status_at, clients(id, name)")
+        .select("id, name, planner_status, planner_observacao, planner_link, planner_motivo_perda, closed_value, client_id, planner_status_at, responsible_id, apresentacao_projetista_id, clients(id, name), responsible:team_members!projects_responsible_id_fkey(id, name), apresentacao_projetista:team_members!projects_apresentacao_projetista_id_fkey(id, name)")
         .not("planner_status", "is", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
