@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
-import { Plus, ExternalLink, MessageSquare, Loader2, Search } from "lucide-react";
+import { Plus, ExternalLink, MessageSquare, Loader2, Search, User, Palette } from "lucide-react";
 import { Clock, Pencil } from "lucide-react";
 import { useAuthContext } from "@/contexts/AuthContext";
 
@@ -35,7 +35,11 @@ interface PlannerCard {
   closed_value: number | null;
   client_id: string | null;
   planner_status_at: string | null;
+  responsible_id: string | null;
+  apresentacao_projetista_id: string | null;
   clients?: { id: string; name: string } | null;
+  responsible?: { id: string; name: string } | null;
+  apresentacao_projetista?: { id: string; name: string } | null;
 }
 
 // ── Hooks ────────────────────────────────────────────────────────────
@@ -45,7 +49,7 @@ function useCards() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects")
-        .select("id, name, planner_status, planner_observacao, planner_link, planner_motivo_perda, closed_value, client_id, planner_status_at, clients(id, name)")
+        .select("id, name, planner_status, planner_observacao, planner_link, planner_motivo_perda, closed_value, client_id, planner_status_at, responsible_id, apresentacao_projetista_id, clients(id, name), responsible:team_members!projects_responsible_id_fkey(id, name), apresentacao_projetista:team_members!projects_apresentacao_projetista_id_fkey(id, name)")
         .not("planner_status", "is", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -300,6 +304,11 @@ function Card({ card, onEdit }: { card: PlannerCard; onEdit: (c: PlannerCard) =>
     : null;
   const isFinal = card.planner_status === "VENDIDO" || card.planner_status === "PERDIDO";
   const isLate = days !== null && days > 10 && !isFinal;
+  const showProjetista =
+    card.planner_status === "INICIADO" ||
+    card.planner_status === "CONCLUIDO" ||
+    card.planner_status === "PERDIDO" ||
+    card.planner_status === "VENDIDO";
   return (
     <div
       onClick={() => onEdit(card)}
@@ -323,6 +332,18 @@ function Card({ card, onEdit }: { card: PlannerCard; onEdit: (c: PlannerCard) =>
           </span>
         )}
       </div>
+      {card.responsible?.name && (
+        <div className="flex items-center gap-1.5 text-[11px] text-white/70">
+          <User className="h-3 w-3 shrink-0" />
+          <span className="truncate">{card.responsible.name}</span>
+        </div>
+      )}
+      {showProjetista && card.apresentacao_projetista?.name && (
+        <div className="flex items-center gap-1.5 text-[11px] text-white/70">
+          <Palette className="h-3 w-3 shrink-0" />
+          <span className="truncate">{card.apresentacao_projetista.name}</span>
+        </div>
+      )}
       {card.planner_observacao && (
         <div className="flex items-start gap-1.5 text-xs text-white/60">
           <MessageSquare className="h-3 w-3 mt-0.5 shrink-0" />
@@ -359,7 +380,21 @@ function EditCardModal({ card, onClose }: { card: PlannerCard | null; onClose: (
   const [observacao, setObservacao] = useState("");
   const [link, setLink] = useState("");
   const [statusAt, setStatusAt] = useState("");
+  const [responsibleId, setResponsibleId] = useState<string>("");
+  const [projetistaId, setProjetistaId] = useState<string>("");
   const [saving, setSaving] = useState(false);
+
+  const { data: teamMembers = [] } = useQuery({
+    queryKey: ["planner_team_members"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("team_members")
+        .select("id, name")
+        .eq("active", true)
+        .order("name");
+      return data ?? [];
+    },
+  });
 
   useEffect(() => {
     if (card) {
@@ -367,11 +402,14 @@ function EditCardModal({ card, onClose }: { card: PlannerCard | null; onClose: (
       setObservacao(card.planner_observacao || "");
       setLink(card.planner_link || "");
       setStatusAt(card.planner_status_at ? card.planner_status_at.slice(0, 10) : "");
+      setResponsibleId(card.responsible_id || "");
+      setProjetistaId(card.apresentacao_projetista_id || "");
     }
   }, [card]);
 
   const handleClose = () => {
     setClienteNome(""); setObservacao(""); setLink(""); setStatusAt("");
+    setResponsibleId(""); setProjetistaId("");
     onClose();
   };
 
@@ -393,6 +431,8 @@ function EditCardModal({ card, onClose }: { card: PlannerCard | null; onClose: (
         name: clienteNome.trim() || card.name,
         planner_observacao: observacao || null,
         planner_link: link || null,
+        responsible_id: responsibleId || null,
+        apresentacao_projetista_id: projetistaId || null,
       };
       if (statusAt) {
         // store as ISO at noon to avoid TZ shift
@@ -428,6 +468,35 @@ function EditCardModal({ card, onClose }: { card: PlannerCard | null; onClose: (
           <div className="space-y-2">
             <Label>Nome do cliente</Label>
             <Input value={clienteNome} onChange={(e) => setClienteNome(e.target.value)} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Consultor</Label>
+              <select
+                value={responsibleId}
+                onChange={(e) => setResponsibleId(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="">— Selecionar —</option>
+                {teamMembers.map((m: any) => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label>Projetista de Apresentação</Label>
+              <select
+                value={projetistaId}
+                onChange={(e) => setProjetistaId(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="">— Selecionar —</option>
+                {teamMembers.map((m: any) => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -521,7 +590,7 @@ export function PlannerTab() {
                       </h3>
                       <span className="text-xs text-white/40">{grouped[col.id].length}</span>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-2 max-h-[640px] overflow-y-auto pr-1">
                       {grouped[col.id].map((card, i) => (
                         <Draggable draggableId={card.id} index={i} key={card.id}>
                           {(p, snap) => (
