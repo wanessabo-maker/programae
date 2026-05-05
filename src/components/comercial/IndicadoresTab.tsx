@@ -131,6 +131,25 @@ export default function IndicadoresTab() {
               <MiniMetric label="Perdidos" value={ind.projetosPerdidos} />
             </div>
           </section>
+
+          {/* Performance — novos indicadores */}
+          <section>
+            <p className="title-section">Performance</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <MiniMetric
+                label="Tempo Médio até Venda"
+                value={ind.tempoMedioVendaDias > 0 ? `${ind.tempoMedioVendaDias.toFixed(0)}d` : '—'}
+              />
+              <MiniMetric
+                label="Apresentações por Venda"
+                value={ind.apresentacoesMediasPorVenda > 0 ? ind.apresentacoesMediasPorVenda.toFixed(1) : '—'}
+              />
+              <MiniMetric
+                label="Carteira Flutuante"
+                value={formatCurrency(ind.carteiraFlutuanteValor)}
+              />
+            </div>
+          </section>
         </div>
       ))}
     </div>

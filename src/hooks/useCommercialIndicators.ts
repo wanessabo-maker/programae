@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { usePositions } from '@/hooks/usePositions';
-import { parseISO, getMonth, getYear, startOfMonth, endOfMonth, format } from 'date-fns';
+import { parseISO, getMonth, getYear, startOfMonth, endOfMonth, format, differenceInCalendarDays } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 
@@ -23,6 +23,10 @@ export interface CommercialMonthlyIndicators {
   projetosEmNegociacao: number;
   projetosVendidos: number;
   projetosPerdidos: number;
+  // Performance (novos)
+  tempoMedioVendaDias: number; // dias entre 1ª apresentação e fechamento
+  apresentacoesMediasPorVenda: number;
+  carteiraFlutuanteValor: number; // valor total em carteira ativa
 }
 
 const COMERCIAL_AREA_KEYWORD = 'comercial';
@@ -44,7 +48,7 @@ export function useCommercialIndicators(year: number, month: number) {
       // Projetos fechados no mês selecionado
       const { data: closedProjects, error: closedError } = await supabase
         .from('projects')
-        .select('id, status, stage, responsible_id, closed_date, closed_value, created_at, origin_type, focco_project_number')
+        .select('id, status, stage, responsible_id, closed_date, closed_value, estimated_value, created_at, origin_type, focco_project_number')
         .gte('closed_date', monthStart)
         .lte('closed_date', monthEnd);
       if (closedError) throw closedError;
@@ -52,7 +56,7 @@ export function useCommercialIndicators(year: number, month: number) {
       // Projetos em negociação (sem data de fechamento — sempre relevantes)
       const { data: openProjects, error: openError } = await supabase
         .from('projects')
-        .select('id, status, stage, responsible_id, closed_date, closed_value, created_at, origin_type, focco_project_number')
+        .select('id, status, stage, responsible_id, closed_date, closed_value, estimated_value, created_at, origin_type, focco_project_number')
         .in('stage', ['em_negociacao', 'lead'])
         .is('closed_date', null);
       if (openError) throw openError;
@@ -148,6 +152,50 @@ export function useCommercialIndicators(year: number, month: number) {
         p.stage === 'closed_lost' || p.status === 'perdido'
       ).length;
 
+      // ── Novos indicadores de performance ─────────────────────────────────
+      // Para cada venda: ache as apresentações da mesma área (mesmo projeto),
+      // pega a 1ª apresentação e calcula dias até o fechamento.
+      const allMemberActions = actions.filter(a => a.consultantId === memberId);
+      const apresentacoesPorProjeto = new Map<string, Date[]>();
+      allMemberActions.forEach(a => {
+        const at = actionTypeClassification[a.actionTypeId];
+        const isApres = at?.classification === 'apresentacao' || at?.name?.toLowerCase().includes('apresentação');
+        if (isApres && a.projectId) {
+          const arr = apresentacoesPorProjeto.get(a.projectId) || [];
+          arr.push(parseISO(a.date));
+          apresentacoesPorProjeto.set(a.projectId, arr);
+        }
+      });
+
+      let totalDias = 0;
+      let countDias = 0;
+      let totalApresPorVenda = 0;
+      let countApresPorVenda = 0;
+      vendasActions.forEach(v => {
+        if (!v.projectId) return;
+        const apres = apresentacoesPorProjeto.get(v.projectId) || [];
+        if (apres.length > 0) {
+          totalApresPorVenda += apres.length;
+          countApresPorVenda += 1;
+          const primeira = apres.sort((a, b) => a.getTime() - b.getTime())[0];
+          const fechamento = parseISO(v.date);
+          const dias = differenceInCalendarDays(fechamento, primeira);
+          if (dias >= 0) {
+            totalDias += dias;
+            countDias += 1;
+          }
+        }
+      });
+      const tempoMedioVendaDias = countDias > 0 ? totalDias / countDias : 0;
+      const apresentacoesMediasPorVenda = countApresPorVenda > 0
+        ? totalApresPorVenda / countApresPorVenda
+        : 0;
+
+      // Carteira flutuante: soma do valor estimado dos projetos em negociação ativos
+      const carteiraFlutuanteValor = memberProjects
+        .filter(p => (p.stage === 'em_negociacao' || p.stage === 'lead') && p.status !== 'perdido')
+        .reduce((sum, p) => sum + (Number(p.estimated_value) || 0), 0);
+
       return {
         memberId,
         memberName: member?.name || '',
@@ -162,9 +210,12 @@ export function useCommercialIndicators(year: number, month: number) {
         projetosEmNegociacao,
         projetosVendidos,
         projetosPerdidos,
+        tempoMedioVendaDias,
+        apresentacoesMediasPorVenda,
+        carteiraFlutuanteValor,
       };
     });
-  }, [monthActions, commercialMemberIds, teamMembers, actionTypeClassification, projects, year, month]);
+  }, [monthActions, actions, commercialMemberIds, teamMembers, actionTypeClassification, projects, year, month]);
 
   return {
     indicators,
