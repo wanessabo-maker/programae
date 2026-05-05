@@ -403,6 +403,157 @@ function PerdidoModal({ card, onClose }: { card: PlannerCard | null; onClose: ()
   );
 }
 
+// ── Modal Concluído (Projeto de Apresentação) ────────────────────────
+function ConcluidoModal({ card, onClose }: { card: PlannerCard | null; onClose: () => void }) {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const [ambientes, setAmbientes] = useState("");
+  const [valorApresentado, setValorApresentado] = useState("");
+  const [foccoNumber, setFoccoNumber] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!card) return;
+    if (!card.apresentacao_projetista_id) {
+      toast({ title: "Sem Projetista", description: "Defina o Projetista de Apresentação antes de concluir.", variant: "destructive" });
+      return;
+    }
+    const ambCount = parseInt(ambientes) || 0;
+    if (ambCount <= 0) {
+      toast({ title: "Informe a quantidade de ambientes", variant: "destructive" });
+      return;
+    }
+    const today = new Date().toISOString().slice(0, 10);
+    setSaving(true);
+    try {
+      // 1. Update project: status na pipeline + valor + focco se informado
+      const projectUpdates: any = {
+        planner_status: "CONCLUIDO",
+        stage: "em_negociacao",
+      };
+      const valNum = parseFloat(valorApresentado);
+      if (!isNaN(valNum) && valNum > 0) projectUpdates.estimated_value = valNum;
+      if (foccoNumber.trim()) projectUpdates.focco_project_number = foccoNumber.trim();
+
+      const { error: pErr } = await supabase
+        .from("projects")
+        .update(projectUpdates)
+        .eq("id", card.id);
+      if (pErr) throw pErr;
+
+      // 2. Find "Projeto de Apresentação" action type
+      const { data: actionType } = await supabase
+        .from("action_types")
+        .select("id, points")
+        .eq("classification", "projeto")
+        .ilike("name", "Projeto de Apresentação")
+        .maybeSingle();
+
+      if (!actionType) {
+        toast({ title: "Tipo de ação não encontrado", description: "Configure 'Projeto de Apresentação' nos tipos de ação.", variant: "destructive" });
+        setSaving(false);
+        return;
+      }
+
+      // 3. Create action (consultor = projetista responsavel pela apresentação)
+      const { data: actionRow, error: aErr } = await supabase
+        .from("actions")
+        .insert({
+          consultant_id: card.apresentacao_projetista_id,
+          action_type_id: actionType.id,
+          action_date: today,
+          environment_count: ambCount,
+          client_name: card.clients?.name ?? null,
+          focco_project_number: foccoNumber.trim() || null,
+          project_id: card.id,
+          notes: "Gerada automaticamente pela mudança de card no Pipeline (CONCLUIDO).",
+        })
+        .select("id")
+        .single();
+      if (aErr) throw aErr;
+
+      // 4. Project environment record (1 ambiente = 1 ponto para projetista)
+      if (actionRow) {
+        const compMonth = today.slice(0, 8) + "01";
+        await supabase.from("project_environments").insert({
+          environment_type: "apresentacao",
+          environment_count: ambCount,
+          projetista_id: card.apresentacao_projetista_id,
+          consultant_id: card.responsible_id,
+          project_id: card.id,
+          action_id: actionRow.id,
+          competence_month: compMonth,
+        });
+
+        // 5. Programa E+ — 1 ponto por ambiente
+        await supabase.from("credit_transactions").insert({
+          consultant_id: card.apresentacao_projetista_id,
+          action_id: actionRow.id,
+          points: ambCount,
+          description: `Projeto de Apresentação — ${card.clients?.name ?? card.name} (${ambCount} amb.)`,
+          transaction_date: today,
+        });
+
+        // 6. Histórico de valor apresentado
+        if (!isNaN(valNum) && valNum > 0) {
+          await supabase.from("project_value_history").insert({
+            project_id: card.id,
+            presented_value: valNum,
+            consultant_id: card.responsible_id,
+            action_id: actionRow.id,
+          });
+        }
+      }
+
+      qc.invalidateQueries({ queryKey: ["planner_kanban"] });
+      qc.invalidateQueries({ queryKey: ["projects"] });
+      qc.invalidateQueries({ queryKey: ["actions"] });
+      qc.invalidateQueries({ queryKey: ["credit_transactions"] });
+      qc.invalidateQueries({ queryKey: ["project-environments"] });
+      toast({ title: "Apresentação concluída", description: `${ambCount} ambiente(s) registrados no Programa E+.` });
+      setAmbientes(""); setValorApresentado(""); setFoccoNumber("");
+      onClose();
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={!!card} onOpenChange={(b) => !b && onClose()}>
+      <DialogContent className="bg-background border-border">
+        <DialogHeader>
+          <DialogTitle>Marcar como Concluído</DialogTitle>
+          <DialogDescription>{card?.clients?.name ?? card?.name} — Projeto de Apresentação</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3 py-2">
+          <div className="space-y-2">
+            <Label>Quantidade de ambientes *</Label>
+            <Input type="number" min="1" value={ambientes} onChange={(e) => setAmbientes(e.target.value)} placeholder="Ex: 3" />
+            <p className="text-[11px] text-muted-foreground">1 ambiente = 1 ponto no Programa E+ para o projetista.</p>
+          </div>
+          <div className="space-y-2">
+            <Label>Valor apresentado (R$)</Label>
+            <Input type="number" value={valorApresentado} onChange={(e) => setValorApresentado(e.target.value)} placeholder="0,00" />
+          </div>
+          <div className="space-y-2">
+            <Label>Número FOCCO (opcional)</Label>
+            <Input value={foccoNumber} onChange={(e) => setFoccoNumber(e.target.value)} placeholder="Ex: 12345" />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Confirmar Conclusão
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ── Card ─────────────────────────────────────────────────────────────
 function Card({ card, onEdit }: { card: PlannerCard; onEdit: (c: PlannerCard) => void }) {
   const days = card.planner_status_at
