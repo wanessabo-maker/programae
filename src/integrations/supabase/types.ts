@@ -1419,6 +1419,9 @@ export type Database = {
           planner_data_iniciado: string | null
           planner_data_perdido: string | null
           planner_data_vendido: string | null
+          planner_link: string | null
+          planner_motivo_perda: string | null
+          planner_observacao: string | null
           planner_status: string | null
           professional_id: string | null
           responsible_id: string | null
@@ -1448,6 +1451,9 @@ export type Database = {
           planner_data_iniciado?: string | null
           planner_data_perdido?: string | null
           planner_data_vendido?: string | null
+          planner_link?: string | null
+          planner_motivo_perda?: string | null
+          planner_observacao?: string | null
           planner_status?: string | null
           professional_id?: string | null
           responsible_id?: string | null
@@ -1477,6 +1483,9 @@ export type Database = {
           planner_data_iniciado?: string | null
           planner_data_perdido?: string | null
           planner_data_vendido?: string | null
+          planner_link?: string | null
+          planner_motivo_perda?: string | null
+          planner_observacao?: string | null
           planner_status?: string | null
           professional_id?: string | null
           responsible_id?: string | null
