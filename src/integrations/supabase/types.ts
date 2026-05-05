@@ -151,6 +151,13 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "actions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vw_planner_apresentacao"
+            referencedColumns: ["id"]
+          },
         ]
       }
       areas: {
@@ -628,6 +635,13 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "contract_checklists_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "vw_planner_apresentacao"
+            referencedColumns: ["id"]
+          },
         ]
       }
       credit_transactions: {
@@ -849,6 +863,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "cs_cases_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vw_planner_apresentacao"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "cs_cases_responsible_id_fkey"
             columns: ["responsible_id"]
             isOneToOne: false
@@ -940,6 +961,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_success_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vw_planner_apresentacao"
             referencedColumns: ["id"]
           },
           {
@@ -1271,6 +1299,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "project_environments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vw_planner_apresentacao"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "project_environments_projetista_id_fkey"
             columns: ["projetista_id"]
             isOneToOne: false
@@ -1353,6 +1388,13 @@ export type Database = {
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "project_value_history_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vw_planner_apresentacao"
+            referencedColumns: ["id"]
+          },
         ]
       }
       projects: {
@@ -1372,6 +1414,12 @@ export type Database = {
           name: string
           notes: string | null
           origin_type: string | null
+          planner_data_aguardando: string | null
+          planner_data_concluido: string | null
+          planner_data_iniciado: string | null
+          planner_data_perdido: string | null
+          planner_data_vendido: string | null
+          planner_status: string | null
           professional_id: string | null
           responsible_id: string | null
           stage: string | null
@@ -1395,6 +1443,12 @@ export type Database = {
           name: string
           notes?: string | null
           origin_type?: string | null
+          planner_data_aguardando?: string | null
+          planner_data_concluido?: string | null
+          planner_data_iniciado?: string | null
+          planner_data_perdido?: string | null
+          planner_data_vendido?: string | null
+          planner_status?: string | null
           professional_id?: string | null
           responsible_id?: string | null
           stage?: string | null
@@ -1418,6 +1472,12 @@ export type Database = {
           name?: string
           notes?: string | null
           origin_type?: string | null
+          planner_data_aguardando?: string | null
+          planner_data_concluido?: string | null
+          planner_data_iniciado?: string | null
+          planner_data_perdido?: string | null
+          planner_data_vendido?: string | null
+          planner_status?: string | null
           professional_id?: string | null
           responsible_id?: string | null
           stage?: string | null
@@ -1796,6 +1856,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "technical_assistance_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vw_planner_apresentacao"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "technical_assistance_responsible_id_fkey"
             columns: ["responsible_id"]
             isOneToOne: false
@@ -1877,7 +1944,54 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      vw_planner_apresentacao: {
+        Row: {
+          apresentacao_projetista_id: string | null
+          client_id: string | null
+          cliente_nome: string | null
+          consultor_nome: string | null
+          contract_number: string | null
+          data_captacao: string | null
+          id: string | null
+          name: string | null
+          planner_data_aguardando: string | null
+          planner_data_concluido: string | null
+          planner_data_iniciado: string | null
+          planner_data_perdido: string | null
+          planner_data_vendido: string | null
+          planner_dias_aguardando: number | null
+          planner_dias_ate_aguardando: number | null
+          planner_dias_iniciado: number | null
+          planner_status: string | null
+          project_status: string | null
+          projetista_nome: string | null
+          qtd_ambientes: number | null
+          responsible_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_apresentacao_projetista_id_fkey"
+            columns: ["apresentacao_projetista_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_responsible_id_fkey"
+            columns: ["responsible_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       get_current_team_member_id: { Args: never; Returns: string }

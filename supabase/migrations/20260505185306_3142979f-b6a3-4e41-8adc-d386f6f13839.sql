@@ -1,0 +1,1 @@
+ALTER VIEW public.vw_planner_apresentacao SET (security_invoker = true);
