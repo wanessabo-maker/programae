@@ -810,6 +810,20 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
                     <span><span className="font-medium">Manter/Criar checklist próprio</span> para este aditivo.</span>
                   </label>
                 </div>
+                {form.aditivoLinkExisting && (
+                  <div className="pt-2">
+                    <label className={`text-xs tracking-widest uppercase block mb-1 ${errors.aditivoOriginalContract ? 'text-destructive' : 'text-muted-foreground'}`}>
+                      Nº do Contrato Original <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={form.aditivoOriginalContract}
+                      onChange={(e) => setForm({ ...form, aditivoOriginalContract: e.target.value })}
+                      placeholder="Ex: 12345"
+                      className={`input-flat w-full text-card-foreground ${errors.aditivoOriginalContract ? 'border-destructive ring-1 ring-destructive' : ''}`}
+                    />
+                  </div>
+                )}
               </div>
             )}
             {isVenda && !isVendaAditivo && !action.projectId && (
