@@ -51,6 +51,8 @@ interface FormState {
   commercialConsultantId: string;
   // Aditivo: link to existing sale checklist (true) or create a new checklist (false)
   aditivoLinkExisting: boolean;
+  // Aditivo: original contract number (required when linking to principal)
+  aditivoOriginalContract: string;
 }
 
 const initialFormState: FormState = {
@@ -78,6 +80,7 @@ const initialFormState: FormState = {
   environmentCount: '',
   commercialConsultantId: '',
   aditivoLinkExisting: true,
+  aditivoOriginalContract: '',
 };
 
 export function ActionModal({ open, onOpenChange }: ActionModalProps) {
@@ -557,6 +560,11 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     // Contract number is required for Seletiva (e.g., Assinatura Certificado)
     if (isSeletiva && !form.contractNumber.trim()) {
       newErrors.contractNumber = true;
+    }
+
+    // For Aditivo "vincular ao principal": original contract number is mandatory
+    if (isVendaAditivo && form.aditivoLinkExisting && !form.aditivoOriginalContract.trim()) {
+      newErrors.aditivoOriginalContract = true;
     }
     
     // For Venda (including Aditivo), checklist assignment is mandatory
