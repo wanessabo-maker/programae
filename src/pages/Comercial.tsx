@@ -4,11 +4,10 @@ import Profissionais from './Profissionais';
 import PerfilClientesTab from '@/components/comercial/PerfilClientesTab';
 import ProjetosTab from '@/components/comercial/ProjetosTab';
 import ContratosTab from '@/components/comercial/ContratosTab';
-import IndicadoresTab from '@/components/comercial/IndicadoresTab';
 
 export default function Comercial() {
-  // Indicadores agora é a aba padrão — primeira coisa que a gestora vê
-  const [activeTab, setActiveTab] = useState('indicadores');
+  // Especificadores é a aba padrão — Indicadores foi movido para Minha Área > Gestora
+  const [activeTab, setActiveTab] = useState('especificadores');
 
   return (
     <div className="space-y-6">
@@ -20,17 +19,9 @@ export default function Comercial() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5 bg-background border border-border">
+        <TabsList className="grid w-full grid-cols-4 bg-background border border-border">
 
-          {/* 1 — Indicadores: primeiro porque é o que a gestora quer ver ao abrir */}
-          <TabsTrigger
-            value="indicadores"
-            className="text-xs tracking-widest uppercase data-[state=active]:bg-foreground data-[state=active]:text-background"
-          >
-            Indicadores
-          </TabsTrigger>
-
-          {/* 2 — Especificadores: nome correto para o que antes era "Profissionais" */}
+          {/* 1 — Especificadores */}
           <TabsTrigger
             value="especificadores"
             className="text-xs tracking-widest uppercase data-[state=active]:bg-foreground data-[state=active]:text-background"
@@ -38,7 +29,7 @@ export default function Comercial() {
             Especificadores
           </TabsTrigger>
 
-          {/* 3 — Carteira Flutuante: nome correto para o que antes era "Projetos" */}
+          {/* 2 — Carteira Flutuante */}
           <TabsTrigger
             value="carteira"
             className="text-xs tracking-widest uppercase data-[state=active]:bg-foreground data-[state=active]:text-background"
@@ -46,7 +37,7 @@ export default function Comercial() {
             Carteira Flutuante
           </TabsTrigger>
 
-          {/* 4 — Contratos: mantido igual */}
+          {/* 3 — Contratos */}
           <TabsTrigger
             value="contratos"
             className="text-xs tracking-widest uppercase data-[state=active]:bg-foreground data-[state=active]:text-background"
@@ -54,7 +45,7 @@ export default function Comercial() {
             Contratos
           </TabsTrigger>
 
-          {/* 5 — Perfil de Clientes: substitui "Clientes" com análise real de conversão */}
+          {/* 4 — Perfil de Clientes */}
           <TabsTrigger
             value="perfil"
             className="text-xs tracking-widest uppercase data-[state=active]:bg-foreground data-[state=active]:text-background"
@@ -63,10 +54,6 @@ export default function Comercial() {
           </TabsTrigger>
 
         </TabsList>
-
-        <TabsContent value="indicadores" className="mt-6">
-          <IndicadoresTab />
-        </TabsContent>
 
         <TabsContent value="especificadores" className="mt-6">
           <Profissionais embedded />
