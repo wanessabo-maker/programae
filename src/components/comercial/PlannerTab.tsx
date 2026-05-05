@@ -380,7 +380,21 @@ function EditCardModal({ card, onClose }: { card: PlannerCard | null; onClose: (
   const [observacao, setObservacao] = useState("");
   const [link, setLink] = useState("");
   const [statusAt, setStatusAt] = useState("");
+  const [responsibleId, setResponsibleId] = useState<string>("");
+  const [projetistaId, setProjetistaId] = useState<string>("");
   const [saving, setSaving] = useState(false);
+
+  const { data: teamMembers = [] } = useQuery({
+    queryKey: ["planner_team_members"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("team_members")
+        .select("id, name")
+        .eq("active", true)
+        .order("name");
+      return data ?? [];
+    },
+  });
 
   useEffect(() => {
     if (card) {
@@ -388,11 +402,14 @@ function EditCardModal({ card, onClose }: { card: PlannerCard | null; onClose: (
       setObservacao(card.planner_observacao || "");
       setLink(card.planner_link || "");
       setStatusAt(card.planner_status_at ? card.planner_status_at.slice(0, 10) : "");
+      setResponsibleId(card.responsible_id || "");
+      setProjetistaId(card.apresentacao_projetista_id || "");
     }
   }, [card]);
 
   const handleClose = () => {
     setClienteNome(""); setObservacao(""); setLink(""); setStatusAt("");
+    setResponsibleId(""); setProjetistaId("");
     onClose();
   };
 
@@ -414,6 +431,8 @@ function EditCardModal({ card, onClose }: { card: PlannerCard | null; onClose: (
         name: clienteNome.trim() || card.name,
         planner_observacao: observacao || null,
         planner_link: link || null,
+        responsible_id: responsibleId || null,
+        apresentacao_projetista_id: projetistaId || null,
       };
       if (statusAt) {
         // store as ISO at noon to avoid TZ shift
@@ -449,6 +468,35 @@ function EditCardModal({ card, onClose }: { card: PlannerCard | null; onClose: (
           <div className="space-y-2">
             <Label>Nome do cliente</Label>
             <Input value={clienteNome} onChange={(e) => setClienteNome(e.target.value)} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Consultor</Label>
+              <select
+                value={responsibleId}
+                onChange={(e) => setResponsibleId(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="">— Selecionar —</option>
+                {teamMembers.map((m: any) => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label>Projetista de Apresentação</Label>
+              <select
+                value={projetistaId}
+                onChange={(e) => setProjetistaId(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="">— Selecionar —</option>
+                {teamMembers.map((m: any) => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="space-y-2">
