@@ -5,6 +5,7 @@ import PerfilClientesTab from '@/components/comercial/PerfilClientesTab';
 import ProjetosTab from '@/components/comercial/ProjetosTab';
 import ContratosTab from '@/components/comercial/ContratosTab';
 import IndicadoresTab from '@/components/comercial/IndicadoresTab';
+import { PlannerTab } from '@/components/comercial/PlannerTab';
 
 export default function Comercial() {
   // Indicadores agora é a aba padrão — primeira coisa que a gestora vê
@@ -20,7 +21,7 @@ export default function Comercial() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5 bg-background border border-border">
+        <TabsList className="grid w-full grid-cols-6 bg-background border border-border">
 
           {/* 1 — Indicadores: primeiro porque é o que a gestora quer ver ao abrir */}
           <TabsTrigger
@@ -62,6 +63,14 @@ export default function Comercial() {
             Perfil de Clientes
           </TabsTrigger>
 
+          {/* 6 — Planner Apresentação: timeline dos projetos por status do Planner */}
+          <TabsTrigger
+            value="planner"
+            className="text-xs tracking-widest uppercase data-[state=active]:bg-foreground data-[state=active]:text-background"
+          >
+            Planner Apres.
+          </TabsTrigger>
+
         </TabsList>
 
         <TabsContent value="indicadores" className="mt-6">
@@ -82,6 +91,10 @@ export default function Comercial() {
 
         <TabsContent value="perfil" className="mt-6">
           <PerfilClientesTab />
+        </TabsContent>
+
+        <TabsContent value="planner" className="mt-6">
+          <PlannerTab />
         </TabsContent>
 
       </Tabs>
