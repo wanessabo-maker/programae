@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -361,14 +361,14 @@ function EditCardModal({ card, onClose }: { card: PlannerCard | null; onClose: (
   const [statusAt, setStatusAt] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Sync state when card changes
-  useState(() => {});
-  if (card && clienteNome === "" && observacao === "" && link === "" && statusAt === "") {
-    setClienteNome(card.clients?.name || card.name);
-    setObservacao(card.planner_observacao || "");
-    setLink(card.planner_link || "");
-    setStatusAt(card.planner_status_at ? card.planner_status_at.slice(0, 10) : "");
-  }
+  useEffect(() => {
+    if (card) {
+      setClienteNome(card.clients?.name || card.name);
+      setObservacao(card.planner_observacao || "");
+      setLink(card.planner_link || "");
+      setStatusAt(card.planner_status_at ? card.planner_status_at.slice(0, 10) : "");
+    }
+  }, [card]);
 
   const handleClose = () => {
     setClienteNome(""); setObservacao(""); setLink(""); setStatusAt("");
