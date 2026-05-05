@@ -1762,6 +1762,23 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   <span><span className="font-medium">Criar novo checklist</span> — gera um projeto/contrato separado para este aditivo.</span>
                 </label>
               </div>
+              {form.aditivoLinkExisting && (
+                <div className="pt-2">
+                  <label className={`text-xs tracking-widest uppercase block mb-1 ${errors.aditivoOriginalContract ? 'text-destructive' : 'text-muted-foreground'}`}>
+                    Nº do Contrato Original <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={form.aditivoOriginalContract}
+                    onChange={(e) => setForm(prev => ({ ...prev, aditivoOriginalContract: e.target.value }))}
+                    placeholder="Ex: 12345"
+                    className={`input-flat w-full text-card-foreground ${errors.aditivoOriginalContract ? 'border-destructive ring-1 ring-destructive' : ''}`}
+                  />
+                  {errors.aditivoOriginalContract && (
+                    <span className="text-xs text-destructive mt-1">Informe o nº do contrato original para vincular o aditivo.</span>
+                  )}
+                </div>
+              )}
             </div>
           )}
           {((isVenda && !(isVendaAditivo && form.aditivoLinkExisting)) || isApresentacaoProjeto) && (
