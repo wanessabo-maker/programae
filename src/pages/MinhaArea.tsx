@@ -36,6 +36,7 @@ import { ProjetistaTecnicoProjects } from '@/components/minha-area/ProjetistaTec
 import { ManagementDashboard } from '@/components/minha-area/ManagementDashboard';
 import { StaleProjectsBanner } from '@/components/minha-area/StaleProjectsBanner';
 import { CleanlinessAdminPanel } from '@/components/minha-area/CleanlinessAdminPanel';
+import GestoraDashboard from '@/pages/GestoraDashboard';
 import { useTeamMembers } from '@/hooks/useDatabase';
 
 interface ChecklistItemFull {
@@ -82,7 +83,7 @@ export default function MinhaArea() {
   const [completeModalOpen, setCompleteModalOpen] = useState(false);
   const [expandedContracts, setExpandedContracts] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<'my' | 'team'>('my');
-  const [activeTab, setActiveTab] = useState<'activities' | 'indicators'>('activities');
+  const [activeTab, setActiveTab] = useState<'activities' | 'indicators' | 'gestora'>('activities');
   const [teamFilterMemberId, setTeamFilterMemberId] = useState<string>('');
 
   // Check if user has management position (Gerencia or Gerente)
@@ -440,7 +441,7 @@ export default function MinhaArea() {
 
         {/* Main Tab Navigation for Managers/Admins */}
         {(isManagement || isAdmin) ? (
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'activities' | 'indicators')}>
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'activities' | 'indicators' | 'gestora')}>
             <TabsList className="mb-4">
               <TabsTrigger value="activities" className="flex items-center gap-1.5">
                 <ListChecks className="h-4 w-4" />
@@ -450,6 +451,12 @@ export default function MinhaArea() {
                 <BarChart3 className="h-4 w-4" />
                 Indicadores
               </TabsTrigger>
+              {isAdmin && (
+                <TabsTrigger value="gestora" className="flex items-center gap-1.5">
+                  <Users className="h-4 w-4" />
+                  Gestora
+                </TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent value="activities" className="space-y-6 mt-0">
@@ -460,6 +467,12 @@ export default function MinhaArea() {
             <TabsContent value="indicators" className="mt-0">
               <ManagementDashboard />
             </TabsContent>
+
+            {isAdmin && (
+              <TabsContent value="gestora" className="mt-0">
+                <GestoraDashboard />
+              </TabsContent>
+            )}
           </Tabs>
         ) : (
           /* Regular users see activities only */
