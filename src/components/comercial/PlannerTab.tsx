@@ -237,14 +237,86 @@ function NovoProjetoModal({ open, onOpenChange }: { open: boolean; onOpenChange:
 
 // ── Modal Vendido ────────────────────────────────────────────────────
 function VendidoModal({ card, onClose }: { card: PlannerCard | null; onClose: () => void }) {
-  const upd = useUpdateStatus();
+  const qc = useQueryClient();
+  const { toast } = useToast();
   const [valor, setValor] = useState("");
-  const handleSave = () => {
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
     if (!card) return;
-    upd.mutate(
-      { id: card.id, status: "VENDIDO", extra: { closed_value: parseFloat(valor) || null, closed_date: new Date().toISOString().slice(0, 10), stage: "closed_won" } },
-      { onSuccess: () => { setValor(""); onClose(); } }
-    );
+    const closedValue = parseFloat(valor) || null;
+    const today = new Date().toISOString().slice(0, 10);
+    setSaving(true);
+    try {
+      // 1. Update project
+      const { error: pErr } = await supabase
+        .from("projects")
+        .update({
+          planner_status: "VENDIDO",
+          closed_value: closedValue,
+          closed_date: today,
+          stage: "closed_won",
+          status: "closed",
+        })
+        .eq("id", card.id);
+      if (pErr) throw pErr;
+
+      // 2. Update client status
+      if (card.client_id) {
+        await supabase.from("clients").update({ status: "closed" }).eq("id", card.client_id);
+      }
+
+      // 3. Find "Venda" action type
+      const { data: vendaType } = await supabase
+        .from("action_types")
+        .select("id, points, bonus_points_with_professional")
+        .eq("classification", "venda")
+        .ilike("name", "Venda")
+        .maybeSingle();
+
+      // 4. Create the Venda action (consultant = responsible_id from card)
+      if (vendaType && card.responsible_id) {
+        const { data: actionRow, error: aErr } = await supabase
+          .from("actions")
+          .insert({
+            consultant_id: card.responsible_id,
+            action_type_id: vendaType.id,
+            action_date: today,
+            value: closedValue,
+            client_name: card.clients?.name ?? null,
+            project_id: card.id,
+            notes: "Gerada automaticamente pela mudança de card no Pipeline (VENDIDO).",
+          })
+          .select("id")
+          .single();
+        if (aErr) console.error("Erro criando action venda", aErr);
+
+        // 5. Programa E+ — pontos da venda
+        const points = vendaType.points || 0;
+        if (actionRow && points > 0) {
+          await supabase.from("credit_transactions").insert({
+            consultant_id: card.responsible_id,
+            action_id: actionRow.id,
+            points,
+            description: `Venda — ${card.clients?.name ?? card.name}`,
+            transaction_date: today,
+          });
+        }
+      }
+
+      qc.invalidateQueries({ queryKey: ["planner_kanban"] });
+      qc.invalidateQueries({ queryKey: ["projects"] });
+      qc.invalidateQueries({ queryKey: ["actions"] });
+      qc.invalidateQueries({ queryKey: ["credit_transactions"] });
+      qc.invalidateQueries({ queryKey: ["clients"] });
+      toast({ title: "Venda registrada", description: "Dashboard, Comercial, Projetos e Programa E+ atualizados." });
+      setValor("");
+      onClose();
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
   };
   return (
     <Dialog open={!!card} onOpenChange={(b) => !b && onClose()}>
@@ -259,7 +331,10 @@ function VendidoModal({ card, onClose }: { card: PlannerCard | null; onClose: ()
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={handleSave} disabled={upd.isPending}>Confirmar Venda</Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Confirmar Venda
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -268,14 +343,42 @@ function VendidoModal({ card, onClose }: { card: PlannerCard | null; onClose: ()
 
 // ── Modal Perdido ────────────────────────────────────────────────────
 function PerdidoModal({ card, onClose }: { card: PlannerCard | null; onClose: () => void }) {
-  const upd = useUpdateStatus();
+  const qc = useQueryClient();
+  const { toast } = useToast();
   const [motivo, setMotivo] = useState("");
-  const handleSave = () => {
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
     if (!card) return;
-    upd.mutate(
-      { id: card.id, status: "PERDIDO", extra: { planner_motivo_perda: motivo || null, stage: "closed_lost" } },
-      { onSuccess: () => { setMotivo(""); onClose(); } }
-    );
+    setSaving(true);
+    try {
+      const { error: pErr } = await supabase
+        .from("projects")
+        .update({
+          planner_status: "PERDIDO",
+          planner_motivo_perda: motivo || null,
+          stage: "closed_lost",
+          status: "lost",
+          closed_date: new Date().toISOString().slice(0, 10),
+        })
+        .eq("id", card.id);
+      if (pErr) throw pErr;
+
+      if (card.client_id) {
+        await supabase.from("clients").update({ status: "lost" }).eq("id", card.client_id);
+      }
+
+      qc.invalidateQueries({ queryKey: ["planner_kanban"] });
+      qc.invalidateQueries({ queryKey: ["projects"] });
+      qc.invalidateQueries({ queryKey: ["clients"] });
+      toast({ title: "Projeto marcado como perdido", description: "Carteira flutuante e perfil de clientes atualizados." });
+      setMotivo("");
+      onClose();
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
   };
   return (
     <Dialog open={!!card} onOpenChange={(b) => !b && onClose()}>
@@ -290,7 +393,10 @@ function PerdidoModal({ card, onClose }: { card: PlannerCard | null; onClose: ()
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={handleSave} disabled={upd.isPending}>Confirmar Perda</Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Confirmar Perda
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
