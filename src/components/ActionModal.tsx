@@ -846,10 +846,34 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
       // Handle Venda Aditivo - just update existing project value, no new checklist
       if (isVendaAditivo) {
         const foccoNumber = form.foccoProjectNumber.trim();
+        const originalContract = form.aditivoOriginalContract.trim();
         
         try {
-          if (foccoNumber) {
-            const existingProject = await findProjectByFocco(foccoNumber);
+          if (foccoNumber || (form.aditivoLinkExisting && originalContract)) {
+            // When linking to principal, locate by original contract number first
+            let existingProject: any = null;
+            if (form.aditivoLinkExisting && originalContract) {
+              const { data: clientWithContract } = await supabase
+                .from('clients')
+                .select('id')
+                .eq('contract_number', originalContract)
+                .maybeSingle();
+              if (clientWithContract) {
+                const { data: proj } = await supabase
+                  .from('projects')
+                  .select('id, client_id, professional_id, closed_value, estimated_value, focco_project_number')
+                  .eq('client_id', clientWithContract.id)
+                  .order('closed_date', { ascending: false })
+                  .limit(1)
+                  .maybeSingle();
+                existingProject = proj;
+              }
+              if (!existingProject && foccoNumber) {
+                existingProject = await findProjectByFocco(foccoNumber);
+              }
+            } else if (foccoNumber) {
+              existingProject = await findProjectByFocco(foccoNumber);
+            }
             
             if (existingProject && form.aditivoLinkExisting) {
               projectId = existingProject.id;
@@ -882,7 +906,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                     notes: `Aditivo: +${aditivoValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`,
                   });
                 
-                toast.success(`Aditivo de ${aditivoValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} vinculado ao checklist da venda inicial (FOCCO ${foccoNumber})`);
+                toast.success(`Aditivo de ${aditivoValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} vinculado ao contrato ${originalContract || `FOCCO ${foccoNumber}`}`);
               }
             } else if (existingProject && !form.aditivoLinkExisting) {
               // Project exists but user opted to create a SEPARATE project + new checklist for this aditivo
@@ -933,7 +957,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 toast.success(`Aditivo registrado com checklist próprio (FOCCO ${foccoNumber})`);
               }
             } else if (!existingProject && form.aditivoLinkExisting) {
-              toast.error(`Nenhum projeto encontrado com FOCCO ${foccoNumber}. Para vincular ao checklist da venda inicial, o projeto principal precisa existir.`);
+              toast.error(`Nenhum contrato encontrado com número "${originalContract}". Verifique o número do contrato original.`);
               setIsSubmitting(false);
               return;
             } else {
@@ -990,7 +1014,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
               }
             }
           } else {
-            toast.error('Informe o número FOCCO do projeto para o aditivo');
+            toast.error('Informe o número do contrato original (para vincular) ou o FOCCO (para criar checklist próprio).');
             setIsSubmitting(false);
             return;
           }
