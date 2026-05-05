@@ -102,22 +102,41 @@ export default function GestoraDashboard() {
     },
   });
 
-  const { data: professionals = [] } = useQuery({
-    queryKey: ['gestora-professionals'],
+  // All professionals + their categories (for Encantado/Curioso/Distante distribution)
+  const { data: profData = { professionals: [], categories: [] } } = useQuery({
+    queryKey: ['gestora-professionals-with-categories'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('professionals')
-        .select('id, name, last_action_date')
-        .eq('category_id', (await supabase
-          .from('professional_categories')
-          .select('id')
-          .ilike('name', '%encantado%')
-          .single()
-        ).data?.id || '');
-      if (error) return [];
-      return data || [];
+      const [profsRes, catsRes] = await Promise.all([
+        supabase.from('professionals').select('id, name, last_action_date, category_id'),
+        supabase.from('professional_categories').select('id, name'),
+      ]);
+      return {
+        professionals: profsRes.data || [],
+        categories: catsRes.data || [],
+      };
     },
   });
+  const professionals = profData.professionals;
+
+  // Compute % per category
+  const especMix = useMemo(() => {
+    const total = professionals.length;
+    const findCat = (kw: string) => profData.categories.find((c: any) => c.name?.toLowerCase().includes(kw))?.id;
+    const encId = findCat('encantado');
+    const curId = findCat('curioso');
+    const distId = findCat('distante');
+    const count = (id?: string) => id ? professionals.filter((p: any) => p.category_id === id).length : 0;
+    const enc = count(encId);
+    const cur = count(curId);
+    const dist = count(distId);
+    const pct = (n: number) => total > 0 ? Math.round((n / total) * 100) : 0;
+    return {
+      total,
+      encantado: { count: enc, pct: pct(enc) },
+      curioso:   { count: cur, pct: pct(cur) },
+      distante:  { count: dist, pct: pct(dist) },
+    };
+  }, [professionals, profData.categories]);
 
   // ── Funil ─────────────────────────────────────────────────────────────────
 
@@ -232,13 +251,65 @@ export default function GestoraDashboard() {
         list.push({
           id: `checklist-${cl.id}`,
           type: 'warning',
-          title: 'Checklist com etapas atrasadas',
+          title: 'Tarefas de checklist em atraso',
           detail: `${overdueItems.length} etapa(s) atrasada(s)${cl.projects?.focco_project_number ? ` — FOCCO ${cl.projects.focco_project_number}` : ''}`,
           clientName,
           clientId: cl.projects?.clients?.id,
           actionLabel: 'Ver contrato',
         });
       }
+    });
+
+    // 3b. Apresentação pausada (AGUARDANDO_INICIO) há mais de 5 dias
+    projects.forEach((p: any) => {
+      if (p.planner_status !== 'AGUARDANDO_INICIO') return;
+      const ref = p.planner_data_aguardando || p.planner_status_at;
+      if (!ref) return;
+      const dias = differenceInDays(today, parseISO(ref));
+      if (dias > 5) {
+        list.push({
+          id: `apres-pausada-${p.id}`,
+          type: 'warning',
+          title: 'Apresentação pausada há +5 dias',
+          detail: `Aguardando início há ${dias} dias${p.focco_project_number ? ` — FOCCO ${p.focco_project_number}` : ''}`,
+          clientName: p.clients?.name,
+          clientId: p.clients?.id,
+          actionLabel: 'Ver projeto',
+        });
+      }
+    });
+
+    // 3c. Apresentação concluída há mais de 5 dias sem venda
+    projects.forEach((p: any) => {
+      if (p.planner_status !== 'CONCLUIDO') return;
+      const ref = p.planner_data_concluido || p.planner_status_at;
+      if (!ref) return;
+      const dias = differenceInDays(today, parseISO(ref));
+      if (dias > 5) {
+        list.push({
+          id: `apres-concluida-${p.id}`,
+          type: 'warning',
+          title: 'Apresentação concluída há +5 dias',
+          detail: `Concluída há ${dias} dias sem venda${p.focco_project_number ? ` — FOCCO ${p.focco_project_number}` : ''}`,
+          clientName: p.clients?.name,
+          clientId: p.clients?.id,
+          actionLabel: 'Ver projeto',
+        });
+      }
+    });
+
+    // 3d. ATs abertas (qualquer prioridade)
+    atCases.forEach((at: any) => {
+      const dias = differenceInDays(today, parseISO(at.opened_date || at.created_at));
+      list.push({
+        id: `at-open-${at.id}`,
+        type: dias >= 7 ? 'danger' : 'info',
+        title: 'AT em aberto',
+        detail: `${at.title || 'Assistência técnica'} — aberta há ${dias} dia(s)`,
+        clientName: at.clients?.name,
+        clientId: at.clients?.id,
+        actionLabel: 'Ver AT',
+      });
     });
 
     // 4. AT de alta prioridade aberta há mais de 7 dias
@@ -328,6 +399,32 @@ export default function GestoraDashboard() {
         <p className="text-xs text-muted-foreground tracking-wide">
           Funil completo · {format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })}
         </p>
+      </div>
+
+      {/* ── Especificadores: % por categoria ───────────────────────── */}
+      <div>
+        <h2 className="text-xs tracking-widest uppercase text-muted-foreground font-medium mb-2">
+          Especificadores ({especMix.total})
+        </h2>
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { label: 'Encantado', data: especMix.encantado, color: '#1D9E75' },
+            { label: 'Curioso',   data: especMix.curioso,   color: '#EF9F27' },
+            { label: 'Distante',  data: especMix.distante,  color: '#E24B4A' },
+          ].map(item => (
+            <div key={item.label} className="border border-border rounded-lg p-3">
+              <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                {item.label}
+              </div>
+              <div className="text-2xl font-light tabular-nums" style={{ color: item.color }}>
+                {item.data.pct}%
+              </div>
+              <div className="text-xs text-muted-foreground mt-0.5">
+                {item.data.count} especificador(es)
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* ── Funil visual ─────────────────────────────────────────────── */}
