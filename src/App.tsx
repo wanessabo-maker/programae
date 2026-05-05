@@ -198,16 +198,6 @@ function AppRoutes() {
           </AdminRoute>
         }
       />
-      <Route
-        path="/planner-apresentacao"
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <PlannerApresentacao />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
