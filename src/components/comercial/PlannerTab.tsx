@@ -137,7 +137,7 @@ function NovoProjetoModal({ open, onOpenChange }: { open: boolean; onOpenChange:
         planner_link: link || null,
         created_by: tm?.id,
         responsible_id: tm?.id,
-        stage: "lead",
+        stage: "em_negociacao",
         status: "prospecting",
         origin_type: "planner",
       });
