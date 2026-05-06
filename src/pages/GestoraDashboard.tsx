@@ -190,6 +190,10 @@ export default function GestoraDashboard() {
           Contratos · etapa atual (du)
           <span className="text-muted-foreground/60">({contractSteps.length})</span>
         </h2>
+        <p className="text-[11px] text-muted-foreground -mt-2">
+          Legenda: <span className="font-mono font-semibold text-foreground">du</span> = dias úteis ·{' '}
+          <span className="font-mono font-semibold text-foreground">dc</span> = dias corridos.
+        </p>
         <div className="border border-border rounded-lg overflow-hidden">
           <table className="w-full text-sm">
             <thead>
