@@ -56,7 +56,7 @@ export default function GestoraDashboard() {
       const { data, error } = await supabase
         .from('technical_assistance')
         .select('*, clients(id, name)')
-        .neq('status', 'resolved');
+        .eq('status', 'open');
       if (error) throw error;
       return data || [];
     },
