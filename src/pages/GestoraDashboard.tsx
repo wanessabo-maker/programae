@@ -177,7 +177,7 @@ export default function GestoraDashboard() {
         />
         <AlertColumn
           title="Pedidos (Checklist)"
-          icon={<ClipboardList className="h-3.5 w-3.5 text-amber-500" />}
+          icon={<ClipboardList className="h-3.5 w-3.5 text-red-500" />}
           alerts={pedidoAlerts}
           onNavigate={(id) => navigate(`/cliente/${id}`)}
         />
@@ -213,7 +213,7 @@ export default function GestoraDashboard() {
                 <tr key={row.checklistId} className="border-t border-border/50 hover:bg-muted/10">
                   <td className="p-2 pl-3 font-medium text-sm">{row.clientName}</td>
                   <td className="p-2 text-xs text-muted-foreground">{row.foccoNumber || '—'}</td>
-                  <td className="p-2 text-xs">{row.stepName}</td>
+                  <td className={`p-2 text-xs ${row.isOverdue ? "text-red-500" : ""}`}>{row.stepName}</td>
                   <td className="p-2">
                     <span className={`text-xs font-medium px-2 py-0.5 rounded ${
                       row.daysInStep >= 10 || row.isOverdue
@@ -259,7 +259,7 @@ function AlertColumn({
   return (
     <div className="space-y-3">
       <h2 className="text-xs tracking-widest uppercase text-muted-foreground font-medium flex items-center gap-2">
-        <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+        <AlertTriangle className="h-3.5 w-3.5 text-red-500" />
         {title}
         {icon}
         {alerts.length > 0 && (
