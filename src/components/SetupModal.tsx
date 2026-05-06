@@ -106,7 +106,21 @@ export function SetupModal({
     onOpenChange(false);
   };
   return <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="bg-card text-card-foreground border-black max-w-4xl max-h-[80vh] overflow-hidden">
+      <DialogContent
+        className="bg-card text-card-foreground border-black max-w-4xl max-h-[80vh] overflow-hidden"
+        style={{
+          // Override theme tokens locally so text reads well on the white card background
+          ['--foreground' as any]: '0 0% 0%',
+          ['--muted-foreground' as any]: '0 0% 30%',
+          ['--border' as any]: '0 0% 80%',
+          ['--input' as any]: '0 0% 80%',
+          ['--muted' as any]: '0 0% 95%',
+          ['--accent' as any]: '0 0% 92%',
+          ['--accent-foreground' as any]: '0 0% 0%',
+          ['--popover' as any]: '0 0% 100%',
+          ['--popover-foreground' as any]: '0 0% 0%',
+        }}
+      >
         <DialogHeader>
           <DialogTitle>SETUP</DialogTitle>
         </DialogHeader>
