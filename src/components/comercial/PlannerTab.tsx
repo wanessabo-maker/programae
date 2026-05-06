@@ -809,6 +809,17 @@ export function PlannerTab() {
     return acc;
   }, {} as Record<PlannerStatus, PlannerCard[]>);
 
+  const avgDaysByColumn = COLUMNS.reduce((acc, col) => {
+    const list = grouped[col.id].filter((c) => !!c.planner_status_at);
+    if (list.length === 0) { acc[col.id] = null; return acc; }
+    const total = list.reduce((sum, c) => {
+      const days = Math.max(0, Math.floor((Date.now() - new Date(c.planner_status_at!).getTime()) / 86400000));
+      return sum + days;
+    }, 0);
+    acc[col.id] = Math.round((total / list.length) * 10) / 10;
+    return acc;
+  }, {} as Record<PlannerStatus, number | null>);
+
   const handleDragEnd = (result: DropResult) => {
     const { destination, source, draggableId } = result;
     if (!destination || destination.droppableId === source.droppableId) return;
