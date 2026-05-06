@@ -47,6 +47,7 @@ interface ChecklistItemFull {
   status: string;
   responsible_area: string;
   due_date: string | null;
+  completed_at: string | null;
   assigned_to: string | null;
   checklist: {
     id: string;
