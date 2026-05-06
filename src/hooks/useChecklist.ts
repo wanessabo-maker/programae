@@ -92,13 +92,14 @@ export async function createChecklistForProject(
         assignedTo = options.assignedCsId;
       }
 
+      const isFreeStep = template.step_order <= 9;
       return {
         checklist_id: checklist.id,
         template_id: template.id,
         step_order: template.step_order,
         name: template.name,
         responsible_area: template.responsible_area,
-        status: index === 0 ? 'active' : 'blocked',
+        status: isFreeStep ? 'active' : 'blocked',
         due_date: dueDate,
         assigned_to: assignedTo,
       };
@@ -553,13 +554,36 @@ export function useCompleteChecklistItem() {
         notes: notes,
       });
 
-      // Find and activate the next item
-      const { data: nextItem, error: nextError } = await supabase
-        .from('checklist_items')
-        .select('*')
-        .eq('checklist_id', currentItem.checklist_id)
-        .eq('step_order', currentItem.step_order + 1)
-        .single();
+      // Determinar próxima etapa a liberar.
+      // Etapas 1–9 são livres (já ativas desde o início) e não disparam a próxima.
+      // Quando todas as etapas 1–9 estiverem concluídas/puladas, a #10 é liberada.
+      // A partir da #10, o fluxo é sequencial (step_order + 1).
+      let nextStepOrderToActivate: number | null = null;
+
+      if (currentItem.step_order >= 10) {
+        nextStepOrderToActivate = currentItem.step_order + 1;
+      } else {
+        // Verificar se todas as etapas 1–9 foram concluídas/puladas
+        const { data: freeItems } = await supabase
+          .from('checklist_items')
+          .select('status, step_order')
+          .eq('checklist_id', currentItem.checklist_id)
+          .lte('step_order', 9);
+
+        const allFreeDone = (freeItems || []).every(
+          (i: any) => i.status === 'completed' || i.status === 'skipped'
+        );
+        if (allFreeDone) nextStepOrderToActivate = 10;
+      }
+
+      const { data: nextItem, error: nextError } = nextStepOrderToActivate
+        ? await supabase
+            .from('checklist_items')
+            .select('*')
+            .eq('checklist_id', currentItem.checklist_id)
+            .eq('step_order', nextStepOrderToActivate)
+            .maybeSingle()
+        : { data: null, error: null } as any;
 
       if (!nextError && nextItem) {
         // Calculate new due date based on template SLA

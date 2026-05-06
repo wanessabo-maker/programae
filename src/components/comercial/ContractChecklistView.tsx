@@ -188,15 +188,34 @@ export function ContractChecklistView({ projectId }: Props) {
 
       if (error) throw error;
 
-      // Activate next step
-      const currentIdx = items.findIndex(i => i.id === itemId);
-      if (currentIdx !== -1 && currentIdx + 1 < items.length) {
-        const nextItem = items[currentIdx + 1];
-        if (nextItem.status === 'blocked') {
-          await supabase
-            .from('checklist_items')
-            .update({ status: 'active' })
-            .eq('id', nextItem.id);
+      // Etapas 1–9 são livres (já ativas). Pular não dispara a próxima.
+      // Quando todas as 1–9 estiverem completas/puladas, libera a #10.
+      // A partir da #10, fluxo sequencial.
+      const currentItem = items.find(i => i.id === itemId);
+      if (currentItem) {
+        if (currentItem.step_order >= 10) {
+          const nextItem = items.find(i => i.step_order === currentItem.step_order + 1);
+          if (nextItem && nextItem.status === 'blocked') {
+            await supabase
+              .from('checklist_items')
+              .update({ status: 'active' })
+              .eq('id', nextItem.id);
+          }
+        } else {
+          // Verificar se todas 1–9 estão completas/puladas (considerando esta sendo pulada agora)
+          const freeItems = items.filter(i => i.step_order <= 9);
+          const allFreeDone = freeItems.every(i =>
+            i.id === itemId || i.status === 'completed' || i.status === 'skipped'
+          );
+          if (allFreeDone) {
+            const tenth = items.find(i => i.step_order === 10);
+            if (tenth && tenth.status === 'blocked') {
+              await supabase
+                .from('checklist_items')
+                .update({ status: 'active' })
+                .eq('id', tenth.id);
+            }
+          }
         }
       }
 
