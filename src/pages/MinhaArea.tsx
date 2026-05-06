@@ -225,20 +225,32 @@ export default function MinhaArea() {
   const contractGroups = useMemo(() => {
     const groups = new Map<string, ContractGroup>();
 
-    // Determine which items to group - apply team member filter if active
+    // Determine which items to group - apply team member filter if active.
+    // IMPORTANT: filter by responsible_area so we only show etapas that
+    // genuinely belong to that member (e.g. um Projetista Técnico não deve
+    // ver etapas comerciais/CS do mesmo contrato).
     const itemsToGroup = (viewMode === 'team' && isAdmin && teamFilterMemberId)
       ? visibleItems.filter(item => {
-          const responsibleId = (item as any).project?.responsible_id;
+          const projectResponsibleId = (item as any).project?.responsible_id;
           const assignedProjetistaId = (item as any).checklist?.assigned_projetista_id;
           const assignedLogisticaId = (item as any).checklist?.assigned_logistica_id;
           const assignedCsId = (item as any).checklist?.assigned_cs_id;
           const assignedTo = (item as any).assigned_to;
-          
-          return responsibleId === teamFilterMemberId ||
-            assignedProjetistaId === teamFilterMemberId ||
-            assignedLogisticaId === teamFilterMemberId ||
-            assignedCsId === teamFilterMemberId ||
-            assignedTo === teamFilterMemberId;
+
+          if (assignedTo) return assignedTo === teamFilterMemberId;
+
+          switch (item.responsible_area) {
+            case 'comercial':
+              return projectResponsibleId === teamFilterMemberId;
+            case 'projetista_tecnico':
+              return assignedProjetistaId === teamFilterMemberId;
+            case 'logistica':
+              return assignedLogisticaId === teamFilterMemberId;
+            case 'cs':
+              return assignedCsId === teamFilterMemberId;
+            default:
+              return false;
+          }
         })
       : visibleItems;
 
