@@ -411,7 +411,7 @@ export function MetasTab() {
                               value={linha.valores[tipo]}
                               onChange={e => handleValor(linha.memberId, tipo, e.target.value)}
                               placeholder={TIPO_LABELS[tipo].placeholder}
-                              className={`w-full border text-sm py-1.5 pr-2 rounded-sm transition-colors focus:outline-none focus:ring-1 focus:ring-black bg-background text-foreground ${
+                              className={`w-full border text-sm py-1.5 pr-2 rounded-sm transition-colors focus:outline-none focus:ring-1 focus:ring-black bg-white text-neutral-900 placeholder:text-neutral-500 ${
                                 tipo === 'vendas' ? 'pl-7' : 'pl-2'
                               } ${
                                 temMetaExistente
