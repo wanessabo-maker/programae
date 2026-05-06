@@ -908,7 +908,7 @@ export function CSTab() {
                   <p className="font-medium">Ações automáticas serão criadas:</p>
                   <ul className="mt-1 space-y-0.5 text-muted-foreground">
                     {schedules.filter(s => s.is_active).map((s) => (
-                      <li key={s.id}>• {s.name} - {s.days_after_signature} dias após assinatura</li>
+                      <li key={s.id}>• {s.name} - {s.days_after_signature} dc após assinatura</li>
                     ))}
                   </ul>
                 </div>
