@@ -934,6 +934,12 @@ export function PlannerTab() {
                       </h3>
                       <span className="text-xs text-white/40">{grouped[col.id].length}</span>
                     </div>
+                    {avgDaysByColumn[col.id] !== null && (
+                      <div className="flex items-center gap-1 px-1 pb-2 text-[10px] text-white/50">
+                        <Clock className="h-3 w-3" />
+                        <span>Tempo médio: {avgDaysByColumn[col.id]}d</span>
+                      </div>
+                    )}
                     <div className="space-y-2 max-h-[640px] overflow-y-auto pr-1">
                       {grouped[col.id].map((card, i) => (
                         <Draggable draggableId={card.id} index={i} key={card.id}>
