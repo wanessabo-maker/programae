@@ -320,7 +320,11 @@ export default function ContratosTab() {
             const presCount = presentationCountByProject[project.id] || 0;
             const projetistaApres = teamMembers.find(m => m.id === project.apresentacao_projetista_id);
             const profName = project.professionals?.name || '—';
-            const consultantName = project.responsible?.name || '—';
+            const saleAction = getSaleAction(project.id);
+            const saleConsultantId = (saleAction as any)?.consultantId || (saleAction as any)?.consultant_id;
+            const consultantName =
+              (saleConsultantId && teamMembers.find(m => m.id === saleConsultantId)?.name) ||
+              project.responsible?.name || '—';
 
             return (
               <div key={project.id} className="border border-border p-4 hover:bg-muted/20 transition-colors">
