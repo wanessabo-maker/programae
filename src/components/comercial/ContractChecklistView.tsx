@@ -92,19 +92,19 @@ function getDeadlineStatus(dueDate: string | null, isCompleted: boolean, complet
     if (diff >= 0) {
       return { label: 'No prazo', color: '#0F6E56', bgColor: '#E1F5EE', isOverdue: false, days: diff };
     }
-    return { label: `${Math.abs(diff)}d de atraso`, color: '#A32D2D', bgColor: '#FCEBEB', isOverdue: true, days: Math.abs(diff) };
+    return { label: `${Math.abs(diff)} dc de atraso`, color: '#A32D2D', bgColor: '#FCEBEB', isOverdue: true, days: Math.abs(diff) };
   }
 
   if (diff < 0) {
-    return { label: `Atrasado ${Math.abs(diff)}d`, color: '#A32D2D', bgColor: '#FCEBEB', isOverdue: true, days: Math.abs(diff) };
+    return { label: `Atrasado ${Math.abs(diff)} dc`, color: '#A32D2D', bgColor: '#FCEBEB', isOverdue: true, days: Math.abs(diff) };
   }
   if (diff === 0) {
     return { label: 'Vence hoje', color: '#854F0B', bgColor: '#FAEEDA', isOverdue: false, days: 0 };
   }
   if (diff <= 2) {
-    return { label: `${diff}d restante${diff > 1 ? 's' : ''}`, color: '#854F0B', bgColor: '#FAEEDA', isOverdue: false, days: diff };
+    return { label: `${diff} dc restante${diff > 1 ? 's' : ''}`, color: '#854F0B', bgColor: '#FAEEDA', isOverdue: false, days: diff };
   }
-  return { label: `${diff}d restantes`, color: '#0F6E56', bgColor: '#E1F5EE', isOverdue: false, days: diff };
+  return { label: `${diff} dc restantes`, color: '#0F6E56', bgColor: '#E1F5EE', isOverdue: false, days: diff };
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
