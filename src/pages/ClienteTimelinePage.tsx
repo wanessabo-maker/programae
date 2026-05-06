@@ -430,7 +430,7 @@ export default function ClienteTimelinePage() {
                   }`}>
                     <div className="flex items-start justify-between gap-2 flex-wrap">
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-foreground leading-tight">
+                        <p className="text-sm font-medium text-neutral-900 dark:text-white leading-tight">
                           {event.isAlert && <AlertTriangle className="h-3.5 w-3.5 text-red-500 inline mr-1.5" />}
                           {event.title}
                         </p>
