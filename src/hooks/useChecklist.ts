@@ -92,13 +92,14 @@ export async function createChecklistForProject(
         assignedTo = options.assignedCsId;
       }
 
+      const isFreeStep = template.step_order <= 9;
       return {
         checklist_id: checklist.id,
         template_id: template.id,
         step_order: template.step_order,
         name: template.name,
         responsible_area: template.responsible_area,
-        status: index === 0 ? 'active' : 'blocked',
+        status: isFreeStep ? 'active' : 'blocked',
         due_date: dueDate,
         assigned_to: assignedTo,
       };
