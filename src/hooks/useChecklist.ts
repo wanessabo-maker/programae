@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { addBusinessDays } from 'date-fns';
 import { toast } from 'sonner';
 import { format, startOfMonth } from 'date-fns';
 
@@ -75,8 +76,7 @@ export async function createChecklistForProject(
     const items = templates.map((template: ChecklistTemplate, index: number) => {
       let dueDate = null;
       if (template.default_sla_days) {
-        const date = new Date(today);
-        date.setDate(date.getDate() + template.default_sla_days);
+        const date = addBusinessDays(today, template.default_sla_days);
         dueDate = date.toISOString().split('T')[0];
       }
 
@@ -571,8 +571,7 @@ export function useCompleteChecklistItem() {
 
         let dueDate = null;
         if (template?.default_sla_days) {
-          const date = new Date();
-          date.setDate(date.getDate() + template.default_sla_days);
+          const date = addBusinessDays(new Date(), template.default_sla_days);
           dueDate = date.toISOString().split('T')[0];
         }
 

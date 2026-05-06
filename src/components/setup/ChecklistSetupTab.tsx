@@ -97,7 +97,7 @@ export function ChecklistSetupTab() {
           <span className="font-medium text-foreground">Legenda:</span>{' '}
           <span className="font-mono font-semibold text-foreground">du</span> = dias úteis ·{' '}
           <span className="font-mono font-semibold text-foreground">dc</span> = dias corridos.
-          {' '}Os SLAs do checklist são contados em <span className="font-semibold">dc</span>.
+          {' '}Os SLAs do checklist são contados em <span className="font-semibold">du</span>.
         </div>
       </div>
 
@@ -155,7 +155,7 @@ export function ChecklistSetupTab() {
                       onChange={e => handleSLAChange(template.id, e.target.value)}
                       className="w-20 text-center h-8 text-sm bg-white text-neutral-900 border-neutral-300 placeholder:text-neutral-500"
                     />
-                    <span className="text-xs text-muted-foreground">dc</span>
+                    <span className="text-xs text-muted-foreground">du</span>
                     {hasSLAChanges && (
                       <Button
                         size="sm"
