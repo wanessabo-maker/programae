@@ -93,6 +93,12 @@ export function ChecklistSetupTab() {
         <span className="font-medium">Configure os prazos (SLA)</span> para cada etapa do checklist de contratos.
         {' '}Para etapas do <span className="font-medium">Projetista Técnico</span>, configure também os
         <span className="font-medium"> pontos por ambiente</span> do Programa E+.
+        <div className="mt-2 pt-2 border-t border-border/60 text-[11px]">
+          <span className="font-medium text-foreground">Legenda:</span>{' '}
+          <span className="font-mono font-semibold text-foreground">du</span> = dias úteis ·{' '}
+          <span className="font-mono font-semibold text-foreground">dc</span> = dias corridos.
+          {' '}Os SLAs do checklist são contados em <span className="font-semibold">dc</span>.
+        </div>
       </div>
 
       {Object.entries(groupedTemplates).map(([status, statusTemplates]) => (
@@ -149,7 +155,7 @@ export function ChecklistSetupTab() {
                       onChange={e => handleSLAChange(template.id, e.target.value)}
                       className="w-20 text-center h-8 text-sm bg-white text-neutral-900 border-neutral-300 placeholder:text-neutral-500"
                     />
-                    <span className="text-xs text-muted-foreground">dias</span>
+                    <span className="text-xs text-muted-foreground">dc</span>
                     {hasSLAChanges && (
                       <Button
                         size="sm"

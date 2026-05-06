@@ -86,7 +86,7 @@ export default function GestoraDashboard() {
           id: `at-${at.id}`,
           type: dias >= 7 ? 'danger' : dias >= 3 ? 'warning' : 'info',
           title: at.title || 'Assistência técnica',
-          detail: `Aberta há ${dias} dia(s) úteis`,
+          detail: `Aberta há ${dias} du`,
           clientName: at.clients?.name,
           clientId: at.clients?.id,
           days: dias,
@@ -115,7 +115,7 @@ export default function GestoraDashboard() {
         id: `pedido-${cl.id}`,
         type: dias >= 5 ? 'danger' : 'warning',
         title: `${overdueItems.length} etapa(s) em atraso`,
-        detail: `${maisAntigo.name} — ${dias} dia(s) úteis${cl.projects?.focco_project_number ? ` · FOCCO ${cl.projects.focco_project_number}` : ''}`,
+        detail: `${maisAntigo.name} — ${dias} du${cl.projects?.focco_project_number ? ` · FOCCO ${cl.projects.focco_project_number}` : ''}`,
         clientName: cl.projects?.clients?.name,
         clientId: cl.projects?.clients?.id,
         days: dias,
@@ -187,14 +187,18 @@ export default function GestoraDashboard() {
       <div className="space-y-3">
         <h2 className="text-xs tracking-widest uppercase text-muted-foreground font-medium flex items-center gap-2">
           <ClipboardList className="h-3.5 w-3.5" />
-          Contratos · etapa atual (dias úteis)
+          Contratos · etapa atual (du)
           <span className="text-muted-foreground/60">({contractSteps.length})</span>
         </h2>
+        <p className="text-[11px] text-muted-foreground -mt-2">
+          Legenda: <span className="font-mono font-semibold text-foreground">du</span> = dias úteis ·{' '}
+          <span className="font-mono font-semibold text-foreground">dc</span> = dias corridos.
+        </p>
         <div className="border border-border rounded-lg overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-muted/20 border-b border-border">
-                {['Cliente', 'FOCCO', 'Etapa atual', 'Dias úteis'].map(h => (
+                {['Cliente', 'FOCCO', 'Etapa atual', 'Dias (du)'].map(h => (
                   <th key={h} className="p-2 pl-3 text-left text-[10px] uppercase tracking-widest text-muted-foreground">
                     {h}
                   </th>
@@ -222,7 +226,7 @@ export default function GestoraDashboard() {
                           ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400'
                           : 'bg-muted text-muted-foreground'
                     }`}>
-                      {row.daysInStep} d.u.
+                      {row.daysInStep} du
                     </span>
                   </td>
                   <td className="p-2 pr-3 text-right">

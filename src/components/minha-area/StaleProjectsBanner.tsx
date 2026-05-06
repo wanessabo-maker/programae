@@ -46,7 +46,7 @@ export function StaleProjectsBanner({ teamMemberId }: Props) {
   const handleSnooze = async (project: StaleProject, days: number) => {
     try {
       await snooze.mutateAsync({ projectId: project.projectId, teamMemberId, days });
-      toast.success(`Aviso adiado por ${days} dias`);
+      toast.success(`Aviso adiado por ${days} dc`);
     } catch (e: any) {
       toast.error('Erro ao adiar aviso', { description: e?.message });
     }
@@ -127,7 +127,7 @@ export function StaleProjectsBanner({ teamMemberId }: Props) {
                           locale: ptBR,
                         })}
                       </span>{' '}
-                      · {project.daysSince} dias atrás
+                      · {project.daysSince} dc atrás
                     </p>
                   </div>
 
@@ -163,13 +163,13 @@ export function StaleProjectsBanner({ teamMemberId }: Props) {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => handleSnooze(project, 30)}>
-                          Adiar 30 dias
+                          Adiar 30 dc
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleSnooze(project, 60)}>
-                          Adiar 60 dias
+                          Adiar 60 dc
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleSnooze(project, 90)}>
-                          Adiar 90 dias
+                          Adiar 90 dc
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

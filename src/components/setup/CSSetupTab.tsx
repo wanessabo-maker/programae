@@ -146,7 +146,7 @@ function PeriodicidadeSection() {
               <>
                 <div className="flex items-center gap-4 flex-wrap">
                   <span className="text-sm font-medium">{schedule.name}</span>
-                  <span className="text-xs px-2 py-1 bg-muted rounded">{schedule.days_after_signature} dias</span>
+                  <span className="text-xs px-2 py-1 bg-muted rounded">{schedule.days_after_signature} dc</span>
                   {schedule.description && (
                     <span className="text-xs text-muted-foreground">{schedule.description}</span>
                   )}

@@ -582,10 +582,10 @@ function Card({ card, onEdit }: { card: PlannerCard; onEdit: (c: PlannerCard) =>
                 ? "bg-amber-400/15 text-amber-400 border border-amber-400/40"
                 : "bg-white/5 text-white/50 border border-white/10"
             }`}
-            title={`Nesta coluna há ${days} dia(s)`}
+            title={`Nesta coluna há ${days} dia(s) corridos`}
           >
             <Clock className="h-3 w-3" />
-            {days}d
+            {days} dc
           </span>
         )}
       </div>
@@ -760,7 +760,7 @@ function EditCardModal({ card, onClose }: { card: PlannerCard | null; onClose: (
             <Label>Data de adição a esta coluna</Label>
             <Input type="date" value={statusAt} onChange={(e) => setStatusAt(e.target.value)} />
             <p className="text-xs text-muted-foreground">
-              Define a partir de qual dia o contador "dias na coluna" deve começar.
+              Define a partir de qual dia o contador "dias na coluna" (dc — dias corridos) deve começar.
             </p>
           </div>
 

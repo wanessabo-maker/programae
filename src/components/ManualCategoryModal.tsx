@@ -93,7 +93,7 @@ export function ManualCategoryModal({
             >
               {sortedCategories.map((category) => (
                 <option key={category.id} value={category.id}>
-                  {category.name} ({category.daysToChange} dias)
+                  {category.name} ({category.daysToChange} dc)
                 </option>
               ))}
             </select>
@@ -110,7 +110,7 @@ export function ManualCategoryModal({
               className="input-flat w-full text-card-foreground"
             />
             <p className="text-xs text-muted-foreground mt-1">
-              A contagem de dias para mudança de categoria começará a partir desta data.
+              A contagem de dias corridos (dc) para mudança de categoria começará a partir desta data.
             </p>
           </div>
 
@@ -119,7 +119,7 @@ export function ManualCategoryModal({
               <p className="font-medium mb-1">Resumo do ajuste:</p>
               <ul className="text-muted-foreground space-y-1">
                 <li>• Categoria: <span className="text-foreground">{selectedCategory.name}</span></li>
-                <li>• Proteção: <span className="text-foreground">{selectedCategory.daysToChange} dias</span></li>
+                <li>• Proteção: <span className="text-foreground">{selectedCategory.daysToChange} dc</span></li>
                 <li>• Data base: <span className="text-foreground">{format(new Date(form.baseDate), 'dd/MM/yyyy')}</span></li>
               </ul>
             </div>
