@@ -263,7 +263,7 @@ export function ContractChecklistView({ projectId }: Props) {
             <span className="text-sm text-neutral-400"> etapa{kpis.overdueCount !== 1 ? 's' : ''}</span>
           </p>
           {kpis.totalOverdueDays > 0 && (
-            <p className="text-[10px] text-red-400 mt-1">{kpis.totalOverdueDays}d acumulados</p>
+            <p className="text-[10px] text-red-400 mt-1">{kpis.totalOverdueDays} dc acumulados</p>
           )}
         </div>
 
