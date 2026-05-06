@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { format, parseISO, isPast, isToday, differenceInDays } from 'date-fns';
+import { format, parseISO, isPast, isToday, differenceInBusinessDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
   CheckCircle2, 
@@ -349,12 +349,12 @@ export default function MinhaArea() {
     if (!dueDate) return { status: 'none', label: 'Sem prazo', color: 'text-muted-foreground' };
     
     const date = parseISO(dueDate);
-    const daysUntil = differenceInDays(date, new Date());
+    const daysUntil = differenceInBusinessDays(date, new Date());
     
     if (isPast(date) && !isToday(date)) {
       return { 
         status: 'overdue', 
-        label: `Atrasado (${Math.abs(daysUntil)}d)`, 
+        label: `Atrasado (${Math.abs(daysUntil)} du)`, 
         color: 'text-destructive' 
       };
     }
@@ -362,7 +362,7 @@ export default function MinhaArea() {
       return { status: 'today', label: 'Hoje', color: 'text-orange-600' };
     }
     if (daysUntil <= 2) {
-      return { status: 'soon', label: `${daysUntil}d`, color: 'text-orange-500' };
+      return { status: 'soon', label: `${daysUntil} du`, color: 'text-orange-500' };
     }
     return { 
       status: 'ok', 
