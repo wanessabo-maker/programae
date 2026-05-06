@@ -147,7 +147,7 @@ export function ChecklistSetupTab() {
                       placeholder="Dias"
                       value={currentSLA}
                       onChange={e => handleSLAChange(template.id, e.target.value)}
-                      className="w-20 text-center h-8 text-sm"
+                      className="w-20 text-center h-8 text-sm bg-white text-neutral-900 border-neutral-300 placeholder:text-neutral-500"
                     />
                     <span className="text-xs text-muted-foreground">dias</span>
                     {hasSLAChanges && (
@@ -176,7 +176,7 @@ export function ChecklistSetupTab() {
                         placeholder="0"
                         value={currentPoints}
                         onChange={e => handlePointsChange(template.id, e.target.value)}
-                        className="w-16 text-center h-8 text-sm border-amber-200 dark:border-amber-800/50"
+                        className="w-16 text-center h-8 text-sm bg-white text-neutral-900 border-amber-300 placeholder:text-neutral-500"
                       />
                       <span className="text-xs text-muted-foreground">pts/amb.</span>
                       {hasPointsChanges && (
