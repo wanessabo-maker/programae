@@ -149,7 +149,7 @@ export function ChecklistSetupTab() {
                       onChange={e => handleSLAChange(template.id, e.target.value)}
                       className="w-20 text-center h-8 text-sm bg-white text-neutral-900 border-neutral-300 placeholder:text-neutral-500"
                     />
-                    <span className="text-xs text-muted-foreground">dias</span>
+                    <span className="text-xs text-muted-foreground">dc</span>
                     {hasSLAChanges && (
                       <Button
                         size="sm"
