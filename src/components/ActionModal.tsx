@@ -1474,6 +1474,31 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
 
       toast.success('Ação registrada com sucesso!');
 
+      // SYNC: When "Projeto de Apresentação" / "Apresentação de Projeto" is registered manually,
+      // move the corresponding Planner card to CONCLUIDO (only if it has a planner_status).
+      if (isApresentacaoProjeto && projectId) {
+        try {
+          const { data: proj } = await supabase
+            .from('projects')
+            .select('planner_status')
+            .eq('id', projectId)
+            .maybeSingle();
+          if (proj?.planner_status && proj.planner_status !== 'CONCLUIDO' && proj.planner_status !== 'VENDIDO' && proj.planner_status !== 'PERDIDO') {
+            await supabase
+              .from('projects')
+              .update({
+                planner_status: 'CONCLUIDO',
+                planner_status_at: new Date().toISOString(),
+                planner_data_concluido: new Date().toISOString(),
+              } as any)
+              .eq('id', projectId);
+            queryClient.invalidateQueries({ queryKey: ['planner_kanban'] });
+          }
+        } catch (syncErr) {
+          console.error('Error syncing planner status:', syncErr);
+        }
+      }
+
       // Invalidate cached queries that depend on this action / value history
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['actions'] }),
