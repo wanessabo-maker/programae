@@ -645,6 +645,32 @@ export default function MinhaArea() {
                         </Badge>
                       </div>
 
+                      {/* Contador 45 du após Caderno Técnico (#11) */}
+                      {(() => {
+                        const step11 = group.allItems.find(i => i.step_order === 11);
+                        if (!step11 || step11.status !== 'completed' || !step11.completed_at) return null;
+                        const deadline = addBusinessDays(parseISO(step11.completed_at), 45);
+                        const remaining = differenceInBusinessDays(deadline, new Date());
+                        const isOverdue = remaining < 0;
+                        const isWarning = remaining >= 0 && remaining <= 5;
+                        const colorClass = isOverdue
+                          ? 'bg-destructive/10 border-destructive text-destructive'
+                          : isWarning
+                          ? 'bg-amber-50 border-amber-400 text-amber-800'
+                          : 'bg-emerald-50 border-emerald-400 text-emerald-800';
+                        const label = isOverdue
+                          ? `${Math.abs(remaining)} du em atraso`
+                          : remaining === 0
+                          ? 'Vence hoje'
+                          : `${remaining} du restantes`;
+                        return (
+                          <div className={`mb-4 px-3 py-2 border-l-4 ${colorClass} flex items-center justify-between text-xs font-bold`}>
+                            <span>Prazo pós Caderno Técnico (45 du)</span>
+                            <span>{label} · até {format(deadline, 'dd/MM/yyyy', { locale: ptBR })}</span>
+                          </div>
+                        );
+                      })()}
+
                       {/* All Checklist Items */}
                       <div className="space-y-2 mb-4">
                         <Collapsible open={isExpanded} onOpenChange={() => toggleContract(group.projectId)}>
