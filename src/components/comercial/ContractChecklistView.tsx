@@ -363,7 +363,28 @@ export function ContractChecklistView({ projectId }: Props) {
             const isSkipped   = item.status === 'skipped';
 
             const completedByName = getTeamMemberName(item.completed_by);
-            const assignedName    = getTeamMemberName(item.assigned_to);
+            // Responsável: prioriza assigned_to específico do item, senão deriva da área
+            const areaResponsibleId = (() => {
+              switch (item.responsible_area) {
+                case 'projetista_tecnico':
+                  // Etapa "Apresentação" usa o projetista de apresentação
+                  if (/apresenta/i.test(item.name)) {
+                    return (checklistData as any)?.assigned_apresentacao_projetista_id;
+                  }
+                  return checklistData?.assigned_projetista_id;
+                case 'logistica':
+                  return checklistData?.assigned_logistica_id;
+                case 'cs':
+                  return (checklistData as any)?.assigned_cs_id;
+                case 'comercial':
+                  return null; // mostrado separadamente abaixo
+                default:
+                  return null;
+              }
+            })();
+            const assignedName =
+              getTeamMemberName(item.assigned_to) ||
+              getTeamMemberName(areaResponsibleId);
 
             const deadline = getDeadlineStatus(item.due_date, isCompleted, item.completed_at);
 
