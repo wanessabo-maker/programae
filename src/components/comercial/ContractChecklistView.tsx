@@ -13,7 +13,7 @@
  */
 
 import { useState, useMemo } from 'react';
-import { format, parseISO, differenceInDays, addDays } from 'date-fns';
+import { format, parseISO, differenceInBusinessDays, addBusinessDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   CheckCircle2,
@@ -85,26 +85,26 @@ function getDeadlineStatus(dueDate: string | null, isCompleted: boolean, complet
 
   const reference = isCompleted && completedAt ? parseISO(completedAt) : new Date();
   const due = parseISO(dueDate);
-  const diff = differenceInDays(due, reference);
+  const diff = differenceInBusinessDays(due, reference);
 
   if (isCompleted) {
     // Concluída dentro ou fora do prazo?
     if (diff >= 0) {
       return { label: 'No prazo', color: '#0F6E56', bgColor: '#E1F5EE', isOverdue: false, days: diff };
     }
-    return { label: `${Math.abs(diff)} dc de atraso`, color: '#A32D2D', bgColor: '#FCEBEB', isOverdue: true, days: Math.abs(diff) };
+    return { label: `${Math.abs(diff)} du de atraso`, color: '#A32D2D', bgColor: '#FCEBEB', isOverdue: true, days: Math.abs(diff) };
   }
 
   if (diff < 0) {
-    return { label: `Atrasado ${Math.abs(diff)} dc`, color: '#A32D2D', bgColor: '#FCEBEB', isOverdue: true, days: Math.abs(diff) };
+    return { label: `Atrasado ${Math.abs(diff)} du`, color: '#A32D2D', bgColor: '#FCEBEB', isOverdue: true, days: Math.abs(diff) };
   }
   if (diff === 0) {
     return { label: 'Vence hoje', color: '#854F0B', bgColor: '#FAEEDA', isOverdue: false, days: 0 };
   }
   if (diff <= 2) {
-    return { label: `${diff} dc restante${diff > 1 ? 's' : ''}`, color: '#854F0B', bgColor: '#FAEEDA', isOverdue: false, days: diff };
+    return { label: `${diff} du restante${diff > 1 ? 's' : ''}`, color: '#854F0B', bgColor: '#FAEEDA', isOverdue: false, days: diff };
   }
-  return { label: `${diff} dc restantes`, color: '#0F6E56', bgColor: '#E1F5EE', isOverdue: false, days: diff };
+  return { label: `${diff} du restantes`, color: '#0F6E56', bgColor: '#E1F5EE', isOverdue: false, days: diff };
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
@@ -146,24 +146,24 @@ export function ContractChecklistView({ projectId }: Props) {
     const overdueItems = items.filter(i => {
       if (i.status === 'completed' || i.status === 'skipped') return false;
       if (!i.due_date) return false;
-      return differenceInDays(parseISO(i.due_date), today) < 0;
+      return differenceInBusinessDays(parseISO(i.due_date), today) < 0;
     });
 
     const totalOverdueDays = overdueItems.reduce((sum, i) => {
       if (!i.due_date) return sum;
-      return sum + Math.abs(differenceInDays(parseISO(i.due_date), today));
+      return sum + Math.abs(differenceInBusinessDays(parseISO(i.due_date), today));
     }, 0);
 
     // Previsão de conclusão: soma dos SLAs das etapas restantes (não concluídas/puladas)
     const remainingItems = items.filter(i => i.status !== 'completed' && i.status !== 'skipped');
     const remainingSLADays = remainingItems.reduce((sum, i) => {
       if (!i.due_date) return sum;
-      const diff = differenceInDays(parseISO(i.due_date), today);
+      const diff = differenceInBusinessDays(parseISO(i.due_date), today);
       return sum + (diff > 0 ? diff : 0);
     }, 0);
 
     const estimatedConclusion = remainingSLADays > 0
-      ? format(addDays(today, remainingSLADays), "dd/MM/yyyy", { locale: ptBR })
+      ? format(addBusinessDays(today, remainingSLADays), "dd/MM/yyyy", { locale: ptBR })
       : null;
 
     const progress = total > 0
