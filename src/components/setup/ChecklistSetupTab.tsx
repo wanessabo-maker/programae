@@ -128,8 +128,8 @@ export function ChecklistSetupTab() {
                       <span className="text-xs text-muted-foreground font-mono">
                         #{template.step_order}
                       </span>
-                      <span className="text-sm font-medium truncate">
-                        {template.step_order === 13 ? 'Planilha de Controle de Pedidos atualizada' : template.name}
+                      <span className="text-sm font-medium whitespace-pre-line break-words">
+                        {(template.step_order === 13 ? 'Planilha de Controle de Pedidos atualizada' : template.name).replace(/,\s*/g, ',\n')}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
