@@ -294,9 +294,9 @@ function AlertColumn({
                   {alert.title}
                 </p>
                 {alert.clientName && (
-                  <p className="text-xs font-medium text-foreground mt-0.5">{alert.clientName}</p>
+                  <p className="text-xs font-semibold text-neutral-900 dark:text-white mt-0.5">{alert.clientName}</p>
                 )}
-                <p className="text-xs text-muted-foreground mt-0.5">{alert.detail}</p>
+                <p className="text-xs text-neutral-700 dark:text-neutral-300 mt-0.5">{alert.detail}</p>
               </div>
               {alert.clientId && (
                 <button
