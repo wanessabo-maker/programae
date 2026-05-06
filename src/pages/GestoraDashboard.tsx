@@ -194,7 +194,7 @@ export default function GestoraDashboard() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-muted/20 border-b border-border">
-                {['Cliente', 'FOCCO', 'Etapa atual', 'Dias úteis'].map(h => (
+                {['Cliente', 'FOCCO', 'Etapa atual', 'Dias (du)'].map(h => (
                   <th key={h} className="p-2 pl-3 text-left text-[10px] uppercase tracking-widest text-muted-foreground">
                     {h}
                   </th>
@@ -222,7 +222,7 @@ export default function GestoraDashboard() {
                           ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400'
                           : 'bg-muted text-muted-foreground'
                     }`}>
-                      {row.daysInStep} d.u.
+                      {row.daysInStep} du
                     </span>
                   </td>
                   <td className="p-2 pr-3 text-right">
