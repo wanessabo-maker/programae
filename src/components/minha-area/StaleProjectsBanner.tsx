@@ -46,7 +46,7 @@ export function StaleProjectsBanner({ teamMemberId }: Props) {
   const handleSnooze = async (project: StaleProject, days: number) => {
     try {
       await snooze.mutateAsync({ projectId: project.projectId, teamMemberId, days });
-      toast.success(`Aviso adiado por ${days} dias`);
+      toast.success(`Aviso adiado por ${days} dc`);
     } catch (e: any) {
       toast.error('Erro ao adiar aviso', { description: e?.message });
     }
