@@ -8,6 +8,7 @@ import { useMyWeeklyCleanlinessCheck, useSubmitCleanlinessCheck } from '@/hooks/
 import { useCurrentTeamMember } from '@/hooks/useCurrentTeamMember';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { SignedCleanlinessImage } from './SignedCleanlinessImage';
 
 const labelFor = (n: number) => {
   if (n < 1) return 'Muito ruim';
@@ -58,8 +59,8 @@ export function CleanlinessCheckBar() {
           .from('cleanliness-photos')
           .upload(path, file, { cacheControl: '3600', upsert: false });
         if (upErr) throw upErr;
-        const { data: pub } = supabase.storage.from('cleanliness-photos').getPublicUrl(path);
-        uploaded.push(pub.publicUrl);
+        // Store the storage path; signed URLs are generated on read
+        uploaded.push(path);
       }
       setPhotos((prev) => [...prev, ...uploaded]);
     } catch (e: any) {
@@ -169,7 +170,7 @@ export function CleanlinessCheckBar() {
                     key={url}
                     className="group relative h-16 w-16 overflow-hidden rounded-md border border-border"
                   >
-                    <img src={url} alt="Foto da avaliação" className="h-full w-full object-cover" />
+                    <SignedCleanlinessImage pathOrUrl={url} alt="Foto da avaliação" className="h-full w-full object-cover" />
                     <button
                       type="button"
                       onClick={() => removePhoto(url)}
