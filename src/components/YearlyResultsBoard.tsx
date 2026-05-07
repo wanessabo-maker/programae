@@ -58,46 +58,66 @@ export function YearlyResultsBoard() {
     const result = Array.from({ length: 12 }, () => 0);
     const vendasMetas = metas.filter(m => m.type === 'vendas' && m.isActive);
 
-    // Helper: dias entre duas datas (inclusivo)
+    // Parse 'YYYY-MM-DD' como data LOCAL (evita shift de UTC para timezones negativos)
+    const parseLocalDate = (s: string | null | undefined): Date | null => {
+      if (!s) return null;
+      const onlyDate = s.length >= 10 ? s.slice(0, 10) : s;
+      const [y, mo, d] = onlyDate.split('-').map(Number);
+      if (!y || !mo || !d) return null;
+      return new Date(y, mo - 1, d);
+    };
+
     const daysBetween = (a: Date, b: Date) =>
       Math.max(0, Math.round((b.getTime() - a.getTime()) / 86400000) + 1);
 
     for (let monthIdx = 0; monthIdx < 12; monthIdx++) {
       const monthStart = new Date(targetYear, monthIdx, 1);
       const monthEnd = new Date(targetYear, monthIdx + 1, 0);
-      const monthDays = daysBetween(monthStart, monthEnd);
 
       vendasMetas.forEach((m: Meta) => {
-        const start = m.startDate ? new Date(m.startDate) : null;
-        let end = m.endDate ? new Date(m.endDate) : null;
+        const start = parseLocalDate(m.startDate as unknown as string);
+        let end = parseLocalDate(m.endDate as unknown as string);
         // Normalização: endDate no dia 1 = intervalo semi-aberto (exclusivo).
-        // Ex.: 01/03 → 01/04 representa "março inteiro", não março+1 dia de abril.
-        // Convertemos para o último dia do mês anterior (inclusivo).
-        if (end && end.getDate() === 1 && start && end.getTime() !== start.getTime()) {
+        // Ex.: 01/03 → 01/04 representa "março inteiro". Convertemos para o
+        // último dia do mês anterior (inclusivo).
+        if (end && start && end.getDate() === 1 && end.getTime() !== start.getTime()) {
           end = new Date(end.getTime() - 86400000);
         }
         if (start && start > monthEnd) return;
         if (end && end < monthStart) return;
 
         switch (m.validityType) {
-          case 'mensal': result[monthIdx] += m.value; break;
+          case 'mensal': {
+            // Meta mensal: aplica valor cheio se há sobreposição com o mês
+            if (start && end) {
+              const overlapStart = start > monthStart ? start : monthStart;
+              const overlapEnd = end < monthEnd ? end : monthEnd;
+              if (overlapStart <= overlapEnd) result[monthIdx] += m.value;
+            } else {
+              result[monthIdx] += m.value;
+            }
+            break;
+          }
           case 'trimestral':
           case 'semestral':
           case 'anual':
           case 'personalizada': {
-            // Distribuição proporcional por dias de sobreposição com o mês.
-            // Funciona corretamente mesmo quando endDate cai no dia 1 do mês
-            // seguinte (intervalo aberto), evitando dupla contagem.
             if (start && end) {
               const totalDays = daysBetween(start, end);
               const overlapStart = start > monthStart ? start : monthStart;
               const overlapEnd = end < monthEnd ? end : monthEnd;
               const overlapDays = daysBetween(overlapStart, overlapEnd);
               if (totalDays > 0 && overlapDays > 0) {
-                result[monthIdx] += m.value * (overlapDays / totalDays);
+                // Se a meta cabe inteira em um único mês-calendário, aplica valor cheio.
+                const startMonthKey = start.getFullYear() * 12 + start.getMonth();
+                const endMonthKey = end.getFullYear() * 12 + end.getMonth();
+                if (startMonthKey === endMonthKey) {
+                  result[monthIdx] += m.value;
+                } else {
+                  result[monthIdx] += m.value * (overlapDays / totalDays);
+                }
               }
             } else {
-              // Fallback: dividir pelo número padrão de meses
               const divisor = m.validityType === 'trimestral' ? 3
                 : m.validityType === 'semestral' ? 6
                 : m.validityType === 'anual' ? 12 : 1;
