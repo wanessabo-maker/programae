@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { parseISO, getMonth, getYear } from 'date-fns';
+import type { Meta } from '@/types';
 
 const MONTH_LABELS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
@@ -12,7 +13,7 @@ interface MonthlyData {
 }
 
 export function YearlyResultsBoard() {
-  const { actions, actionTypes } = useApp();
+  const { actions, actionTypes, metas } = useApp();
 
   // Regra: considerar apenas dados do ano de 2026
   const targetYear = 2026;
@@ -52,6 +53,52 @@ export function YearlyResultsBoard() {
     return data;
   }, [actions, actionTypes, targetYear]);
 
+  // Meta mensal de vendas por mês — soma das metas de vendas ativas, normalizadas para mensal
+  const monthlyMeta = useMemo(() => {
+    const result = Array.from({ length: 12 }, () => 0);
+    const vendasMetas = metas.filter(m => m.type === 'vendas' && m.isActive);
+
+    for (let monthIdx = 0; monthIdx < 12; monthIdx++) {
+      const monthStart = new Date(targetYear, monthIdx, 1);
+      const monthEnd = new Date(targetYear, monthIdx + 1, 0);
+
+      vendasMetas.forEach((m: Meta) => {
+        const start = m.startDate ? new Date(m.startDate) : null;
+        const end = m.endDate ? new Date(m.endDate) : null;
+        if (start && start > monthEnd) return;
+        if (end && end < monthStart) return;
+
+        switch (m.validityType) {
+          case 'mensal': result[monthIdx] += m.value; break;
+          case 'trimestral': result[monthIdx] += m.value / 3; break;
+          case 'semestral': result[monthIdx] += m.value / 6; break;
+          case 'anual': result[monthIdx] += m.value / 12; break;
+          case 'personalizada': {
+            if (start && end) {
+              const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1;
+              if (months > 0) result[monthIdx] += m.value / months;
+            } else {
+              result[monthIdx] += m.value;
+            }
+            break;
+          }
+          default: result[monthIdx] += m.value;
+        }
+      });
+    }
+    return result;
+  }, [metas, targetYear]);
+
+  const totalMeta = useMemo(() => monthlyMeta.reduce((a, b) => a + b, 0), [monthlyMeta]);
+
+  const calcPct = (executado: number, meta: number) => meta > 0 ? (executado / meta) * 100 : 0;
+  const pctClass = (pct: number, hasMeta: boolean) => {
+    if (!hasMeta) return 'text-muted-foreground';
+    if (pct >= 100) return 'text-green-400';
+    if (pct >= 70) return 'text-amber-400';
+    return 'text-red-400';
+  };
+
   const totals = useMemo(() => {
     return monthlyData.reduce(
       (acc, month) => ({
@@ -63,11 +110,6 @@ export function YearlyResultsBoard() {
       { valorVendido: 0, contratosFechados: 0, captacoes: 0, acoesComEspecificador: 0 }
     );
   }, [monthlyData]);
-
-  const calcTicketMedio = (valorVendido: number, contratos: number) => {
-    if (contratos === 0) return 0;
-    return valorVendido / contratos;
-  };
 
   const formatCurrency = (value: number) => {
     if (value >= 1000000) {
@@ -125,22 +167,40 @@ export function YearlyResultsBoard() {
             </tr>
 
             {/* Ticket Médio Row */}
+            {/* Meta Vendas Row */}
             <tr className="border-b-2 border-foreground/40/10">
-              <td className="p-3 text-sm font-medium">Ticket Médio</td>
+              <td className="p-3 text-sm font-medium">Meta Vendas</td>
+              {monthlyMeta.map((meta, idx) => (
+                <td
+                  key={idx}
+                  className={`p-2 text-center text-xs text-muted-foreground ${idx === currentMonth ? 'bg-primary/25 ring-1 ring-primary/40' : ''}`}
+                  title={formatFullCurrency(meta)}
+                >
+                  {meta > 0 ? formatCurrency(meta) : '—'}
+                </td>
+              ))}
+              <td className="p-2 text-center text-sm font-bold bg-foreground/10 text-muted-foreground" title={formatFullCurrency(totalMeta)}>
+                {totalMeta > 0 ? formatCurrency(totalMeta) : '—'}
+              </td>
+            </tr>
+
+            {/* % da Meta Row */}
+            <tr className="border-b-2 border-foreground/40/10">
+              <td className="p-3 text-sm font-medium">% da Meta</td>
               {monthlyData.map((data, idx) => {
-                const ticketMedio = calcTicketMedio(data.valorVendido, data.contratosFechados);
+                const meta = monthlyMeta[idx];
+                const pct = calcPct(data.valorVendido, meta);
                 return (
-                  <td 
-                    key={idx} 
-                    className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/25 ring-1 ring-primary/40 font-medium' : ''} ${idx > currentMonth ? 'text-muted-foreground/70' : ''}`}
-                     title={formatFullCurrency(ticketMedio)}
+                  <td
+                    key={idx}
+                    className={`p-2 text-center text-xs font-medium ${pctClass(pct, meta > 0)} ${idx === currentMonth ? 'bg-primary/25 ring-1 ring-primary/40' : ''}`}
                   >
-                     {formatCurrency(ticketMedio)}
+                    {meta > 0 ? `${pct.toFixed(0)}%` : '—'}
                   </td>
                 );
               })}
-              <td className="p-2 text-center text-sm font-bold bg-foreground/10" title={formatFullCurrency(calcTicketMedio(totals.valorVendido, totals.contratosFechados))}>
-                {formatCurrency(calcTicketMedio(totals.valorVendido, totals.contratosFechados))}
+              <td className={`p-2 text-center text-sm font-bold bg-foreground/10 ${pctClass(calcPct(totals.valorVendido, totalMeta), totalMeta > 0)}`}>
+                {totalMeta > 0 ? `${calcPct(totals.valorVendido, totalMeta).toFixed(0)}%` : '—'}
               </td>
             </tr>
 
@@ -205,12 +265,12 @@ export function YearlyResultsBoard() {
               ))}
             </tr>
             <tr className="border-b-2 border-foreground/40/10">
-              <td className="p-3 text-sm font-medium">Ticket Médio</td>
-              {monthlyData.slice(0, 6).map((data, idx) => {
-                const ticketMedio = calcTicketMedio(data.valorVendido, data.contratosFechados);
+              <td className="p-3 text-sm font-medium">Meta / %</td>
+              {monthlyMeta.slice(0, 6).map((meta, idx) => {
+                const pct = calcPct(monthlyData[idx].valorVendido, meta);
                 return (
-                  <td key={idx} className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/25 ring-1 ring-primary/40' : ''}`}>
-                    {formatCurrency(ticketMedio)}
+                  <td key={idx} className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/25 ring-1 ring-primary/40' : ''} ${pctClass(pct, meta > 0)}`}>
+                    {meta > 0 ? `${pct.toFixed(0)}%` : '—'}
                   </td>
                 );
               })}
@@ -259,17 +319,18 @@ export function YearlyResultsBoard() {
               <td className="p-2 text-center text-sm font-bold bg-foreground/10">{formatCurrency(totals.valorVendido)}</td>
             </tr>
             <tr className="border-b-2 border-foreground/40/10">
-              <td className="p-3 text-sm font-medium">Ticket Médio</td>
-              {monthlyData.slice(6).map((data, idx) => {
-                const ticketMedio = calcTicketMedio(data.valorVendido, data.contratosFechados);
+              <td className="p-3 text-sm font-medium">Meta / %</td>
+              {monthlyMeta.slice(6).map((meta, idx) => {
+                const realIdx = idx + 6;
+                const pct = calcPct(monthlyData[realIdx].valorVendido, meta);
                 return (
-                  <td key={idx} className={`p-2 text-center text-xs ${(idx + 6) === currentMonth ? 'bg-primary/25 ring-1 ring-primary/40' : ''}`}>
-                    {formatCurrency(ticketMedio)}
+                  <td key={idx} className={`p-2 text-center text-xs ${realIdx === currentMonth ? 'bg-primary/25 ring-1 ring-primary/40' : ''} ${pctClass(pct, meta > 0)}`}>
+                    {meta > 0 ? `${pct.toFixed(0)}%` : '—'}
                   </td>
                 );
               })}
-              <td className="p-2 text-center text-sm font-bold bg-foreground/10">
-                {formatCurrency(calcTicketMedio(totals.valorVendido, totals.contratosFechados))}
+              <td className={`p-2 text-center text-sm font-bold bg-foreground/10 ${pctClass(calcPct(totals.valorVendido, totalMeta), totalMeta > 0)}`}>
+                {totalMeta > 0 ? `${calcPct(totals.valorVendido, totalMeta).toFixed(0)}%` : '—'}
               </td>
             </tr>
             <tr className="border-b-2 border-foreground/40/10">
@@ -306,9 +367,9 @@ export function YearlyResultsBoard() {
             </div>
             <div>
               <p className="text-lg font-bold">
-                {formatCurrency(calcTicketMedio(totals.valorVendido, totals.contratosFechados))}
+                {totalMeta > 0 ? `${calcPct(totals.valorVendido, totalMeta).toFixed(0)}%` : '—'}
               </p>
-              <p className="text-xs text-muted-foreground">Ticket Médio</p>
+              <p className="text-xs text-muted-foreground">% da Meta</p>
             </div>
             <div>
               <p className="text-lg font-bold">{totals.captacoes}</p>
@@ -324,7 +385,8 @@ export function YearlyResultsBoard() {
         {/* Monthly Cards */}
         <div className="grid grid-cols-2 gap-3">
           {monthlyData.map((data, idx) => {
-            const ticketMedio = calcTicketMedio(data.valorVendido, data.contratosFechados);
+            const meta = monthlyMeta[idx];
+            const pct = calcPct(data.valorVendido, meta);
             return (
               <div 
                 key={idx} 
@@ -339,8 +401,12 @@ export function YearlyResultsBoard() {
                     <span>{formatCurrency(data.valorVendido)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Ticket Médio</span>
-                    <span>{formatCurrency(ticketMedio)}</span>
+                    <span className="text-muted-foreground">Meta</span>
+                    <span>{meta > 0 ? formatCurrency(meta) : '—'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">% Meta</span>
+                    <span className={pctClass(pct, meta > 0)}>{meta > 0 ? `${pct.toFixed(0)}%` : '—'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Captações</span>
