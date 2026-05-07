@@ -14,6 +14,7 @@ import {
 import { useTeamMembers } from '@/hooks/useDatabase';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { SignedCleanlinessImage } from '@/components/dashboard/SignedCleanlinessImage';
 import { Slider } from '@/components/ui/slider';
 import {
   Dialog,
@@ -254,15 +255,12 @@ export function CleanlinessAdminPanel() {
                   {Array.isArray(c.photos) && c.photos.length > 0 && (
                     <div className="flex flex-wrap gap-2">
                       {c.photos.map((url) => (
-                        <a
+                        <div
                           key={url}
-                          href={url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="h-16 w-16 overflow-hidden rounded-md border border-border transition-opacity hover:opacity-80"
+                          className="h-16 w-16 overflow-hidden rounded-md border border-border"
                         >
-                          <img src={url} alt="Foto da avaliação" className="h-full w-full object-cover" />
-                        </a>
+                          <SignedCleanlinessImage pathOrUrl={url} alt="Foto da avaliação" className="h-full w-full object-cover" />
+                        </div>
                       ))}
                     </div>
                   )}
