@@ -58,9 +58,14 @@ export function YearlyResultsBoard() {
     const result = Array.from({ length: 12 }, () => 0);
     const vendasMetas = metas.filter(m => m.type === 'vendas' && m.isActive);
 
+    // Helper: dias entre duas datas (inclusivo)
+    const daysBetween = (a: Date, b: Date) =>
+      Math.max(0, Math.round((b.getTime() - a.getTime()) / 86400000) + 1);
+
     for (let monthIdx = 0; monthIdx < 12; monthIdx++) {
       const monthStart = new Date(targetYear, monthIdx, 1);
       const monthEnd = new Date(targetYear, monthIdx + 1, 0);
+      const monthDays = daysBetween(monthStart, monthEnd);
 
       vendasMetas.forEach((m: Meta) => {
         const start = m.startDate ? new Date(m.startDate) : null;
@@ -70,15 +75,27 @@ export function YearlyResultsBoard() {
 
         switch (m.validityType) {
           case 'mensal': result[monthIdx] += m.value; break;
-          case 'trimestral': result[monthIdx] += m.value / 3; break;
-          case 'semestral': result[monthIdx] += m.value / 6; break;
-          case 'anual': result[monthIdx] += m.value / 12; break;
+          case 'trimestral':
+          case 'semestral':
+          case 'anual':
           case 'personalizada': {
+            // Distribuição proporcional por dias de sobreposição com o mês.
+            // Funciona corretamente mesmo quando endDate cai no dia 1 do mês
+            // seguinte (intervalo aberto), evitando dupla contagem.
             if (start && end) {
-              const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1;
-              if (months > 0) result[monthIdx] += m.value / months;
+              const totalDays = daysBetween(start, end);
+              const overlapStart = start > monthStart ? start : monthStart;
+              const overlapEnd = end < monthEnd ? end : monthEnd;
+              const overlapDays = daysBetween(overlapStart, overlapEnd);
+              if (totalDays > 0 && overlapDays > 0) {
+                result[monthIdx] += m.value * (overlapDays / totalDays);
+              }
             } else {
-              result[monthIdx] += m.value;
+              // Fallback: dividir pelo número padrão de meses
+              const divisor = m.validityType === 'trimestral' ? 3
+                : m.validityType === 'semestral' ? 6
+                : m.validityType === 'anual' ? 12 : 1;
+              result[monthIdx] += m.value / divisor;
             }
             break;
           }
