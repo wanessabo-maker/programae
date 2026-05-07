@@ -69,7 +69,13 @@ export function YearlyResultsBoard() {
 
       vendasMetas.forEach((m: Meta) => {
         const start = m.startDate ? new Date(m.startDate) : null;
-        const end = m.endDate ? new Date(m.endDate) : null;
+        let end = m.endDate ? new Date(m.endDate) : null;
+        // Normalização: endDate no dia 1 = intervalo semi-aberto (exclusivo).
+        // Ex.: 01/03 → 01/04 representa "março inteiro", não março+1 dia de abril.
+        // Convertemos para o último dia do mês anterior (inclusivo).
+        if (end && end.getDate() === 1 && start && end.getTime() !== start.getTime()) {
+          end = new Date(end.getTime() - 86400000);
+        }
         if (start && start > monthEnd) return;
         if (end && end < monthStart) return;
 
