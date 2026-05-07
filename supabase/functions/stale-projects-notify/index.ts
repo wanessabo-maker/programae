@@ -24,6 +24,7 @@ const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
 const FROM_EMAIL = Deno.env.get('NOTIFY_FROM_EMAIL') ?? 'noreply@evvivago.com.br';
 const ADMIN_EMAIL = Deno.env.get('ADMIN_EMAIL');
+const CRON_SECRET = Deno.env.get('CRON_SECRET');
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
@@ -42,8 +43,34 @@ interface ConsultantAlert {
   staleProjects: StaleProject[];
 }
 
-Deno.serve(async (_req) => {
+Deno.serve(async (req) => {
   try {
+    // Authorization gate: require either CRON_SECRET bearer or an authenticated admin caller
+    const authHeader = req.headers.get('Authorization') ?? '';
+    const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+    let authorized = false;
+    if (CRON_SECRET && bearer && bearer === CRON_SECRET) {
+      authorized = true;
+    } else if (bearer) {
+      const { data: claimsData } = await supabase.auth.getClaims(bearer);
+      const userId = claimsData?.claims?.sub;
+      if (userId) {
+        const { data: roleRow } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', userId)
+          .eq('role', 'admin')
+          .maybeSingle();
+        if (roleRow) authorized = true;
+      }
+    }
+    if (!authorized) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     const today = new Date().toISOString().slice(0, 10);
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - STALE_DAYS);
