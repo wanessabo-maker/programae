@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { parseISO, getMonth, getYear } from 'date-fns';
+import type { Meta } from '@/types';
 
 const MONTH_LABELS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
@@ -12,7 +13,7 @@ interface MonthlyData {
 }
 
 export function YearlyResultsBoard() {
-  const { actions, actionTypes } = useApp();
+  const { actions, actionTypes, metas } = useApp();
 
   // Regra: considerar apenas dados do ano de 2026
   const targetYear = 2026;
@@ -52,6 +53,52 @@ export function YearlyResultsBoard() {
     return data;
   }, [actions, actionTypes, targetYear]);
 
+  // Meta mensal de vendas por mês — soma das metas de vendas ativas, normalizadas para mensal
+  const monthlyMeta = useMemo(() => {
+    const result = Array.from({ length: 12 }, () => 0);
+    const vendasMetas = metas.filter(m => m.type === 'vendas' && m.isActive);
+
+    for (let monthIdx = 0; monthIdx < 12; monthIdx++) {
+      const monthStart = new Date(targetYear, monthIdx, 1);
+      const monthEnd = new Date(targetYear, monthIdx + 1, 0);
+
+      vendasMetas.forEach((m: Meta) => {
+        const start = m.startDate ? new Date(m.startDate) : null;
+        const end = m.endDate ? new Date(m.endDate) : null;
+        if (start && start > monthEnd) return;
+        if (end && end < monthStart) return;
+
+        switch (m.validityType) {
+          case 'mensal': result[monthIdx] += m.value; break;
+          case 'trimestral': result[monthIdx] += m.value / 3; break;
+          case 'semestral': result[monthIdx] += m.value / 6; break;
+          case 'anual': result[monthIdx] += m.value / 12; break;
+          case 'personalizada': {
+            if (start && end) {
+              const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1;
+              if (months > 0) result[monthIdx] += m.value / months;
+            } else {
+              result[monthIdx] += m.value;
+            }
+            break;
+          }
+          default: result[monthIdx] += m.value;
+        }
+      });
+    }
+    return result;
+  }, [metas, targetYear]);
+
+  const totalMeta = useMemo(() => monthlyMeta.reduce((a, b) => a + b, 0), [monthlyMeta]);
+
+  const calcPct = (executado: number, meta: number) => meta > 0 ? (executado / meta) * 100 : 0;
+  const pctClass = (pct: number, hasMeta: boolean) => {
+    if (!hasMeta) return 'text-muted-foreground';
+    if (pct >= 100) return 'text-green-400';
+    if (pct >= 70) return 'text-amber-400';
+    return 'text-red-400';
+  };
+
   const totals = useMemo(() => {
     return monthlyData.reduce(
       (acc, month) => ({
@@ -63,11 +110,6 @@ export function YearlyResultsBoard() {
       { valorVendido: 0, contratosFechados: 0, captacoes: 0, acoesComEspecificador: 0 }
     );
   }, [monthlyData]);
-
-  const calcTicketMedio = (valorVendido: number, contratos: number) => {
-    if (contratos === 0) return 0;
-    return valorVendido / contratos;
-  };
 
   const formatCurrency = (value: number) => {
     if (value >= 1000000) {
