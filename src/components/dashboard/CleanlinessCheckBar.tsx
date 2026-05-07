@@ -58,8 +58,8 @@ export function CleanlinessCheckBar() {
           .from('cleanliness-photos')
           .upload(path, file, { cacheControl: '3600', upsert: false });
         if (upErr) throw upErr;
-        const { data: pub } = supabase.storage.from('cleanliness-photos').getPublicUrl(path);
-        uploaded.push(pub.publicUrl);
+        // Store the storage path; signed URLs are generated on read
+        uploaded.push(path);
       }
       setPhotos((prev) => [...prev, ...uploaded]);
     } catch (e: any) {
