@@ -11,7 +11,11 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
 import { Plus, ExternalLink, MessageSquare, Loader2, Search, User, Palette } from "lucide-react";
-import { Clock, Pencil } from "lucide-react";
+import { Clock, Pencil, Trash2 } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useAuthContext } from "@/contexts/AuthContext";
 
 type PlannerStatus =
@@ -555,7 +559,7 @@ function ConcluidoModal({ card, onClose }: { card: PlannerCard | null; onClose: 
 }
 
 // ── Card ─────────────────────────────────────────────────────────────
-function Card({ card, onEdit }: { card: PlannerCard; onEdit: (c: PlannerCard) => void }) {
+function Card({ card, onEdit, onDelete }: { card: PlannerCard; onEdit: (c: PlannerCard) => void; onDelete: (c: PlannerCard) => void }) {
   const days = card.planner_status_at
     ? Math.max(0, Math.floor((Date.now() - new Date(card.planner_status_at).getTime()) / 86400000))
     : null;
@@ -575,6 +579,7 @@ function Card({ card, onEdit }: { card: PlannerCard; onEdit: (c: PlannerCard) =>
         <div className="text-sm font-medium text-white truncate">
           {card.clients?.name || card.name}
         </div>
+        <div className="flex items-center gap-1 shrink-0">
         {days !== null && !isFinal && (
           <span
             className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded shrink-0 ${
@@ -588,6 +593,15 @@ function Card({ card, onEdit }: { card: PlannerCard; onEdit: (c: PlannerCard) =>
             {days} dc
           </span>
         )}
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onDelete(card); }}
+            title="Excluir card"
+            className="p-1 rounded text-white/40 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
       {card.responsible?.name && (
         <div className="flex items-center gap-1.5 text-[11px] text-white/70">
