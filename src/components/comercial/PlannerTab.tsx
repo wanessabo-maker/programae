@@ -812,6 +812,8 @@ export function PlannerTab() {
   const [perdidoCard, setPerdidoCard] = useState<PlannerCard | null>(null);
   const [concluidoCard, setConcluidoCard] = useState<PlannerCard | null>(null);
   const [editCard, setEditCard] = useState<PlannerCard | null>(null);
+  const [deleteCard, setDeleteCard] = useState<PlannerCard | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [revertConfirm, setRevertConfirm] = useState<{
     card: PlannerCard;
     dest: PlannerStatus;
@@ -965,7 +967,7 @@ export function PlannerTab() {
                               style={p.draggableProps.style}
                               className={snap.isDragging ? "opacity-80" : ""}
                             >
-                              <Card card={card} onEdit={setEditCard} />
+                              <Card card={card} onEdit={setEditCard} onDelete={setDeleteCard} />
                             </div>
                           )}
                         </Draggable>
@@ -985,6 +987,52 @@ export function PlannerTab() {
       <PerdidoModal card={perdidoCard} onClose={() => setPerdidoCard(null)} />
       <ConcluidoModal card={concluidoCard} onClose={() => setConcluidoCard(null)} />
       <EditCardModal card={editCard} onClose={() => setEditCard(null)} />
+
+      <AlertDialog open={!!deleteCard} onOpenChange={(b) => !b && setDeleteCard(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir card do Pipeline?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O projeto <strong>{deleteCard?.clients?.name || deleteCard?.name}</strong> será removido do Pipeline e excluído.
+              Ações vinculadas (registros de venda, apresentação) serão desvinculadas, não excluídas.
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleting}
+              onClick={async (e) => {
+                e.preventDefault();
+                if (!deleteCard) return;
+                setDeleting(true);
+                try {
+                  // Desvincular ações vinculadas (preserva histórico)
+                  await supabase.from("actions").update({ project_id: null }).eq("project_id", deleteCard.id);
+                  // Remover ambientes/históricos do projeto
+                  await supabase.from("project_environments").delete().eq("project_id", deleteCard.id);
+                  await supabase.from("project_value_history").delete().eq("project_id", deleteCard.id);
+                  const { error } = await supabase.from("projects").delete().eq("id", deleteCard.id);
+                  if (error) throw error;
+                  qc.invalidateQueries({ queryKey: ["planner_kanban"] });
+                  qc.invalidateQueries({ queryKey: ["projects"] });
+                  qc.invalidateQueries({ queryKey: ["actions"] });
+                  toast({ title: "Card excluído" });
+                  setDeleteCard(null);
+                } catch (err: any) {
+                  toast({ title: "Erro ao excluir", description: err.message, variant: "destructive" });
+                } finally {
+                  setDeleting(false);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={!!revertConfirm} onOpenChange={(b) => !b && setRevertConfirm(null)}>
         <DialogContent className="bg-background border-border">
