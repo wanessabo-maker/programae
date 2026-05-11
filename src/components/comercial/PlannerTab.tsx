@@ -633,9 +633,9 @@ function Card({ card, onEdit, onDelete }: { card: PlannerCard; onEdit: (c: Plann
           <span className="line-clamp-2">{card.planner_observacao}</span>
         </div>
       )}
-      {card.planner_link && (
+      {isSafeHttpUrl(card.planner_link) && (
         <a
-          href={card.planner_link}
+          href={safeHref(card.planner_link)}
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
