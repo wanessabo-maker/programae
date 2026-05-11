@@ -29,6 +29,14 @@ const COLUMNS: { id: PlannerStatus; label: string; accent: string }[] = [
   { id: "PERDIDO",           label: "Perdido",           accent: "border-white/15" },
 ];
 
+// Only allow http(s) URLs to prevent javascript: / data: XSS via planner_link
+const isSafeHttpUrl = (url: string | null | undefined): boolean => {
+  if (!url) return false;
+  return /^https?:\/\//i.test(url.trim());
+};
+const safeHref = (url: string | null | undefined): string =>
+  isSafeHttpUrl(url) ? (url as string) : "#";
+
 interface PlannerCard {
   id: string;
   name: string;
@@ -112,6 +120,10 @@ function NovoProjetoModal({ open, onOpenChange }: { open: boolean; onOpenChange:
   const handleSave = async () => {
     if (!clienteSelecionado && !novoCliente.trim()) {
       toast({ title: "Informe um cliente", variant: "destructive" });
+      return;
+    }
+    if (link.trim() && !isSafeHttpUrl(link)) {
+      toast({ title: "Link inválido", description: "Use http(s)://", variant: "destructive" });
       return;
     }
     setSaving(true);
@@ -621,9 +633,9 @@ function Card({ card, onEdit, onDelete }: { card: PlannerCard; onEdit: (c: Plann
           <span className="line-clamp-2">{card.planner_observacao}</span>
         </div>
       )}
-      {card.planner_link && (
+      {isSafeHttpUrl(card.planner_link) && (
         <a
-          href={card.planner_link}
+          href={safeHref(card.planner_link)}
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
@@ -686,6 +698,10 @@ function EditCardModal({ card, onClose }: { card: PlannerCard | null; onClose: (
 
   const handleSave = async () => {
     if (!card) return;
+    if (link.trim() && !isSafeHttpUrl(link)) {
+      toast({ title: "Link inválido", description: "Use http(s)://", variant: "destructive" });
+      return;
+    }
     setSaving(true);
     try {
       // Update client name if changed and there's a client
