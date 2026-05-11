@@ -29,6 +29,14 @@ const COLUMNS: { id: PlannerStatus; label: string; accent: string }[] = [
   { id: "PERDIDO",           label: "Perdido",           accent: "border-white/15" },
 ];
 
+// Only allow http(s) URLs to prevent javascript: / data: XSS via planner_link
+const isSafeHttpUrl = (url: string | null | undefined): boolean => {
+  if (!url) return false;
+  return /^https?:\/\//i.test(url.trim());
+};
+const safeHref = (url: string | null | undefined): string =>
+  isSafeHttpUrl(url) ? (url as string) : "#";
+
 interface PlannerCard {
   id: string;
   name: string;
