@@ -698,6 +698,10 @@ function EditCardModal({ card, onClose }: { card: PlannerCard | null; onClose: (
 
   const handleSave = async () => {
     if (!card) return;
+    if (link.trim() && !isSafeHttpUrl(link)) {
+      toast({ title: "Link inválido", description: "Use http(s)://", variant: "destructive" });
+      return;
+    }
     setSaving(true);
     try {
       // Update client name if changed and there's a client
