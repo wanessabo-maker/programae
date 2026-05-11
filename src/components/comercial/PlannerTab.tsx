@@ -122,6 +122,10 @@ function NovoProjetoModal({ open, onOpenChange }: { open: boolean; onOpenChange:
       toast({ title: "Informe um cliente", variant: "destructive" });
       return;
     }
+    if (link.trim() && !isSafeHttpUrl(link)) {
+      toast({ title: "Link inválido", description: "Use http(s)://", variant: "destructive" });
+      return;
+    }
     setSaving(true);
     try {
       // Get team_member_id
