@@ -366,6 +366,10 @@ function PerdidoModal({ card, onClose }: { card: PlannerCard | null; onClose: ()
 
   const handleSave = async () => {
     if (!card) return;
+    if (link.trim() && !isSafeHttpUrl(link)) {
+      toast({ title: "Link inválido", description: "Use http(s)://", variant: "destructive" });
+      return;
+    }
     setSaving(true);
     try {
       const { error: pErr } = await supabase
