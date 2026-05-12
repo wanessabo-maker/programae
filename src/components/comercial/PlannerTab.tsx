@@ -479,6 +479,7 @@ function ConcluidoModal({ card, onClose }: { card: PlannerCard | null; onClose: 
           action_type_id: actionType.id,
           action_date: today,
           environment_count: ambCount,
+          value: !isNaN(valNum) && valNum > 0 ? valNum : null,
           client_name: card.clients?.name ?? null,
           focco_project_number: foccoNumber.trim() || null,
           project_id: card.id,
