@@ -50,6 +50,7 @@ interface PlannerCard {
   planner_status_at: string | null;
   responsible_id: string | null;
   apresentacao_projetista_id: string | null;
+  origin_type: string | null;
   clients?: { id: string; name: string } | null;
   responsible?: { id: string; name: string } | null;
   apresentacao_projetista?: { id: string; name: string } | null;
@@ -62,7 +63,7 @@ function useCards() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects")
-        .select("id, name, planner_status, planner_observacao, planner_link, planner_motivo_perda, closed_value, client_id, planner_status_at, responsible_id, apresentacao_projetista_id, clients(id, name), responsible:team_members!projects_responsible_id_fkey(id, name), apresentacao_projetista:team_members!projects_apresentacao_projetista_id_fkey(id, name)")
+        .select("id, name, planner_status, planner_observacao, planner_link, planner_motivo_perda, closed_value, client_id, planner_status_at, responsible_id, apresentacao_projetista_id, origin_type, clients(id, name), responsible:team_members!projects_responsible_id_fkey(id, name), apresentacao_projetista:team_members!projects_apresentacao_projetista_id_fkey(id, name)")
         .not("planner_status", "is", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -917,7 +918,12 @@ export function PlannerTab() {
   } | null>(null);
 
   const grouped = COLUMNS.reduce((acc, col) => {
-    acc[col.id] = cards.filter((c) => c.planner_status === col.id);
+    acc[col.id] = cards.filter((c) => {
+      if (c.planner_status !== col.id) return false;
+      // A coluna Pausado deve mostrar apenas projetos que entraram via Pipeline de Apresentações
+      if (col.id === "PAUSADO" && c.origin_type !== "planner") return false;
+      return true;
+    });
     return acc;
   }, {} as Record<PlannerStatus, PlannerCard[]>);
 
