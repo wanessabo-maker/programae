@@ -720,6 +720,15 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
       // Handle automatic project/client creation for Apresentação de Projeto
       let projectId: string | undefined = undefined;
       let clientId: string | null = loadedClientData?.clientId || null;
+
+      // Quando a ação é registrada por um Projetista (de Apresentação ou Técnico),
+      // o "consultor" do projeto/cliente/contrato deve ser o Consultor Comercial atendido
+      // (form.commercialConsultantId), e NÃO o próprio projetista (form.consultantId).
+      // Isso evita que o projetista apareça como "Consultor" em Projetos > FOCCO Cadastrados.
+      const projectOwnerConsultantId =
+        ((isEffectiveProjetista || isEffectiveProjetistaTecnico) && form.commercialConsultantId)
+          ? form.commercialConsultantId
+          : form.consultantId;
       
       if (isApresentacaoProjeto && form.foccoProjectNumber.trim()) {
         const foccoNumber = form.foccoProjectNumber.trim();
