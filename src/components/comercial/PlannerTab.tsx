@@ -113,14 +113,13 @@ function NovoProjetoModal({ open, onOpenChange }: { open: boolean; onOpenChange:
     enabled: clienteBusca.length >= 2 && !clienteSelecionado,
   });
 
-  // Captações recentes (últimos 90 dias) do cliente selecionado, ainda sem projeto vinculado
+  // Captações recentes (últimos 90 dias) ainda sem projeto vinculado
+  // Mostradas para qualquer cliente (existente ou novo) — vínculo é obrigatório
   const { data: captacoes = [] } = useQuery({
-    queryKey: ["planner_captacoes_cliente", clienteSelecionado?.id],
+    queryKey: ["planner_captacoes_disponiveis"],
     queryFn: async () => {
-      if (!clienteSelecionado?.id) return [];
       const cutoff = new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10);
 
-      // 1. Pega o action_type "Captação de Projeto"
       const { data: at } = await supabase
         .from("action_types")
         .select("id")
@@ -128,17 +127,15 @@ function NovoProjetoModal({ open, onOpenChange }: { open: boolean; onOpenChange:
         .maybeSingle();
       if (!at?.id) return [];
 
-      // 2. Busca ações do tipo Captação para esse cliente nos últimos 90 dias
       const { data: acts } = await supabase
         .from("actions")
-        .select("id, action_date, consultant_id, notes, focco_project_number, team_members:consultant_id(name)")
+        .select("id, action_date, consultant_id, client_name, notes, focco_project_number, team_members:consultant_id(name)")
         .eq("action_type_id", at.id)
         .gte("action_date", cutoff)
         .order("action_date", { ascending: false })
-        .limit(20);
+        .limit(50);
       if (!acts?.length) return [];
 
-      // 3. Filtra: só mostra ações ainda não vinculadas a um projeto no Pipeline
       const ids = acts.map((a: any) => a.id);
       const { data: linked } = await supabase
         .from("projects")
@@ -146,12 +143,9 @@ function NovoProjetoModal({ open, onOpenChange }: { open: boolean; onOpenChange:
         .in("origin_action_id", ids);
       const usedIds = new Set((linked ?? []).map((p: any) => p.origin_action_id));
 
-      // Vínculo prioritário: ações que tem o focco do cliente OU que cita o cliente nas notas
-      // Como Captação não grava client_id, vamos mostrar todas as recentes não usadas
-      // e deixar o usuário escolher (com info do consultor + data).
       return acts.filter((a: any) => !usedIds.has(a.id));
     },
-    enabled: !!clienteSelecionado?.id,
+    enabled: open,
   });
 
   const reset = () => {
@@ -162,6 +156,14 @@ function NovoProjetoModal({ open, onOpenChange }: { open: boolean; onOpenChange:
   const handleSave = async () => {
     if (!clienteSelecionado && !novoCliente.trim()) {
       toast({ title: "Informe um cliente", variant: "destructive" });
+      return;
+    }
+    if (!captacaoActionId) {
+      toast({
+        title: "Vínculo com Captação obrigatório",
+        description: "Selecione a ação de Captação que originou este projeto.",
+        variant: "destructive",
+      });
       return;
     }
     if (link.trim() && !isSafeHttpUrl(link)) {
@@ -261,39 +263,38 @@ function NovoProjetoModal({ open, onOpenChange }: { open: boolean; onOpenChange:
             </div>
           )}
 
-          {clienteSelecionado && (
-            <div className="space-y-2">
-              <Label>Vincular a uma Captação (últimos 90 dias)</Label>
-              {captacoes.length === 0 ? (
-                <p className="text-xs text-muted-foreground border border-border rounded p-2">
-                  Nenhuma Captação de Projeto disponível para este cliente nos últimos 90 dias.
-                </p>
-              ) : (
-                <select
-                  value={captacaoActionId}
-                  onChange={(e) => setCaptacaoActionId(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  <option value="">— Sem vínculo —</option>
-                  {captacoes.map((a: any) => {
-                    const consultor = a.team_members?.name ?? "—";
-                    const data = a.action_date
-                      ? new Date(`${a.action_date}T12:00:00`).toLocaleDateString("pt-BR")
-                      : "";
-                    const focco = a.focco_project_number ? ` · FOCCO ${a.focco_project_number}` : "";
-                    return (
-                      <option key={a.id} value={a.id}>
-                        {data} · {consultor}{focco}
-                      </option>
-                    );
-                  })}
-                </select>
-              )}
-              <p className="text-xs text-muted-foreground">
-                Liga este projeto à ação de Captação que o originou (opcional, mas recomendado para medir conversão Captação → Apresentação).
+          <div className="space-y-2">
+            <Label>Captação de origem <span className="text-amber-400">*</span></Label>
+            {captacoes.length === 0 ? (
+              <p className="text-xs text-amber-400 border border-amber-400/40 rounded p-2">
+                Nenhuma Captação de Projeto disponível nos últimos 90 dias. Registre uma ação de Captação antes de adicionar o projeto ao Pipeline.
               </p>
-            </div>
-          )}
+            ) : (
+              <select
+                value={captacaoActionId}
+                onChange={(e) => setCaptacaoActionId(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="">— Selecionar Captação —</option>
+                {captacoes.map((a: any) => {
+                  const consultor = a.team_members?.name ?? "—";
+                  const data = a.action_date
+                    ? new Date(`${a.action_date}T12:00:00`).toLocaleDateString("pt-BR")
+                    : "";
+                  const cli = a.client_name ? ` · ${a.client_name}` : "";
+                  const focco = a.focco_project_number ? ` · FOCCO ${a.focco_project_number}` : "";
+                  return (
+                    <option key={a.id} value={a.id}>
+                      {data} · {consultor}{cli}{focco}
+                    </option>
+                  );
+                })}
+              </select>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Obrigatório. Toda apresentação no Pipeline deve nascer de uma Captação registrada.
+            </p>
+          </div>
 
           <div className="space-y-2">
             <Label>Observação</Label>
