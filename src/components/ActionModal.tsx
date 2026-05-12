@@ -756,7 +756,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   .insert({
                     project_id: existingProject.id,
                     presented_value: presentedValueNum,
-                    consultant_id: form.consultantId,
+                    consultant_id: projectOwnerConsultantId,
                   });
               }
             }
@@ -790,8 +790,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 age: safeParseInt(form.clientAge, { min: 0, max: 150 }),
                 profession: form.clientProfession || null,
                 professional_id: professionalId || null,
-                responsible_id: form.consultantId,
-                created_by: form.consultantId,
+                responsible_id: projectOwnerConsultantId,
+                created_by: projectOwnerConsultantId,
                 status: 'apresentado',
               });
               
@@ -815,8 +815,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 name: `Projeto FOCCO ${foccoNumber}`,
                 focco_project_number: foccoNumber,
                 professional_id: professionalId || null,
-                responsible_id: form.consultantId,
-                created_by: form.consultantId,
+                responsible_id: projectOwnerConsultantId,
+                created_by: projectOwnerConsultantId,
                 client_id: clientId,
                 stage: 'em_negociacao',
                 start_date: form.date,
@@ -840,7 +840,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   .insert({
                     project_id: newProject.id,
                     presented_value: safeNumber(form.presentedValue, { min: 0 }) ?? 0,
-                    consultant_id: form.consultantId,
+                    consultant_id: projectOwnerConsultantId,
                   });
               }
               
@@ -911,7 +911,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   .insert({
                     project_id: existingProject.id,
                     presented_value: newClosedValue,
-                    consultant_id: form.consultantId,
+                    consultant_id: projectOwnerConsultantId,
                     notes: `Aditivo: +${aditivoValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`,
                   });
                 
@@ -927,8 +927,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   name: aditivoName,
                   focco_project_number: foccoNumber,
                   professional_id: professionalId || existingProject.professional_id || null,
-                  responsible_id: form.consultantId,
-                  created_by: form.consultantId,
+                  responsible_id: projectOwnerConsultantId,
+                  created_by: projectOwnerConsultantId,
                   client_id: existingProject.client_id || null,
                   stage: 'closed_won',
                   start_date: form.date,
@@ -954,14 +954,14 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 await supabase.from('project_value_history').insert({
                   project_id: newProject.id,
                   presented_value: aditivoValue,
-                  consultant_id: form.consultantId,
+                  consultant_id: projectOwnerConsultantId,
                   notes: `Aditivo (checklist próprio) do FOCCO ${foccoNumber}`,
                 });
                 await createChecklistForProject(newProject.id, {
                   assignedProjetistaId: form.assignedProjetistaId || undefined,
                   assignedLogisticaId: form.assignedLogisticaId || undefined,
                   assignedApresentacaoProjetistaId: form.assignedApresentacaoProjetistaId || undefined,
-                  commercialResponsibleId: form.consultantId,
+                  commercialResponsibleId: projectOwnerConsultantId,
                 });
                 toast.success(`Aditivo registrado com checklist próprio (FOCCO ${foccoNumber})`);
               }
@@ -977,8 +977,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   name: `Projeto FOCCO ${foccoNumber}`,
                   focco_project_number: foccoNumber,
                   professional_id: professionalId || null,
-                  responsible_id: form.consultantId,
-                  created_by: form.consultantId,
+                  responsible_id: projectOwnerConsultantId,
+                  created_by: projectOwnerConsultantId,
                   stage: 'closed_won',
                   start_date: form.date,
                   closed_date: form.date,
@@ -1007,7 +1007,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   .insert({
                     project_id: newProject.id,
                     presented_value: aditivoValue,
-                    consultant_id: form.consultantId,
+                    consultant_id: projectOwnerConsultantId,
                     notes: `Projeto criado via Aditivo`,
                   });
                 
@@ -1016,7 +1016,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   assignedProjetistaId: form.assignedProjetistaId || undefined,
                   assignedLogisticaId: form.assignedLogisticaId || undefined,
                   assignedApresentacaoProjetistaId: form.assignedApresentacaoProjetistaId || undefined,
-                  commercialResponsibleId: form.consultantId,
+                  commercialResponsibleId: projectOwnerConsultantId,
                 });
                 
                 toast.success(`Projeto FOCCO ${foccoNumber} criado e aditivo registrado!`);
@@ -1089,8 +1089,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                     age: safeParseInt(form.clientAge, { min: 0, max: 150 }),
                     profession: form.clientProfession || null,
                     professional_id: professionalId || null,
-                    responsible_id: form.consultantId,
-                    created_by: form.consultantId,
+                    responsible_id: projectOwnerConsultantId,
+                    created_by: projectOwnerConsultantId,
                     status: 'closed',
                   });
                   
@@ -1118,7 +1118,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   assignedProjetistaId: form.assignedProjetistaId || undefined,
                   assignedLogisticaId: form.assignedLogisticaId || undefined,
                   assignedApresentacaoProjetistaId: form.assignedApresentacaoProjetistaId || undefined,
-                  commercialResponsibleId: form.consultantId,
+                  commercialResponsibleId: projectOwnerConsultantId,
                 });
                 
                 toast.success(`Projeto FOCCO ${foccoNumber} fechado com sucesso!`);
@@ -1131,8 +1131,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   age: safeParseInt(form.clientAge, { min: 0, max: 150 }),
                   profession: form.clientProfession || null,
                   professional_id: professionalId || null,
-                  responsible_id: form.consultantId,
-                  created_by: form.consultantId,
+                  responsible_id: projectOwnerConsultantId,
+                  created_by: projectOwnerConsultantId,
                   status: 'closed',
                 });
                 
@@ -1155,8 +1155,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   name: `Projeto FOCCO ${foccoNumber}`,
                   focco_project_number: foccoNumber,
                   professional_id: professionalId || null,
-                  responsible_id: form.consultantId,
-                  created_by: form.consultantId,
+                  responsible_id: projectOwnerConsultantId,
+                  created_by: projectOwnerConsultantId,
                   client_id: clientId,
                   stage: 'closed_won',
                   start_date: form.date,
@@ -1180,7 +1180,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   assignedProjetistaId: form.assignedProjetistaId || undefined,
                   assignedLogisticaId: form.assignedLogisticaId || undefined,
                   assignedApresentacaoProjetistaId: form.assignedApresentacaoProjetistaId || undefined,
-                  commercialResponsibleId: form.consultantId,
+                  commercialResponsibleId: projectOwnerConsultantId,
                 });
                 
                 toast.success(`Contrato criado com FOCCO ${foccoNumber} (Venda Direta)!`);
@@ -1194,8 +1194,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 age: safeParseInt(form.clientAge, { min: 0, max: 150 }),
                 profession: form.clientProfession || null,
                 professional_id: professionalId || null,
-                responsible_id: form.consultantId,
-                created_by: form.consultantId,
+                responsible_id: projectOwnerConsultantId,
+                created_by: projectOwnerConsultantId,
                 status: 'closed',
               });
               
@@ -1223,8 +1223,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 name: projectName,
                 focco_project_number: null,
                 professional_id: professionalId || null,
-                responsible_id: form.consultantId,
-                created_by: form.consultantId,
+                responsible_id: projectOwnerConsultantId,
+                created_by: projectOwnerConsultantId,
                 client_id: clientId,
                 stage: 'closed_won',
                 start_date: form.date,
@@ -1248,7 +1248,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 assignedProjetistaId: form.assignedProjetistaId || undefined,
                 assignedLogisticaId: form.assignedLogisticaId || undefined,
                 assignedApresentacaoProjetistaId: form.assignedApresentacaoProjetistaId || undefined,
-                commercialResponsibleId: form.consultantId,
+                commercialResponsibleId: projectOwnerConsultantId,
               });
               
               toast.success('Contrato criado com sucesso (Venda Direta)!');
