@@ -960,7 +960,7 @@ export function PlannerTab() {
     try {
       const projectUpdates: any = {
         planner_status: dest,
-        stage: dest === "CONCLUIDO" || dest === "INICIADO" || dest === "AGUARDANDO_INICIO"
+        stage: dest === "CONCLUIDO" || dest === "INICIADO" || dest === "AGUARDANDO_INICIO" || dest === "PAUSADO"
           ? "em_negociacao"
           : null,
         status: "prospecting",
