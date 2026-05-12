@@ -100,6 +100,7 @@ function NovoProjetoModal({ open, onOpenChange }: { open: boolean; onOpenChange:
   const [observacao, setObservacao] = useState("");
   const [link, setLink] = useState("");
   const [saving, setSaving] = useState(false);
+  const [captacaoActionId, setCaptacaoActionId] = useState<string>("");
 
   const { data: clientes = [] } = useQuery({
     queryKey: ["planner_clientes_busca", clienteBusca],
@@ -112,9 +113,50 @@ function NovoProjetoModal({ open, onOpenChange }: { open: boolean; onOpenChange:
     enabled: clienteBusca.length >= 2 && !clienteSelecionado,
   });
 
+  // Captações recentes (últimos 90 dias) do cliente selecionado, ainda sem projeto vinculado
+  const { data: captacoes = [] } = useQuery({
+    queryKey: ["planner_captacoes_cliente", clienteSelecionado?.id],
+    queryFn: async () => {
+      if (!clienteSelecionado?.id) return [];
+      const cutoff = new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10);
+
+      // 1. Pega o action_type "Captação de Projeto"
+      const { data: at } = await supabase
+        .from("action_types")
+        .select("id")
+        .ilike("name", "Captação de Projeto")
+        .maybeSingle();
+      if (!at?.id) return [];
+
+      // 2. Busca ações do tipo Captação para esse cliente nos últimos 90 dias
+      const { data: acts } = await supabase
+        .from("actions")
+        .select("id, action_date, consultant_id, notes, focco_project_number, team_members:consultant_id(name)")
+        .eq("action_type_id", at.id)
+        .gte("action_date", cutoff)
+        .order("action_date", { ascending: false })
+        .limit(20);
+      if (!acts?.length) return [];
+
+      // 3. Filtra: só mostra ações ainda não vinculadas a um projeto no Pipeline
+      const ids = acts.map((a: any) => a.id);
+      const { data: linked } = await supabase
+        .from("projects")
+        .select("origin_action_id")
+        .in("origin_action_id", ids);
+      const usedIds = new Set((linked ?? []).map((p: any) => p.origin_action_id));
+
+      // Vínculo prioritário: ações que tem o focco do cliente OU que cita o cliente nas notas
+      // Como Captação não grava client_id, vamos mostrar todas as recentes não usadas
+      // e deixar o usuário escolher (com info do consultor + data).
+      return acts.filter((a: any) => !usedIds.has(a.id));
+    },
+    enabled: !!clienteSelecionado?.id,
+  });
+
   const reset = () => {
     setClienteBusca(""); setClienteSelecionado(null); setNovoCliente("");
-    setObservacao(""); setLink("");
+    setObservacao(""); setLink(""); setCaptacaoActionId("");
   };
 
   const handleSave = async () => {
@@ -156,6 +198,7 @@ function NovoProjetoModal({ open, onOpenChange }: { open: boolean; onOpenChange:
         stage: "em_negociacao",
         status: "prospecting",
         origin_type: "planner",
+        origin_action_id: captacaoActionId || null,
       });
       if (pe) throw pe;
 
