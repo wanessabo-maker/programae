@@ -1,0 +1,1 @@
+UPDATE public.action_types SET requires_value = 'nenhum' WHERE name IN ('Projeto de Apresentação', 'Reforma - Projeto de apresentação');
