@@ -225,7 +225,7 @@ function NovoProjetoModal({ open, onOpenChange }: { open: boolean; onOpenChange:
           {clienteSelecionado ? (
             <div className="flex items-center justify-between border border-border rounded p-2">
               <div className="text-sm">{clienteSelecionado.name}</div>
-              <Button size="sm" variant="ghost" onClick={() => setClienteSelecionado(null)}>Trocar</Button>
+              <Button size="sm" variant="ghost" onClick={() => { setClienteSelecionado(null); setCaptacaoActionId(""); }}>Trocar</Button>
             </div>
           ) : (
             <div className="space-y-2">
@@ -258,6 +258,40 @@ function NovoProjetoModal({ open, onOpenChange }: { open: boolean; onOpenChange:
                 value={novoCliente}
                 onChange={(e) => setNovoCliente(e.target.value)}
               />
+            </div>
+          )}
+
+          {clienteSelecionado && (
+            <div className="space-y-2">
+              <Label>Vincular a uma Captação (últimos 90 dias)</Label>
+              {captacoes.length === 0 ? (
+                <p className="text-xs text-muted-foreground border border-border rounded p-2">
+                  Nenhuma Captação de Projeto disponível para este cliente nos últimos 90 dias.
+                </p>
+              ) : (
+                <select
+                  value={captacaoActionId}
+                  onChange={(e) => setCaptacaoActionId(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">— Sem vínculo —</option>
+                  {captacoes.map((a: any) => {
+                    const consultor = a.team_members?.name ?? "—";
+                    const data = a.action_date
+                      ? new Date(`${a.action_date}T12:00:00`).toLocaleDateString("pt-BR")
+                      : "";
+                    const focco = a.focco_project_number ? ` · FOCCO ${a.focco_project_number}` : "";
+                    return (
+                      <option key={a.id} value={a.id}>
+                        {data} · {consultor}{focco}
+                      </option>
+                    );
+                  })}
+                </select>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Liga este projeto à ação de Captação que o originou (opcional, mas recomendado para medir conversão Captação → Apresentação).
+              </p>
             </div>
           )}
 
