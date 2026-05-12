@@ -1413,6 +1413,7 @@ export type Database = {
           id: string
           name: string
           notes: string | null
+          origin_action_id: string | null
           origin_type: string | null
           planner_data_aguardando: string | null
           planner_data_concluido: string | null
@@ -1446,6 +1447,7 @@ export type Database = {
           id?: string
           name: string
           notes?: string | null
+          origin_action_id?: string | null
           origin_type?: string | null
           planner_data_aguardando?: string | null
           planner_data_concluido?: string | null
@@ -1479,6 +1481,7 @@ export type Database = {
           id?: string
           name?: string
           notes?: string | null
+          origin_action_id?: string | null
           origin_type?: string | null
           planner_data_aguardando?: string | null
           planner_data_concluido?: string | null
