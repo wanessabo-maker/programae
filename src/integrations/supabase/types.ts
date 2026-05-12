@@ -1418,6 +1418,7 @@ export type Database = {
           planner_data_aguardando: string | null
           planner_data_concluido: string | null
           planner_data_iniciado: string | null
+          planner_data_pausado: string | null
           planner_data_perdido: string | null
           planner_data_vendido: string | null
           planner_link: string | null
@@ -1452,6 +1453,7 @@ export type Database = {
           planner_data_aguardando?: string | null
           planner_data_concluido?: string | null
           planner_data_iniciado?: string | null
+          planner_data_pausado?: string | null
           planner_data_perdido?: string | null
           planner_data_vendido?: string | null
           planner_link?: string | null
@@ -1486,6 +1488,7 @@ export type Database = {
           planner_data_aguardando?: string | null
           planner_data_concluido?: string | null
           planner_data_iniciado?: string | null
+          planner_data_pausado?: string | null
           planner_data_perdido?: string | null
           planner_data_vendido?: string | null
           planner_link?: string | null
@@ -2009,6 +2012,7 @@ export type Database = {
       }
     }
     Functions: {
+      expire_pausado_projects: { Args: never; Returns: number }
       get_current_team_member_id: { Args: never; Returns: string }
       has_role: {
         Args: {
