@@ -1029,7 +1029,7 @@ export function PlannerTab() {
         <div className="text-center text-white/40 py-12">Carregando...</div>
       ) : (
         <DragDropContext onDragEnd={handleDragEnd}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
             {COLUMNS.map((col) => (
               <Droppable droppableId={col.id} key={col.id}>
                 {(provided, snapshot) => (
