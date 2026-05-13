@@ -1226,6 +1226,69 @@ export type Database = {
           },
         ]
       }
+      project_deletion_audit: {
+        Row: {
+          client_id: string | null
+          client_name: string | null
+          created_by: string | null
+          deleted_at: string
+          deleted_by_team_member_id: string | null
+          deleted_by_user_id: string | null
+          estimated_value: number | null
+          focco_project_number: string | null
+          id: string
+          origin_type: string | null
+          planner_status: string | null
+          project_created_at: string | null
+          project_id: string
+          project_name: string | null
+          project_snapshot: Json | null
+          project_updated_at: string | null
+          responsible_id: string | null
+          stage: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          client_name?: string | null
+          created_by?: string | null
+          deleted_at?: string
+          deleted_by_team_member_id?: string | null
+          deleted_by_user_id?: string | null
+          estimated_value?: number | null
+          focco_project_number?: string | null
+          id?: string
+          origin_type?: string | null
+          planner_status?: string | null
+          project_created_at?: string | null
+          project_id: string
+          project_name?: string | null
+          project_snapshot?: Json | null
+          project_updated_at?: string | null
+          responsible_id?: string | null
+          stage?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          client_name?: string | null
+          created_by?: string | null
+          deleted_at?: string
+          deleted_by_team_member_id?: string | null
+          deleted_by_user_id?: string | null
+          estimated_value?: number | null
+          focco_project_number?: string | null
+          id?: string
+          origin_type?: string | null
+          planner_status?: string | null
+          project_created_at?: string | null
+          project_id?: string
+          project_name?: string | null
+          project_snapshot?: Json | null
+          project_updated_at?: string | null
+          responsible_id?: string | null
+          stage?: string | null
+        }
+        Relationships: []
+      }
       project_environments: {
         Row: {
           action_id: string | null
