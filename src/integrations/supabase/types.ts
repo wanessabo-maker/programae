@@ -298,6 +298,7 @@ export type Database = {
           created_at: string | null
           due_date: string | null
           environment_count: number | null
+          extra_data: Json
           id: string
           name: string
           notes: string | null
@@ -315,6 +316,7 @@ export type Database = {
           created_at?: string | null
           due_date?: string | null
           environment_count?: number | null
+          extra_data?: Json
           id?: string
           name: string
           notes?: string | null
@@ -332,6 +334,7 @@ export type Database = {
           created_at?: string | null
           due_date?: string | null
           environment_count?: number | null
+          extra_data?: Json
           id?: string
           name?: string
           notes?: string | null
