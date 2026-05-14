@@ -1,0 +1,1 @@
+ALTER TABLE public.checklist_items ADD COLUMN IF NOT EXISTS extra_data jsonb NOT NULL DEFAULT '{}'::jsonb;
