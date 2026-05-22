@@ -913,7 +913,7 @@ export function PlannerTab() {
   const [novoOpen, setNovoOpen] = useState(false);
   const [vendidoCard, setVendidoCard] = useState<PlannerCard | null>(null);
   const [perdidoCard, setPerdidoCard] = useState<PlannerCard | null>(null);
-  const [concluidoCard, setConcluidoCard] = useState<PlannerCard | null>(null);
+  const [concluidoCard, setConcluidoCard] = useState<{ card: PlannerCard; isReforma: boolean } | null>(null);
   const [editCard, setEditCard] = useState<PlannerCard | null>(null);
   const [deleteCard, setDeleteCard] = useState<PlannerCard | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -959,7 +959,7 @@ export function PlannerTab() {
 
     if (dest === "VENDIDO") { setVendidoCard(card); return; }
     if (dest === "PERDIDO") { setPerdidoCard(card); return; }
-    if (dest === "CONCLUIDO") { setConcluidoCard(card); return; }
+    if (dest === "CONCLUIDO") { setConcluidoCard({ card, isReforma: src === "EM_REFORMA" }); return; }
 
     upd.mutate({ id: draggableId, status: dest });
   };
@@ -1091,7 +1091,7 @@ export function PlannerTab() {
       <NovoProjetoModal open={novoOpen} onOpenChange={setNovoOpen} />
       <VendidoModal card={vendidoCard} onClose={() => setVendidoCard(null)} />
       <PerdidoModal card={perdidoCard} onClose={() => setPerdidoCard(null)} />
-      <ConcluidoModal card={concluidoCard} onClose={() => setConcluidoCard(null)} />
+      <ConcluidoModal card={concluidoCard?.card ?? null} isReforma={!!concluidoCard?.isReforma} onClose={() => setConcluidoCard(null)} />
       <EditCardModal card={editCard} onClose={() => setEditCard(null)} />
 
       <AlertDialog open={!!deleteCard} onOpenChange={(b) => !b && setDeleteCard(null)}>
