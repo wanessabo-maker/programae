@@ -19,13 +19,14 @@ import {
 import { useAuthContext } from "@/contexts/AuthContext";
 
 type PlannerStatus =
-  | "AGUARDANDO_INICIO" | "INICIADO" | "EM_REFORMA" | "CONCLUIDO" | "VENDIDO" | "PERDIDO";
+  | "AGUARDANDO_INICIO" | "INICIADO" | "EM_REFORMA" | "CONCLUIDO" | "PAUSADO" | "VENDIDO" | "PERDIDO";
 
 const COLUMNS: { id: PlannerStatus; label: string; accent: string }[] = [
   { id: "AGUARDANDO_INICIO", label: "Aguardando Início", accent: "border-amber-400/60" },
   { id: "INICIADO",          label: "Iniciado",          accent: "border-white/40" },
   { id: "EM_REFORMA",        label: "Em Reforma",        accent: "border-blue-400/60" },
   { id: "CONCLUIDO",         label: "Concluído",         accent: "border-green-400/60" },
+  { id: "PAUSADO",           label: "Pausado",           accent: "border-white/30" },
   { id: "VENDIDO",           label: "Vendido",           accent: "border-green-400" },
   { id: "PERDIDO",           label: "Perdido",           accent: "border-white/15" },
 ];
