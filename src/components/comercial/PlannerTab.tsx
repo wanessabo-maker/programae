@@ -19,13 +19,14 @@ import {
 import { useAuthContext } from "@/contexts/AuthContext";
 
 type PlannerStatus =
-  | "AGUARDANDO_INICIO" | "INICIADO" | "EM_REFORMA" | "CONCLUIDO" | "VENDIDO" | "PERDIDO";
+  | "AGUARDANDO_INICIO" | "INICIADO" | "EM_REFORMA" | "CONCLUIDO" | "PAUSADO" | "VENDIDO" | "PERDIDO";
 
 const COLUMNS: { id: PlannerStatus; label: string; accent: string }[] = [
   { id: "AGUARDANDO_INICIO", label: "Aguardando Início", accent: "border-amber-400/60" },
   { id: "INICIADO",          label: "Iniciado",          accent: "border-white/40" },
   { id: "EM_REFORMA",        label: "Em Reforma",        accent: "border-blue-400/60" },
   { id: "CONCLUIDO",         label: "Concluído",         accent: "border-green-400/60" },
+  { id: "PAUSADO",           label: "Pausado",           accent: "border-white/30" },
   { id: "VENDIDO",           label: "Vendido",           accent: "border-green-400" },
   { id: "PERDIDO",           label: "Perdido",           accent: "border-white/15" },
 ];
@@ -500,7 +501,7 @@ function PerdidoModal({ card, onClose }: { card: PlannerCard | null; onClose: ()
 }
 
 // ── Modal Concluído (Projeto de Apresentação) ────────────────────────
-function ConcluidoModal({ card, onClose }: { card: PlannerCard | null; onClose: () => void }) {
+function ConcluidoModal({ card, isReforma, onClose }: { card: PlannerCard | null; isReforma: boolean; onClose: () => void }) {
   const qc = useQueryClient();
   const { toast } = useToast();
   const [ambientes, setAmbientes] = useState("");
@@ -537,16 +538,19 @@ function ConcluidoModal({ card, onClose }: { card: PlannerCard | null; onClose: 
         .eq("id", card.id);
       if (pErr) throw pErr;
 
-      // 2. Find "Projeto de Apresentação" action type
+      // 2. Find action type (Reforma OR padrão)
+      const actionTypeName = isReforma
+        ? "Reforma - Projeto de apresentação"
+        : "Projeto de Apresentação";
       const { data: actionType } = await supabase
         .from("action_types")
         .select("id, points")
         .eq("classification", "projeto")
-        .ilike("name", "Projeto de Apresentação")
+        .ilike("name", actionTypeName)
         .maybeSingle();
 
       if (!actionType) {
-        toast({ title: "Tipo de ação não encontrado", description: "Configure 'Projeto de Apresentação' nos tipos de ação.", variant: "destructive" });
+        toast({ title: "Tipo de ação não encontrado", description: `Configure '${actionTypeName}' nos tipos de ação.`, variant: "destructive" });
         setSaving(false);
         return;
       }
@@ -563,7 +567,7 @@ function ConcluidoModal({ card, onClose }: { card: PlannerCard | null; onClose: 
           client_name: card.clients?.name ?? null,
           focco_project_number: foccoNumber.trim() || null,
           project_id: card.id,
-          notes: "Gerada automaticamente pela mudança de card no Pipeline (CONCLUIDO).",
+          notes: `Gerada automaticamente pela mudança de card no Pipeline (CONCLUIDO${isReforma ? " - REFORMA" : ""}).`,
         })
         .select("id")
         .single();
@@ -587,7 +591,7 @@ function ConcluidoModal({ card, onClose }: { card: PlannerCard | null; onClose: 
           consultant_id: card.apresentacao_projetista_id,
           action_id: actionRow.id,
           points: ambCount,
-          description: `Projeto de Apresentação — ${card.clients?.name ?? card.name} (${ambCount} amb.)`,
+          description: `${isReforma ? "Reforma - Projeto de apresentação" : "Projeto de Apresentação"} — ${card.clients?.name ?? card.name} (${ambCount} amb.)`,
           transaction_date: today,
         });
 
@@ -621,8 +625,10 @@ function ConcluidoModal({ card, onClose }: { card: PlannerCard | null; onClose: 
     <Dialog open={!!card} onOpenChange={(b) => !b && onClose()}>
       <DialogContent className="bg-background border-border">
         <DialogHeader>
-          <DialogTitle>Marcar como Concluído</DialogTitle>
-          <DialogDescription>{card?.clients?.name ?? card?.name} — Projeto de Apresentação</DialogDescription>
+          <DialogTitle>Marcar como Concluído{isReforma ? " (Reforma)" : ""}</DialogTitle>
+          <DialogDescription>
+            {card?.clients?.name ?? card?.name} — {isReforma ? "Reforma - Projeto de apresentação" : "Projeto de Apresentação"}
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-3 py-2">
           <div className="space-y-2">
@@ -907,7 +913,7 @@ export function PlannerTab() {
   const [novoOpen, setNovoOpen] = useState(false);
   const [vendidoCard, setVendidoCard] = useState<PlannerCard | null>(null);
   const [perdidoCard, setPerdidoCard] = useState<PlannerCard | null>(null);
-  const [concluidoCard, setConcluidoCard] = useState<PlannerCard | null>(null);
+  const [concluidoCard, setConcluidoCard] = useState<{ card: PlannerCard; isReforma: boolean } | null>(null);
   const [editCard, setEditCard] = useState<PlannerCard | null>(null);
   const [deleteCard, setDeleteCard] = useState<PlannerCard | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -953,7 +959,7 @@ export function PlannerTab() {
 
     if (dest === "VENDIDO") { setVendidoCard(card); return; }
     if (dest === "PERDIDO") { setPerdidoCard(card); return; }
-    if (dest === "CONCLUIDO") { setConcluidoCard(card); return; }
+    if (dest === "CONCLUIDO") { setConcluidoCard({ card, isReforma: src === "EM_REFORMA" }); return; }
 
     upd.mutate({ id: draggableId, status: dest });
   };
@@ -1085,7 +1091,7 @@ export function PlannerTab() {
       <NovoProjetoModal open={novoOpen} onOpenChange={setNovoOpen} />
       <VendidoModal card={vendidoCard} onClose={() => setVendidoCard(null)} />
       <PerdidoModal card={perdidoCard} onClose={() => setPerdidoCard(null)} />
-      <ConcluidoModal card={concluidoCard} onClose={() => setConcluidoCard(null)} />
+      <ConcluidoModal card={concluidoCard?.card ?? null} isReforma={!!concluidoCard?.isReforma} onClose={() => setConcluidoCard(null)} />
       <EditCardModal card={editCard} onClose={() => setEditCard(null)} />
 
       <AlertDialog open={!!deleteCard} onOpenChange={(b) => !b && setDeleteCard(null)}>
