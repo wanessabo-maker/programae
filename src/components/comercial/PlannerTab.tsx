@@ -19,12 +19,12 @@ import {
 import { useAuthContext } from "@/contexts/AuthContext";
 
 type PlannerStatus =
-  | "AGUARDANDO_INICIO" | "INICIADO" | "PAUSADO" | "CONCLUIDO" | "VENDIDO" | "PERDIDO";
+  | "AGUARDANDO_INICIO" | "INICIADO" | "EM_REFORMA" | "CONCLUIDO" | "VENDIDO" | "PERDIDO";
 
 const COLUMNS: { id: PlannerStatus; label: string; accent: string }[] = [
   { id: "AGUARDANDO_INICIO", label: "Aguardando Início", accent: "border-amber-400/60" },
   { id: "INICIADO",          label: "Iniciado",          accent: "border-white/40" },
-  { id: "PAUSADO",           label: "Pausado",           accent: "border-orange-400/60" },
+  { id: "EM_REFORMA",        label: "Em Reforma",        accent: "border-blue-400/60" },
   { id: "CONCLUIDO",         label: "Concluído",         accent: "border-green-400/60" },
   { id: "VENDIDO",           label: "Vendido",           accent: "border-green-400" },
   { id: "PERDIDO",           label: "Perdido",           accent: "border-white/15" },
@@ -920,8 +920,6 @@ export function PlannerTab() {
   const grouped = COLUMNS.reduce((acc, col) => {
     acc[col.id] = cards.filter((c) => {
       if (c.planner_status !== col.id) return false;
-      // A coluna Pausado deve mostrar apenas projetos que entraram via Pipeline de Apresentações
-      if (col.id === "PAUSADO" && c.origin_type !== "planner") return false;
       return true;
     });
     return acc;
@@ -966,7 +964,7 @@ export function PlannerTab() {
     try {
       const projectUpdates: any = {
         planner_status: dest,
-        stage: dest === "CONCLUIDO" || dest === "INICIADO" || dest === "AGUARDANDO_INICIO" || dest === "PAUSADO"
+        stage: dest === "CONCLUIDO" || dest === "INICIADO" || dest === "AGUARDANDO_INICIO" || dest === "EM_REFORMA"
           ? "em_negociacao"
           : null,
         status: "prospecting",
