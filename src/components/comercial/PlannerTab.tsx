@@ -501,7 +501,7 @@ function PerdidoModal({ card, onClose }: { card: PlannerCard | null; onClose: ()
 }
 
 // ── Modal Concluído (Projeto de Apresentação) ────────────────────────
-function ConcluidoModal({ card, onClose }: { card: PlannerCard | null; onClose: () => void }) {
+function ConcluidoModal({ card, isReforma, onClose }: { card: PlannerCard | null; isReforma: boolean; onClose: () => void }) {
   const qc = useQueryClient();
   const { toast } = useToast();
   const [ambientes, setAmbientes] = useState("");
@@ -538,16 +538,19 @@ function ConcluidoModal({ card, onClose }: { card: PlannerCard | null; onClose: 
         .eq("id", card.id);
       if (pErr) throw pErr;
 
-      // 2. Find "Projeto de Apresentação" action type
+      // 2. Find action type (Reforma OR padrão)
+      const actionTypeName = isReforma
+        ? "Reforma - Projeto de apresentação"
+        : "Projeto de Apresentação";
       const { data: actionType } = await supabase
         .from("action_types")
         .select("id, points")
         .eq("classification", "projeto")
-        .ilike("name", "Projeto de Apresentação")
+        .ilike("name", actionTypeName)
         .maybeSingle();
 
       if (!actionType) {
-        toast({ title: "Tipo de ação não encontrado", description: "Configure 'Projeto de Apresentação' nos tipos de ação.", variant: "destructive" });
+        toast({ title: "Tipo de ação não encontrado", description: `Configure '${actionTypeName}' nos tipos de ação.`, variant: "destructive" });
         setSaving(false);
         return;
       }
@@ -564,7 +567,7 @@ function ConcluidoModal({ card, onClose }: { card: PlannerCard | null; onClose: 
           client_name: card.clients?.name ?? null,
           focco_project_number: foccoNumber.trim() || null,
           project_id: card.id,
-          notes: "Gerada automaticamente pela mudança de card no Pipeline (CONCLUIDO).",
+          notes: `Gerada automaticamente pela mudança de card no Pipeline (CONCLUIDO${isReforma ? " - REFORMA" : ""}).`,
         })
         .select("id")
         .single();
@@ -588,7 +591,7 @@ function ConcluidoModal({ card, onClose }: { card: PlannerCard | null; onClose: 
           consultant_id: card.apresentacao_projetista_id,
           action_id: actionRow.id,
           points: ambCount,
-          description: `Projeto de Apresentação — ${card.clients?.name ?? card.name} (${ambCount} amb.)`,
+          description: `${isReforma ? "Reforma - Projeto de apresentação" : "Projeto de Apresentação"} — ${card.clients?.name ?? card.name} (${ambCount} amb.)`,
           transaction_date: today,
         });
 
@@ -622,8 +625,10 @@ function ConcluidoModal({ card, onClose }: { card: PlannerCard | null; onClose: 
     <Dialog open={!!card} onOpenChange={(b) => !b && onClose()}>
       <DialogContent className="bg-background border-border">
         <DialogHeader>
-          <DialogTitle>Marcar como Concluído</DialogTitle>
-          <DialogDescription>{card?.clients?.name ?? card?.name} — Projeto de Apresentação</DialogDescription>
+          <DialogTitle>Marcar como Concluído{isReforma ? " (Reforma)" : ""}</DialogTitle>
+          <DialogDescription>
+            {card?.clients?.name ?? card?.name} — {isReforma ? "Reforma - Projeto de apresentação" : "Projeto de Apresentação"}
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-3 py-2">
           <div className="space-y-2">
