@@ -950,6 +950,14 @@ export function PlannerTab() {
     const card = cards.find((c) => c.id === draggableId);
     if (!card) return;
 
+    // CONCLUIDO → EM_REFORMA: preserva ação, pontos e ambientes da apresentação original.
+    // Apenas atualiza o status; ao voltar para CONCLUIDO (vindo de EM_REFORMA) será criada
+    // uma NOVA ação "Reforma - Projeto de apresentação" com novos pontos/ambientes.
+    if (src === "CONCLUIDO" && dest === "EM_REFORMA") {
+      upd.mutate({ id: draggableId, status: dest });
+      return;
+    }
+
     // Reverter de VENDIDO/PERDIDO/CONCLUIDO precisa de confirmação e limpeza
     if (src === "VENDIDO" || src === "PERDIDO" || src === "CONCLUIDO") {
       setRevertConfirm({ card, dest, from: src });
