@@ -504,7 +504,6 @@ function ConcluidoModal({ card, isReforma, onClose }: { card: PlannerCard | null
   const qc = useQueryClient();
   const { toast } = useToast();
   const [ambientes, setAmbientes] = useState("");
-  const [valorApresentado, setValorApresentado] = useState("");
   const [foccoNumber, setFoccoNumber] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -522,13 +521,11 @@ function ConcluidoModal({ card, isReforma, onClose }: { card: PlannerCard | null
     const today = new Date().toISOString().slice(0, 10);
     setSaving(true);
     try {
-      // 1. Update project: status na pipeline + valor + focco se informado
+      // 1. Update project: status na pipeline + focco se informado
       const projectUpdates: any = {
         planner_status: "CONCLUIDO",
         stage: "em_negociacao",
       };
-      const valNum = parseFloat(valorApresentado);
-      if (!isNaN(valNum) && valNum > 0) projectUpdates.estimated_value = valNum;
       if (foccoNumber.trim()) projectUpdates.focco_project_number = foccoNumber.trim();
 
       const { error: pErr } = await supabase
@@ -562,7 +559,7 @@ function ConcluidoModal({ card, isReforma, onClose }: { card: PlannerCard | null
           action_type_id: actionType.id,
           action_date: today,
           environment_count: ambCount,
-          value: !isNaN(valNum) && valNum > 0 ? valNum : null,
+          value: null,
           client_name: card.clients?.name ?? null,
           focco_project_number: foccoNumber.trim() || null,
           project_id: card.id,
@@ -594,15 +591,6 @@ function ConcluidoModal({ card, isReforma, onClose }: { card: PlannerCard | null
           transaction_date: today,
         });
 
-        // 6. Histórico de valor apresentado
-        if (!isNaN(valNum) && valNum > 0) {
-          await supabase.from("project_value_history").insert({
-            project_id: card.id,
-            presented_value: valNum,
-            consultant_id: card.responsible_id,
-            action_id: actionRow.id,
-          });
-        }
       }
 
       qc.invalidateQueries({ queryKey: ["planner_kanban"] });
@@ -611,7 +599,7 @@ function ConcluidoModal({ card, isReforma, onClose }: { card: PlannerCard | null
       qc.invalidateQueries({ queryKey: ["credit_transactions"] });
       qc.invalidateQueries({ queryKey: ["project-environments"] });
       toast({ title: "Apresentação concluída", description: `${ambCount} ambiente(s) registrados no Programa E+.` });
-      setAmbientes(""); setValorApresentado(""); setFoccoNumber("");
+      setAmbientes(""); setFoccoNumber("");
       onClose();
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
@@ -634,10 +622,6 @@ function ConcluidoModal({ card, isReforma, onClose }: { card: PlannerCard | null
             <Label>Quantidade de ambientes *</Label>
             <Input type="number" min="1" value={ambientes} onChange={(e) => setAmbientes(e.target.value)} placeholder="Ex: 3" />
             <p className="text-[11px] text-muted-foreground">1 ambiente = 1 ponto no Programa E+ para o projetista.</p>
-          </div>
-          <div className="space-y-2">
-            <Label>Valor apresentado (R$)</Label>
-            <Input type="number" value={valorApresentado} onChange={(e) => setValorApresentado(e.target.value)} placeholder="0,00" />
           </div>
           <div className="space-y-2">
             <Label>Número FOCCO (opcional)</Label>
