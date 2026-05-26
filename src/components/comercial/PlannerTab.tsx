@@ -646,7 +646,8 @@ function Card({ card, onEdit, onDelete }: { card: PlannerCard; onEdit: (c: Plann
     ? Math.max(0, Math.floor((Date.now() - new Date(card.planner_status_at).getTime()) / 86400000))
     : null;
   const isFinal = card.planner_status === "VENDIDO" || card.planner_status === "PERDIDO";
-  const isLate = days !== null && days > 10 && !isFinal;
+  const isCritical = days !== null && card.planner_status === "CONCLUIDO" && days >= 10;
+  const isLate = days !== null && days > 10 && !isFinal && !isCritical;
   const showProjetista =
     card.planner_status === "INICIADO" ||
     card.planner_status === "CONCLUIDO" ||
@@ -655,7 +656,11 @@ function Card({ card, onEdit, onDelete }: { card: PlannerCard; onEdit: (c: Plann
   return (
     <div
       onClick={() => onEdit(card)}
-      className="bg-neutral-900 border border-white/10 rounded p-3 space-y-2 hover:border-white/30 transition-colors cursor-pointer"
+      className={`bg-neutral-900 border rounded p-3 space-y-2 transition-colors cursor-pointer ${
+        isCritical
+          ? "border-red-500/60 hover:border-red-500"
+          : "border-white/10 hover:border-white/30"
+      }`}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="text-sm font-medium text-white truncate">
@@ -665,7 +670,9 @@ function Card({ card, onEdit, onDelete }: { card: PlannerCard; onEdit: (c: Plann
         {days !== null && !isFinal && (
           <span
             className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded shrink-0 ${
-              isLate
+              isCritical
+                ? "bg-red-500/15 text-red-400 border border-red-500/40"
+                : isLate
                 ? "bg-amber-400/15 text-amber-400 border border-amber-400/40"
                 : "bg-white/5 text-white/50 border border-white/10"
             }`}
