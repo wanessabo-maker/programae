@@ -659,10 +659,10 @@ function Card({ card, onEdit, onDelete }: { card: PlannerCard; onEdit: (c: Plann
   return (
     <div
       onClick={() => onEdit(card)}
-      className={`bg-neutral-900 border rounded p-3 space-y-2 transition-colors cursor-pointer ${
+      className={`border rounded p-3 space-y-2 transition-colors cursor-pointer ${
         isCritical
-          ? "border-red-500/60 hover:border-red-500"
-          : "border-white/10 hover:border-white/30"
+          ? "bg-red-600/80 border-red-400 hover:bg-red-600"
+          : "bg-neutral-900 border-white/10 hover:border-white/30"
       }`}
     >
       <div className="flex items-start justify-between gap-2">
