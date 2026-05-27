@@ -646,7 +646,10 @@ function Card({ card, onEdit, onDelete }: { card: PlannerCard; onEdit: (c: Plann
     ? Math.max(0, Math.floor((Date.now() - new Date(card.planner_status_at).getTime()) / 86400000))
     : null;
   const isFinal = card.planner_status === "VENDIDO" || card.planner_status === "PERDIDO";
-  const isCritical = days !== null && card.planner_status === "CONCLUIDO" && days >= 10;
+  const isCritical =
+    days !== null &&
+    ((card.planner_status === "CONCLUIDO" && days >= 10) ||
+      (card.planner_status === "AGUARDANDO_INICIO" && days >= 15));
   const isLate = days !== null && days > 10 && !isFinal && !isCritical;
   const showProjetista =
     card.planner_status === "INICIADO" ||
