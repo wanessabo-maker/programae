@@ -917,12 +917,28 @@ export function PlannerTab() {
     dest: PlannerStatus;
     from: PlannerStatus;
   } | null>(null);
+  const [managerApproval, setManagerApproval] = useState<{
+    card: PlannerCard;
+    dest: PlannerStatus;
+  } | null>(null);
+  const [approvalEmail, setApprovalEmail] = useState("");
+  const [approvalPwd, setApprovalPwd] = useState("");
+  const [approving, setApproving] = useState(false);
 
   const grouped = COLUMNS.reduce((acc, col) => {
-    acc[col.id] = cards.filter((c) => {
+    const list = cards.filter((c) => {
       if (c.planner_status !== col.id) return false;
       return true;
     });
+    if (col.id === "AGUARDANDO_INICIO") {
+      // Mais novos no topo, mais antigos no fim (ordem por data de entrada na coluna).
+      list.sort((a, b) => {
+        const da = new Date(a.planner_data_aguardando || a.planner_status_at || 0).getTime();
+        const db = new Date(b.planner_data_aguardando || b.planner_status_at || 0).getTime();
+        return db - da;
+      });
+    }
+    acc[col.id] = list;
     return acc;
   }, {} as Record<PlannerStatus, PlannerCard[]>);
 
@@ -946,6 +962,17 @@ export function PlannerTab() {
     const card = cards.find((c) => c.id === draggableId);
     if (!card) return;
 
+    // AGUARDANDO_INICIO → INICIADO: apenas o card mais antigo (último na coluna) pode iniciar
+    // sem aprovação. Qualquer outro exige liberação da Gerência (admin).
+    if (src === "AGUARDANDO_INICIO" && dest === "INICIADO") {
+      const fila = grouped["AGUARDANDO_INICIO"];
+      const oldest = fila[fila.length - 1];
+      if (oldest && oldest.id !== card.id) {
+        setManagerApproval({ card, dest });
+        return;
+      }
+    }
+
     // CONCLUIDO → EM_REFORMA: preserva ação, pontos e ambientes da apresentação original.
     // Apenas atualiza o status; ao voltar para CONCLUIDO (vindo de EM_REFORMA) será criada
     // uma NOVA ação "Reforma - Projeto de apresentação" com novos pontos/ambientes.
@@ -965,6 +992,51 @@ export function PlannerTab() {
     if (dest === "CONCLUIDO") { setConcluidoCard({ card, isReforma: src === "EM_REFORMA" }); return; }
 
     upd.mutate({ id: draggableId, status: dest });
+  };
+
+  const handleManagerApproval = async () => {
+    if (!managerApproval) return;
+    if (!approvalEmail.trim() || !approvalPwd) {
+      toast({ title: "Informe email e senha da Gerência", variant: "destructive" });
+      return;
+    }
+    setApproving(true);
+    try {
+      // Cliente isolado para não afetar a sessão atual
+      const verifier = createClient(
+        import.meta.env.VITE_SUPABASE_URL,
+        import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        { auth: { persistSession: false, autoRefreshToken: false } }
+      );
+      const { data: signIn, error: sErr } = await verifier.auth.signInWithPassword({
+        email: approvalEmail.trim(),
+        password: approvalPwd,
+      });
+      if (sErr || !signIn.user) {
+        toast({ title: "Credenciais inválidas", variant: "destructive" });
+        setApproving(false);
+        return;
+      }
+      const { data: isAdmin } = await verifier.rpc("has_role", {
+        _user_id: signIn.user.id,
+        _role: "admin",
+      });
+      await verifier.auth.signOut();
+      if (!isAdmin) {
+        toast({ title: "Usuário não é Gerência (admin)", variant: "destructive" });
+        setApproving(false);
+        return;
+      }
+      upd.mutate({ id: managerApproval.card.id, status: managerApproval.dest });
+      toast({ title: "Liberação aprovada pela Gerência" });
+      setManagerApproval(null);
+      setApprovalEmail("");
+      setApprovalPwd("");
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setApproving(false);
+    }
   };
 
   const handleRevert = async () => {
