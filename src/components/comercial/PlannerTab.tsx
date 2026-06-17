@@ -1245,6 +1245,57 @@ export function PlannerTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog
+        open={!!managerApproval}
+        onOpenChange={(b) => {
+          if (!b) { setManagerApproval(null); setApprovalEmail(""); setApprovalPwd(""); }
+        }}
+      >
+        <DialogContent className="bg-background border-border">
+          <DialogHeader>
+            <DialogTitle>Liberação da Gerência necessária</DialogTitle>
+            <DialogDescription>
+              O card <strong>{managerApproval?.card.clients?.name || managerApproval?.card.name}</strong> não é o mais antigo da fila
+              <strong> Aguardando Início</strong>. Para iniciar fora de ordem, é preciso que a Gerência (admin) autorize com email e senha.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-2">
+              <Label>Email da Gerência</Label>
+              <Input
+                type="email"
+                value={approvalEmail}
+                onChange={(e) => setApprovalEmail(e.target.value)}
+                placeholder="admin@empresa.com"
+                autoComplete="off"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Senha</Label>
+              <Input
+                type="password"
+                value={approvalPwd}
+                onChange={(e) => setApprovalPwd(e.target.value)}
+                autoComplete="new-password"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => { setManagerApproval(null); setApprovalEmail(""); setApprovalPwd(""); }}
+              disabled={approving}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={handleManagerApproval} disabled={approving}>
+              {approving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Liberar início
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
