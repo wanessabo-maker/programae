@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { createClient } from "@supabase/supabase-js";
 import { useToast } from "@/hooks/use-toast";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,7 @@ interface PlannerCard {
   closed_value: number | null;
   client_id: string | null;
   planner_status_at: string | null;
+  planner_data_aguardando: string | null;
   responsible_id: string | null;
   apresentacao_projetista_id: string | null;
   origin_type: string | null;
@@ -63,7 +65,7 @@ function useCards() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects")
-        .select("id, name, planner_status, planner_observacao, planner_link, planner_motivo_perda, closed_value, client_id, planner_status_at, responsible_id, apresentacao_projetista_id, origin_type, clients(id, name), responsible:team_members!projects_responsible_id_fkey(id, name), apresentacao_projetista:team_members!projects_apresentacao_projetista_id_fkey(id, name)")
+        .select("id, name, planner_status, planner_observacao, planner_link, planner_motivo_perda, closed_value, client_id, planner_status_at, planner_data_aguardando, responsible_id, apresentacao_projetista_id, origin_type, clients(id, name), responsible:team_members!projects_responsible_id_fkey(id, name), apresentacao_projetista:team_members!projects_apresentacao_projetista_id_fkey(id, name)")
         .not("planner_status", "is", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -915,12 +917,28 @@ export function PlannerTab() {
     dest: PlannerStatus;
     from: PlannerStatus;
   } | null>(null);
+  const [managerApproval, setManagerApproval] = useState<{
+    card: PlannerCard;
+    dest: PlannerStatus;
+  } | null>(null);
+  const [approvalEmail, setApprovalEmail] = useState("");
+  const [approvalPwd, setApprovalPwd] = useState("");
+  const [approving, setApproving] = useState(false);
 
   const grouped = COLUMNS.reduce((acc, col) => {
-    acc[col.id] = cards.filter((c) => {
+    const list = cards.filter((c) => {
       if (c.planner_status !== col.id) return false;
       return true;
     });
+    if (col.id === "AGUARDANDO_INICIO") {
+      // Mais novos no topo, mais antigos no fim (ordem por data de entrada na coluna).
+      list.sort((a, b) => {
+        const da = new Date(a.planner_data_aguardando || a.planner_status_at || 0).getTime();
+        const db = new Date(b.planner_data_aguardando || b.planner_status_at || 0).getTime();
+        return db - da;
+      });
+    }
+    acc[col.id] = list;
     return acc;
   }, {} as Record<PlannerStatus, PlannerCard[]>);
 
@@ -944,6 +962,17 @@ export function PlannerTab() {
     const card = cards.find((c) => c.id === draggableId);
     if (!card) return;
 
+    // AGUARDANDO_INICIO → INICIADO: apenas o card mais antigo (último na coluna) pode iniciar
+    // sem aprovação. Qualquer outro exige liberação da Gerência (admin).
+    if (src === "AGUARDANDO_INICIO" && dest === "INICIADO") {
+      const fila = grouped["AGUARDANDO_INICIO"];
+      const oldest = fila[fila.length - 1];
+      if (oldest && oldest.id !== card.id) {
+        setManagerApproval({ card, dest });
+        return;
+      }
+    }
+
     // CONCLUIDO → EM_REFORMA: preserva ação, pontos e ambientes da apresentação original.
     // Apenas atualiza o status; ao voltar para CONCLUIDO (vindo de EM_REFORMA) será criada
     // uma NOVA ação "Reforma - Projeto de apresentação" com novos pontos/ambientes.
@@ -963,6 +992,51 @@ export function PlannerTab() {
     if (dest === "CONCLUIDO") { setConcluidoCard({ card, isReforma: src === "EM_REFORMA" }); return; }
 
     upd.mutate({ id: draggableId, status: dest });
+  };
+
+  const handleManagerApproval = async () => {
+    if (!managerApproval) return;
+    if (!approvalEmail.trim() || !approvalPwd) {
+      toast({ title: "Informe email e senha da Gerência", variant: "destructive" });
+      return;
+    }
+    setApproving(true);
+    try {
+      // Cliente isolado para não afetar a sessão atual
+      const verifier = createClient(
+        import.meta.env.VITE_SUPABASE_URL,
+        import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        { auth: { persistSession: false, autoRefreshToken: false } }
+      );
+      const { data: signIn, error: sErr } = await verifier.auth.signInWithPassword({
+        email: approvalEmail.trim(),
+        password: approvalPwd,
+      });
+      if (sErr || !signIn.user) {
+        toast({ title: "Credenciais inválidas", variant: "destructive" });
+        setApproving(false);
+        return;
+      }
+      const { data: isAdmin } = await verifier.rpc("has_role", {
+        _user_id: signIn.user.id,
+        _role: "admin",
+      });
+      await verifier.auth.signOut();
+      if (!isAdmin) {
+        toast({ title: "Usuário não é Gerência (admin)", variant: "destructive" });
+        setApproving(false);
+        return;
+      }
+      upd.mutate({ id: managerApproval.card.id, status: managerApproval.dest });
+      toast({ title: "Liberação aprovada pela Gerência" });
+      setManagerApproval(null);
+      setApprovalEmail("");
+      setApprovalPwd("");
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setApproving(false);
+    }
   };
 
   const handleRevert = async () => {
@@ -1168,6 +1242,57 @@ export function PlannerTab() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setRevertConfirm(null)}>Cancelar</Button>
             <Button variant="destructive" onClick={handleRevert}>Confirmar reversão</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!managerApproval}
+        onOpenChange={(b) => {
+          if (!b) { setManagerApproval(null); setApprovalEmail(""); setApprovalPwd(""); }
+        }}
+      >
+        <DialogContent className="bg-background border-border">
+          <DialogHeader>
+            <DialogTitle>Liberação da Gerência necessária</DialogTitle>
+            <DialogDescription>
+              O card <strong>{managerApproval?.card.clients?.name || managerApproval?.card.name}</strong> não é o mais antigo da fila
+              <strong> Aguardando Início</strong>. Para iniciar fora de ordem, é preciso que a Gerência (admin) autorize com email e senha.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-2">
+              <Label>Email da Gerência</Label>
+              <Input
+                type="email"
+                value={approvalEmail}
+                onChange={(e) => setApprovalEmail(e.target.value)}
+                placeholder="admin@empresa.com"
+                autoComplete="off"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Senha</Label>
+              <Input
+                type="password"
+                value={approvalPwd}
+                onChange={(e) => setApprovalPwd(e.target.value)}
+                autoComplete="new-password"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => { setManagerApproval(null); setApprovalEmail(""); setApprovalPwd(""); }}
+              disabled={approving}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={handleManagerApproval} disabled={approving}>
+              {approving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Liberar início
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
