@@ -285,6 +285,60 @@ export function YearlyResultsBoard() {
             </tr>
 
             {/* Ações com Especificador Row */}
+            {/* Valor Vendido — Engenharia */}
+            <tr className="border-b-2 border-foreground/40/10 bg-foreground/[0.03]">
+              <td className="p-3 text-sm font-medium">Valor Vendido — Engenharia</td>
+              {monthlyData.map((data, idx) => (
+                <td
+                  key={idx}
+                  className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/25 ring-1 ring-primary/40 font-medium' : ''} ${idx > currentMonth ? 'text-muted-foreground/70' : ''}`}
+                  title={formatFullCurrency(data.valorVendidoEng)}
+                >
+                  {formatCurrency(data.valorVendidoEng)}
+                </td>
+              ))}
+              <td className="p-2 text-center text-sm font-bold bg-foreground/10" title={formatFullCurrency(totals.valorVendidoEng)}>
+                {formatCurrency(totals.valorVendidoEng)}
+              </td>
+            </tr>
+
+            {/* Meta Vendas — Engenharia */}
+            <tr className="border-b-2 border-foreground/40/10 bg-foreground/[0.03]">
+              <td className="p-3 text-sm font-medium">Meta Vendas — Engenharia</td>
+              {monthlyMetaEng.map((meta, idx) => (
+                <td
+                  key={idx}
+                  className={`p-2 text-center text-xs text-muted-foreground ${idx === currentMonth ? 'bg-primary/25 ring-1 ring-primary/40' : ''}`}
+                  title={formatFullCurrency(meta)}
+                >
+                  {meta > 0 ? formatCurrency(meta) : '—'}
+                </td>
+              ))}
+              <td className="p-2 text-center text-sm font-bold bg-foreground/10 text-muted-foreground" title={formatFullCurrency(totalMetaEng)}>
+                {totalMetaEng > 0 ? formatCurrency(totalMetaEng) : '—'}
+              </td>
+            </tr>
+
+            {/* % Meta — Engenharia */}
+            <tr className="border-b-2 border-foreground/40/10 bg-foreground/[0.03]">
+              <td className="p-3 text-sm font-medium">% Meta — Engenharia</td>
+              {monthlyData.map((data, idx) => {
+                const meta = monthlyMetaEng[idx];
+                const pct = calcPct(data.valorVendidoEng, meta);
+                return (
+                  <td
+                    key={idx}
+                    className={`p-2 text-center text-xs font-medium ${pctClass(pct, meta > 0)} ${idx === currentMonth ? 'bg-primary/25 ring-1 ring-primary/40' : ''}`}
+                  >
+                    {meta > 0 ? `${pct.toFixed(0)}%` : '—'}
+                  </td>
+                );
+              })}
+              <td className={`p-2 text-center text-sm font-bold bg-foreground/10 ${pctClass(calcPct(totals.valorVendidoEng, totalMetaEng), totalMetaEng > 0)}`}>
+                {totalMetaEng > 0 ? `${calcPct(totals.valorVendidoEng, totalMetaEng).toFixed(0)}%` : '—'}
+              </td>
+            </tr>
+
             <tr className="border-b-2 border-foreground/40/10 last:border-0">
               <td className="p-3 text-sm font-medium">Ações c/ Especificador</td>
               {monthlyData.map((data, idx) => (
