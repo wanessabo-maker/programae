@@ -425,7 +425,7 @@ export function MetasTab() {
                     Colaborador
                   </th>
                   {colunas.map(col => (
-                    <th key={col.key} className="p-3 text-xs uppercase tracking-widest font-medium min-w-[130px]">
+                    <th key={col.key} className={`p-3 text-xs uppercase tracking-widest font-medium ${col.kind === 'categoria' ? 'min-w-[95px]' : 'min-w-[120px]'}`}>
                       <div className="flex items-center justify-between gap-2">
                         <span>{col.label}</span>
                         <button
