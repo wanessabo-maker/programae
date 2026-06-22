@@ -31,11 +31,16 @@ import { toast } from 'sonner';
 
 type MetaType = 'vendas' | 'captacao' | 'acoes' | 'projeto';
 
+// Coluna dinâmica da tabela: meta clássica OU meta de % por categoria de especificador
+type ColunaMeta =
+  | { kind: 'meta'; key: string; tipo: MetaType; label: string; placeholder: string; isCurrency?: boolean }
+  | { kind: 'categoria'; key: string; categoryId: string; label: string; placeholder: string };
+
 interface LinhaConsultor {
   memberId: string;
   memberName: string;
-  valores: Record<MetaType, string>; // string para edição no input
-  metasExistentes: Record<MetaType, string | null>; // id da meta existente ou null
+  valores: Record<string, string>; // string para edição no input — key = coluna.key
+  metasExistentes: Record<string, string | null>; // id da meta existente ou null
   modificado: boolean;
 }
 
@@ -64,7 +69,7 @@ function parseBRL(value: string): number {
 // ── Componente principal ──────────────────────────────────────────────────────
 
 export function MetasTab() {
-  const { metas, areas, teamMembers, addMeta, updateMeta, deleteMeta } = useApp();
+  const { metas, areas, teamMembers, professionalCategories, addMeta, updateMeta, deleteMeta } = useApp();
   const { getMemberAreaIds } = usePositions();
 
   // Mês de referência (padrão: mês atual)
@@ -76,6 +81,46 @@ export function MetasTab() {
   const mesLabel = format(refDate, "MMMM 'de' yyyy", { locale: ptBR });
   const mesStart = formatLocalDate(startOfMonth(refDate));
   const mesEnd   = formatLocalDate(endOfMonth(refDate));
+
+  // Área selecionada é Comercial? → habilita colunas de % por categoria de especificador
+  const isAreaComercial = useMemo(() => {
+    const a = areas.find(x => x.id === areaId);
+    return !!a && /comercial/i.test(a.name);
+  }, [areas, areaId]);
+
+  // Categorias ordenadas (ENCANTADO, CURIOSO, DISTANTE, …)
+  const categoriasOrdenadas = useMemo(() => {
+    const ordem = ['ENCANTADO', 'CURIOSO', 'DISTANTE'];
+    return [...professionalCategories].sort((a, b) => {
+      const ai = ordem.indexOf(a.name.toUpperCase());
+      const bi = ordem.indexOf(b.name.toUpperCase());
+      if (ai !== -1 && bi !== -1) return ai - bi;
+      if (ai !== -1) return -1;
+      if (bi !== -1) return 1;
+      return (a.order ?? 0) - (b.order ?? 0);
+    });
+  }, [professionalCategories]);
+
+  // Colunas da tabela: clássicas + (se Comercial) % por categoria
+  const colunas = useMemo<ColunaMeta[]>(() => {
+    const base: ColunaMeta[] = TIPOS.map(t => ({
+      kind: 'meta',
+      key: t,
+      tipo: t,
+      label: TIPO_LABELS[t].label,
+      placeholder: TIPO_LABELS[t].placeholder,
+      isCurrency: t === 'vendas',
+    }));
+    if (!isAreaComercial) return base;
+    const cats: ColunaMeta[] = categoriasOrdenadas.map(c => ({
+      kind: 'categoria',
+      key: `cat:${c.id}`,
+      categoryId: c.id,
+      label: `% ${c.name.toUpperCase()}`,
+      placeholder: '0',
+    }));
+    return [...base, ...cats];
+  }, [isAreaComercial, categoriasOrdenadas]);
 
   // Membros da área selecionada
   const membrosArea = useMemo(() => {
@@ -107,22 +152,32 @@ export function MetasTab() {
   // Re-inicializar quando área ou mês mudar
   const linhasComputadas: LinhaConsultor[] = useMemo(() => {
     return membrosArea.map(member => {
-      const valores: Record<MetaType, string> = { vendas: '', captacao: '', acoes: '', projeto: '' };
-      const metasExistentes: Record<MetaType, string | null> = { vendas: null, captacao: null, acoes: null, projeto: null };
+      const valores: Record<string, string> = {};
+      const metasExistentes: Record<string, string | null> = {};
 
-      TIPOS.forEach(tipo => {
-        const meta = metasDoMes.find(m => m.teamMemberId === member.id && m.type === tipo);
-        if (meta) {
-          metasExistentes[tipo] = meta.id;
-          valores[tipo] = tipo === 'vendas'
-            ? meta.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-            : String(meta.value);
+      colunas.forEach(col => {
+        valores[col.key] = '';
+        metasExistentes[col.key] = null;
+        if (col.kind === 'meta') {
+          const meta = metasDoMes.find(m => m.teamMemberId === member.id && m.type === col.tipo);
+          if (meta) {
+            metasExistentes[col.key] = meta.id;
+            valores[col.key] = col.isCurrency
+              ? meta.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+              : String(meta.value);
+          }
+        } else {
+          const meta = metasDoMes.find(m => m.teamMemberId === member.id && m.type === 'categoria' && m.categoryId === col.categoryId);
+          if (meta) {
+            metasExistentes[col.key] = meta.id;
+            valores[col.key] = String(meta.value);
+          }
         }
       });
 
       return { memberId: member.id, memberName: member.name, valores, metasExistentes, modificado: false };
     });
-  }, [membrosArea, metasDoMes]);
+  }, [membrosArea, metasDoMes, colunas]);
 
   // Usar linhas do state se mesma área/mês, senão usar computadas
   const linhasAtivas = (areaId === areaIdInit && mesStart === mesStartInit && linhas.length > 0)
@@ -136,23 +191,23 @@ export function MetasTab() {
   }, [areaId, mesStart, linhasComputadas]);
 
   // Atualizar valor de uma célula
-  const handleValor = (memberId: string, tipo: MetaType, valor: string) => {
+  const handleValor = (memberId: string, colKey: string, valor: string) => {
     setLinhasAtivas(prev => prev.map(l =>
       l.memberId !== memberId ? l : {
         ...l,
-        valores: { ...l.valores, [tipo]: valor },
+        valores: { ...l.valores, [colKey]: valor },
         modificado: true,
       }
     ));
   };
 
   // Copiar coluna: preencher todos os membros com o mesmo valor do primeiro
-  const copiarColuna = (tipo: MetaType) => {
-    const primeiro = linhasAtivas[0]?.valores[tipo];
+  const copiarColuna = (colKey: string) => {
+    const primeiro = linhasAtivas[0]?.valores[colKey];
     if (!primeiro) return;
     setLinhasAtivas(prev => prev.map(l => ({
       ...l,
-      valores: { ...l.valores, [tipo]: primeiro },
+      valores: { ...l.valores, [colKey]: primeiro },
       modificado: true,
     })));
     toast.success(`Valor copiado para todos os colaboradores`);
@@ -177,12 +232,17 @@ export function MetasTab() {
 
     setLinhasAtivas(prev => prev.map(l => {
       const novoValores = { ...l.valores };
-      TIPOS.forEach(tipo => {
-        const meta = metasAnterior.find(m => m.teamMemberId === l.memberId && m.type === tipo);
-        if (meta) {
-          novoValores[tipo] = tipo === 'vendas'
-            ? meta.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-            : String(meta.value);
+      colunas.forEach(col => {
+        if (col.kind === 'meta') {
+          const meta = metasAnterior.find(m => m.teamMemberId === l.memberId && m.type === col.tipo);
+          if (meta) {
+            novoValores[col.key] = col.isCurrency
+              ? meta.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+              : String(meta.value);
+          }
+        } else {
+          const meta = metasAnterior.find(m => m.teamMemberId === l.memberId && m.type === 'categoria' && m.categoryId === col.categoryId);
+          if (meta) novoValores[col.key] = String(meta.value);
         }
       });
       return { ...l, valores: novoValores, modificado: true };
@@ -195,7 +255,7 @@ export function MetasTab() {
     setLinhasAtivas(prev => prev.map(l =>
       l.memberId !== memberId ? l : {
         ...l,
-        valores: { vendas: '', captacao: '', acoes: '', projeto: '' },
+        valores: Object.fromEntries(colunas.map(c => [c.key, ''])),
         modificado: true,
       }
     ));
@@ -209,10 +269,12 @@ export function MetasTab() {
       const linhasPendentes = linhasAtivas.filter(l => l.modificado);
 
       for (const linha of linhasPendentes) {
-        for (const tipo of TIPOS) {
-          const rawValor = linha.valores[tipo];
-          const valor = tipo === 'vendas' ? parseBRL(rawValor) : parseInt(rawValor || '0', 10);
-          const metaId = linha.metasExistentes[tipo];
+        for (const col of colunas) {
+          const rawValor = linha.valores[col.key] || '';
+          const valor = (col.kind === 'meta' && col.isCurrency)
+            ? parseBRL(rawValor)
+            : (col.kind === 'categoria' ? parseBRL(rawValor) : parseInt(rawValor || '0', 10));
+          const metaId = linha.metasExistentes[col.key];
 
           if (valor > 0) {
             if (metaId) {
@@ -223,7 +285,8 @@ export function MetasTab() {
               addMeta({
                 areaId,
                 teamMemberId: linha.memberId,
-                type: tipo,
+                type: col.kind === 'meta' ? col.tipo : 'categoria',
+                categoryId: col.kind === 'categoria' ? col.categoryId : undefined,
                 value: valor,
                 validityType: 'mensal',
                 startDate: mesStart,
@@ -250,7 +313,7 @@ export function MetasTab() {
   };
 
   const totalModificado = linhasAtivas.filter(l => l.modificado).length;
-  const temDados = linhasAtivas.some(l => TIPOS.some(t => l.valores[t]));
+  const temDados = linhasAtivas.some(l => colunas.some(c => l.valores[c.key]));
 
   return (
     <div className="space-y-5">
