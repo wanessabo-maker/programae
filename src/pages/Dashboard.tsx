@@ -261,7 +261,18 @@ export default function Dashboard() {
 
       // Build metrics only for goals that exist AND have value > 1
       // Use individual meta value directly (no division by team members)
-      areaMetas.filter(meta => meta.value > 1).forEach(meta => {
+      // Deduplicate category metas by categoryId to avoid duplicate % rows in the dashboard
+      const seenCategoryIds = new Set<string>();
+      const uniqueAreaMetas = areaMetas.filter(meta => {
+        if (meta.value <= 1) return false;
+        if (meta.type === 'categoria' && meta.categoryId) {
+          if (seenCategoryIds.has(meta.categoryId)) return false;
+          seenCategoryIds.add(meta.categoryId);
+        }
+        return true;
+      });
+
+      uniqueAreaMetas.forEach(meta => {
         const individualMeta = meta.value; // Direct value - no more division
         
         if (meta.type === 'vendas') {
