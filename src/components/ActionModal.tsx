@@ -477,6 +477,9 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
   // Action types where ALL fields must be mandatory
   const isStrictValidationType = isApresentacaoProjeto || isVenda || isSeletiva || isProjeto;
 
+  // Sales channel: required only for Venda when consultant has BOTH cargos
+  const needsChannelChoice = isVenda && !!form.consultantId && dualMemberIds.has(form.consultantId);
+
   const handleFieldChange = useCallback((field: keyof FormState, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
