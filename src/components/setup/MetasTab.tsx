@@ -187,8 +187,11 @@ export function MetasTab() {
   const setLinhasAtivas = useCallback((fn: (prev: LinhaConsultor[]) => LinhaConsultor[]) => {
     setAreaIdInit(areaId);
     setMesStartInit(mesStart);
-    setLinhas(fn(linhasComputadas));
-  }, [areaId, mesStart, linhasComputadas]);
+    setLinhas(prev => {
+      const mesmaArea = areaId === areaIdInit && mesStart === mesStartInit && prev.length > 0;
+      return fn(mesmaArea ? prev : linhasComputadas);
+    });
+  }, [areaId, mesStart, areaIdInit, mesStartInit, linhasComputadas]);
 
   // Atualizar valor de uma célula
   const handleValor = (memberId: string, colKey: string, valor: string) => {
@@ -378,8 +381,8 @@ export function MetasTab() {
       {areaId && membrosArea.length > 0 && (
         <div className="space-y-3">
 
-          {/* Ações da tabela */}
-          <div className="flex items-center justify-between flex-wrap gap-2">
+          {/* Ações da tabela — sticky para sempre visível ao rolar */}
+          <div className="sticky top-0 z-20 bg-card flex items-center justify-between flex-wrap gap-2 py-2 border-b border-black/10">
             <div className="flex items-center gap-2">
               <button
                 onClick={colarMesAnterior}
@@ -422,7 +425,7 @@ export function MetasTab() {
                     Colaborador
                   </th>
                   {colunas.map(col => (
-                    <th key={col.key} className="p-3 text-xs uppercase tracking-widest font-medium min-w-[130px]">
+                    <th key={col.key} className={`p-3 text-xs uppercase tracking-widest font-medium ${col.kind === 'categoria' ? 'min-w-[95px]' : 'min-w-[120px]'}`}>
                       <div className="flex items-center justify-between gap-2">
                         <span>{col.label}</span>
                         <button
