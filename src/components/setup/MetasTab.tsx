@@ -187,8 +187,11 @@ export function MetasTab() {
   const setLinhasAtivas = useCallback((fn: (prev: LinhaConsultor[]) => LinhaConsultor[]) => {
     setAreaIdInit(areaId);
     setMesStartInit(mesStart);
-    setLinhas(fn(linhasComputadas));
-  }, [areaId, mesStart, linhasComputadas]);
+    setLinhas(prev => {
+      const mesmaArea = areaId === areaIdInit && mesStart === mesStartInit && prev.length > 0;
+      return fn(mesmaArea ? prev : linhasComputadas);
+    });
+  }, [areaId, mesStart, areaIdInit, mesStartInit, linhasComputadas]);
 
   // Atualizar valor de uma célula
   const handleValor = (memberId: string, colKey: string, valor: string) => {
