@@ -53,6 +53,7 @@ interface FormState {
   aditivoLinkExisting: boolean;
   // Aditivo: original contract number (required when linking to principal)
   aditivoOriginalContract: string;
+  salesChannel: '' | 'convencional' | 'engenharia';
 }
 
 const initialFormState: FormState = {
@@ -81,6 +82,7 @@ const initialFormState: FormState = {
   commercialConsultantId: '',
   aditivoLinkExisting: true,
   aditivoOriginalContract: '',
+  salesChannel: '',
 };
 
 export function ActionModal({ open, onOpenChange }: ActionModalProps) {
