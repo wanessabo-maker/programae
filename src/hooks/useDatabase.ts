@@ -289,6 +289,7 @@ export function useCreateGoal() {
     mutationFn: async (goal: {
       area_id: string; team_member_id?: string; metric: string; value: number;
       category_id?: string; validity_type?: string; start_date?: string; end_date?: string; is_active?: boolean;
+      sales_channel?: string | null;
     }) => {
       const { data, error } = await supabase.from('goals').insert(goal).select().single();
       if (error) throw error;
@@ -305,6 +306,7 @@ export function useUpdateGoal() {
     mutationFn: async ({ id, ...updates }: {
       id: string; area_id?: string; team_member_id?: string; metric?: string; value?: number;
       category_id?: string; validity_type?: string; start_date?: string; end_date?: string; is_active?: boolean;
+      sales_channel?: string | null;
     }) => {
       const { data, error } = await supabase.from('goals').update(updates).eq('id', id).select().single();
       if (error) throw error;
