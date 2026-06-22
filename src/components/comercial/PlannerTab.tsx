@@ -981,8 +981,13 @@ export function PlannerTab() {
       return;
     }
 
-    // Reverter de VENDIDO/PERDIDO/CONCLUIDO precisa de confirmação e limpeza
-    if (src === "VENDIDO" || src === "PERDIDO" || src === "CONCLUIDO") {
+    // Reverter de VENDIDO/PERDIDO/CONCLUIDO precisa de confirmação e limpeza.
+    // Avanços naturais (CONCLUIDO → VENDIDO/PERDIDO/EM_REFORMA) NÃO são reversões.
+    const isRevert =
+      src === "VENDIDO" ||
+      src === "PERDIDO" ||
+      (src === "CONCLUIDO" && (dest === "AGUARDANDO_INICIO" || dest === "INICIADO"));
+    if (isRevert) {
       setRevertConfirm({ card, dest, from: src });
       return;
     }
