@@ -53,6 +53,7 @@ export interface Meta {
   startDate?: string;
   endDate?: string;
   isActive: boolean;
+  salesChannel?: 'convencional' | 'engenharia';
 }
 
 export interface ProfessionalType {
@@ -108,6 +109,7 @@ export interface Action {
   foccoProjectNumber?: string;
   projectId?: string;
   pointsGenerated: number;
+  salesChannel?: 'convencional' | 'engenharia';
 }
 
 export interface Reminder {
