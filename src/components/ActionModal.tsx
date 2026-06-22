@@ -112,6 +112,9 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
   // Project environments creation
   const createEnvironment = useCreateProjectEnvironment();
 
+  // Sales channel split (Convencional × Engenharia) — dual-role members must choose
+  const { dualMemberIds } = useEngenhariaMembers();
+
   // Query client for invalidating cached queries (e.g. dashboard value map)
   const queryClient = useQueryClient();
 
