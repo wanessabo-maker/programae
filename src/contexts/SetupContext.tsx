@@ -60,13 +60,14 @@ function transformActionType(d: {
 function transformGoal(d: {
   id: string; area_id: string | null; team_member_id?: string | null; metric: string; value: number;
   category_id?: string | null; validity_type?: string | null; start_date?: string | null;
-  end_date?: string | null; is_active?: boolean | null;
+  end_date?: string | null; is_active?: boolean | null; sales_channel?: string | null;
 }): Meta {
   return {
     id: d.id, areaId: d.area_id || '', teamMemberId: d.team_member_id || undefined,
     type: d.metric as Meta['type'], value: Number(d.value), categoryId: d.category_id || undefined,
     validityType: (d.validity_type as Meta['validityType']) || 'mensal',
     startDate: d.start_date || undefined, endDate: d.end_date || undefined, isActive: d.is_active ?? true,
+    salesChannel: (d.sales_channel as 'convencional' | 'engenharia' | null | undefined) ?? undefined,
   };
 }
 
@@ -189,10 +190,12 @@ export function SetupProvider({ children }: { children: ReactNode }) {
   const addMeta = useCallback((m: Omit<Meta, 'id'>) => createGoal.mutate({
     area_id: m.areaId, team_member_id: m.teamMemberId, metric: m.type, value: m.value,
     category_id: m.categoryId, validity_type: m.validityType, start_date: m.startDate, end_date: m.endDate, is_active: m.isActive,
+    sales_channel: m.salesChannel ?? null,
   }), [createGoal]);
   const updateMeta = useCallback((id: string, m: Partial<Meta>) => updateGoalMut.mutate({
     id, area_id: m.areaId, team_member_id: m.teamMemberId, metric: m.type, value: m.value,
     category_id: m.categoryId, validity_type: m.validityType, start_date: m.startDate, end_date: m.endDate, is_active: m.isActive,
+    sales_channel: m.salesChannel ?? null,
   }), [updateGoalMut]);
   const deleteMeta = useCallback((id: string) => deleteGoalMut.mutate(id), [deleteGoalMut]);
 
