@@ -428,7 +428,7 @@ export function MetasTab() {
                   {colunas.map(col => (
                     <th key={col.key} className={`p-1.5 text-[10px] uppercase tracking-wider font-medium ${col.kind === 'categoria' ? 'min-w-[58px]' : 'min-w-[100px]'}`}>
                       <div className="flex items-center justify-between gap-1">
-                        <span title={col.kind === 'categoria' ? `% ${(col as any).categoryId ? categoriasOrdenadas.find(c => c.id === (col as any).categoryId)?.name.toUpperCase() : col.label}` : col.label}>{col.label}</span>
+                        <span title={col.kind === 'categoria' ? (col as any).fullLabel : col.label}>{col.label}</span>
                         <button
                           onClick={() => copiarColuna(col.key)}
                           title={`Copiar valor do 1º colaborador para todos`}
