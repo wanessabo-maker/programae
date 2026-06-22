@@ -18,6 +18,8 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useAuthContext } from "@/contexts/AuthContext";
+import { useEngenhariaMembers } from "@/hooks/useEngenhariaMembers";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 type PlannerStatus =
   | "AGUARDANDO_INICIO" | "INICIADO" | "CONCLUIDO" | "EM_REFORMA" | "VENDIDO" | "PERDIDO";
@@ -339,11 +341,31 @@ function VendidoModal({ card, onClose }: { card: PlannerCard | null; onClose: ()
   const { toast } = useToast();
   const [valor, setValor] = useState("");
   const [saving, setSaving] = useState(false);
+  const { dualMemberIds, engOnlyMemberIds } = useEngenhariaMembers();
+  const responsibleId = card?.responsible_id ?? null;
+  const needsChannelChoice = !!responsibleId && dualMemberIds.has(responsibleId);
+  const inferredChannel: 'convencional' | 'engenharia' | '' =
+    responsibleId && engOnlyMemberIds.has(responsibleId) ? 'engenharia'
+    : responsibleId && !needsChannelChoice ? 'convencional'
+    : '';
+  const [channel, setChannel] = useState<'convencional' | 'engenharia' | ''>('');
+
+  useEffect(() => {
+    // Reset when card changes
+    setChannel(needsChannelChoice ? '' : (inferredChannel || ''));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [card?.id, needsChannelChoice, inferredChannel]);
 
   const handleSave = async () => {
     if (!card) return;
+    if (needsChannelChoice && !channel) {
+      toast({ title: 'Selecione o canal', description: 'Indique se a venda é Convencional ou Engenharia.', variant: 'destructive' });
+      return;
+    }
     const closedValue = parseFloat(valor) || null;
     const today = new Date().toISOString().slice(0, 10);
+    const effectiveChannel: 'convencional' | 'engenharia' | null =
+      channel ? channel : (inferredChannel || null);
     setSaving(true);
     try {
       // 1. Update project
@@ -384,6 +406,7 @@ function VendidoModal({ card, onClose }: { card: PlannerCard | null; onClose: ()
             client_name: card.clients?.name ?? null,
             project_id: card.id,
             notes: "Gerada automaticamente pela mudança de card no Pipeline (VENDIDO).",
+            sales_channel: effectiveChannel,
           })
           .select("id")
           .single();
@@ -409,6 +432,7 @@ function VendidoModal({ card, onClose }: { card: PlannerCard | null; onClose: ()
       qc.invalidateQueries({ queryKey: ["clients"] });
       toast({ title: "Venda registrada", description: "Dashboard, Comercial, Projetos e Programa E+ atualizados." });
       setValor("");
+      setChannel('');
       onClose();
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
@@ -427,6 +451,24 @@ function VendidoModal({ card, onClose }: { card: PlannerCard | null; onClose: ()
           <Label>Valor da venda (R$)</Label>
           <Input type="number" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" />
         </div>
+        {needsChannelChoice && (
+          <div className="space-y-2 py-2">
+            <Label>Canal da venda *</Label>
+            <p className="text-xs text-muted-foreground">
+              Este consultor possui os dois cargos. Indique em qual canal esta venda deve ser contabilizada.
+            </p>
+            <RadioGroup value={channel} onValueChange={(v) => setChannel(v as 'convencional' | 'engenharia')} className="flex gap-4">
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="convencional" id="ch-conv" />
+                <Label htmlFor="ch-conv" className="cursor-pointer">Convencional</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="engenharia" id="ch-eng" />
+                <Label htmlFor="ch-eng" className="cursor-pointer">Canal Engenharia</Label>
+              </div>
+            </RadioGroup>
+          </div>
+        )}
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
           <Button onClick={handleSave} disabled={saving}>

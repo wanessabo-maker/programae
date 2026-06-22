@@ -39,6 +39,7 @@ function transformAction(d: {
   action_date: string; value: number | null; client_name: string | null; client_age: number | null;
   client_profession: string | null; presentation_number: string | null; focco_project_number: string | null;
   project_id: string | null; action_types?: { points: number | null } | null;
+  sales_channel?: string | null;
 }): Action {
   return {
     id: d.id, consultantId: d.consultant_id || '', professionalId: d.professional_id || '',
@@ -47,6 +48,7 @@ function transformAction(d: {
     clientProfession: d.client_profession ?? undefined, presentationNumber: d.presentation_number ?? undefined,
     foccoProjectNumber: d.focco_project_number ?? undefined, projectId: d.project_id ?? undefined,
     pointsGenerated: d.action_types?.points ?? 0,
+    salesChannel: (d.sales_channel as 'convencional' | 'engenharia' | null | undefined) ?? undefined,
   };
 }
 
@@ -171,13 +173,14 @@ export function ComercialProvider({ children }: { children: ReactNode }) {
         client_name: a.clientName ?? null, client_age: a.clientAge ?? null,
         client_profession: a.clientProfession ?? null, presentation_number: a.presentationNumber ?? null,
         focco_project_number: a.foccoProjectNumber ?? null, project_id: a.projectId ?? null,
+        sales_channel: a.salesChannel ?? null,
       });
       return result?.id;
     } catch { return undefined; }
   }, [createAction]);
 
   const updateAction = useCallback((id: string, a: Partial<Action>) => {
-    return updateActionMut.mutateAsync({ id, consultant_id: a.consultantId, professional_id: a.professionalId, action_type_id: a.actionTypeId, action_date: a.date, value: a.value, client_name: a.clientName, client_age: a.clientAge, client_profession: a.clientProfession, presentation_number: a.presentationNumber });
+    return updateActionMut.mutateAsync({ id, consultant_id: a.consultantId, professional_id: a.professionalId, action_type_id: a.actionTypeId, action_date: a.date, value: a.value, client_name: a.clientName, client_age: a.clientAge, client_profession: a.clientProfession, presentation_number: a.presentationNumber, sales_channel: a.salesChannel ?? null });
   }, [updateActionMut]);
 
   const deleteAction = useCallback((id: string) => deleteActionMut.mutate(id), [deleteActionMut]);

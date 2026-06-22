@@ -16,7 +16,7 @@ interface MonthlyData {
 
 export function YearlyResultsBoard() {
   const { actions, actionTypes, metas } = useApp();
-  const { memberIds: engMemberIds } = useEngenhariaMembers();
+  const { engOnlyMemberIds, isEngenhariaConsultant } = useEngenhariaMembers();
 
   // Regra: considerar apenas dados do ano de 2026
   const targetYear = 2026;
@@ -39,11 +39,13 @@ export function YearlyResultsBoard() {
 
       // Valor Vendido e Contratos Fechados (classification === 'venda')
       if (actionType?.classification === 'venda') {
-        data[monthIndex].valorVendido += action.value || 0;
-        data[monthIndex].contratosFechados += 1;
-        if (action.consultantId && engMemberIds.has(action.consultantId)) {
+        const isEng = isEngenhariaConsultant(action.consultantId, action.salesChannel ?? null);
+        if (isEng) {
           data[monthIndex].valorVendidoEng += action.value || 0;
+        } else {
+          data[monthIndex].valorVendido += action.value || 0;
         }
+        data[monthIndex].contratosFechados += 1;
       }
 
       // Captações: contagem de ações que impactam a meta 'captacao'
@@ -58,7 +60,7 @@ export function YearlyResultsBoard() {
     });
 
     return data;
-  }, [actions, actionTypes, targetYear, engMemberIds]);
+  }, [actions, actionTypes, targetYear, isEngenhariaConsultant]);
 
   // Meta mensal de vendas por mês — soma das metas de vendas ativas, normalizadas para mensal
   const buildMonthlyMeta = (filter: (m: Meta) => boolean) => {
@@ -140,15 +142,21 @@ export function YearlyResultsBoard() {
   };
 
   const monthlyMeta = useMemo(
-    () => buildMonthlyMeta(() => true),
+    () => buildMonthlyMeta((m) => !(
+      m.salesChannel === 'engenharia' ||
+      (!m.salesChannel && !!m.teamMemberId && engOnlyMemberIds.has(m.teamMemberId))
+    )),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [metas, targetYear]
+    [metas, targetYear, engOnlyMemberIds]
   );
 
   const monthlyMetaEng = useMemo(
-    () => buildMonthlyMeta((m) => !!m.teamMemberId && engMemberIds.has(m.teamMemberId)),
+    () => buildMonthlyMeta((m) => (
+      m.salesChannel === 'engenharia' ||
+      (!m.salesChannel && !!m.teamMemberId && engOnlyMemberIds.has(m.teamMemberId))
+    )),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [metas, targetYear, engMemberIds]
+    [metas, targetYear, engOnlyMemberIds]
   );
 
   const totalMeta = useMemo(() => monthlyMeta.reduce((a, b) => a + b, 0), [monthlyMeta]);

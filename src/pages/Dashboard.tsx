@@ -59,7 +59,7 @@ export default function Dashboard() {
   const { data: envStats } = useMonthlyEnvironmentStats(currentDate.getFullYear(), currentDate.getMonth() + 1);
 
   // Engenharia members (Consultor Comercial Engenharia) — usado para separar vendas/metas
-  const { memberIds: engMemberIds } = useEngenhariaMembers();
+  const { engOnlyMemberIds, isEngenhariaConsultant } = useEngenhariaMembers();
 
   // Map action_id -> latest presented_value (used for "Apresentação de Projeto")
   const { data: actionPresentedValueMap = {} } = useQuery<Record<string, number>>({
@@ -113,7 +113,8 @@ export default function Dashboard() {
     const totalSales = thisMonthActions
       .filter(a => {
         const type = actionTypes.find(t => t.id === a.actionTypeId);
-        return type?.classification === 'venda';
+        return type?.classification === 'venda'
+          && !isEngenhariaConsultant(a.consultantId, a.salesChannel ?? null);
       })
       .reduce((sum, a) => sum + (a.value || 0), 0);
 
@@ -150,8 +151,13 @@ export default function Dashboard() {
       membersWithAcoesMeta.includes(a.consultantId)
     ).length;
 
-    // Get active metas only
-    const salesMeta = activeMetas.filter(m => m.type === 'vendas').reduce((sum, m) => sum + m.value, 0);
+    // Get active metas only — Geral exclui canal Engenharia
+    const salesMeta = activeMetas
+      .filter(m => m.type === 'vendas' && !(
+        m.salesChannel === 'engenharia' ||
+        (!m.salesChannel && !!m.teamMemberId && engOnlyMemberIds.has(m.teamMemberId))
+      ))
+      .reduce((sum, m) => sum + m.value, 0);
     const captacaoMeta = activeMetas.filter(m => m.type === 'captacao').reduce((sum, m) => sum + m.value, 0);
     const acoesMeta = activeMetas.filter(m => m.type === 'acoes').reduce((sum, m) => sum + m.value, 0);
 
@@ -160,7 +166,7 @@ export default function Dashboard() {
       captacoes: { value: totalCaptacoes, meta: captacaoMeta, percentage: captacaoMeta > 0 ? (totalCaptacoes / captacaoMeta) * 100 : 0 },
       acoes: { value: totalAcoes, meta: acoesMeta, percentage: acoesMeta > 0 ? (totalAcoes / acoesMeta) * 100 : 0 },
     };
-  }, [actions, activeMetas, actionTypes, activeMembers]);
+  }, [actions, activeMetas, actionTypes, activeMembers, isEngenhariaConsultant, engOnlyMemberIds, getMemberAreaIds]);
 
   // Métrica do canal Engenharia (Valor Vendido + Meta) — somente colaboradores no cargo "Consultor Comercial Engenharia"
   const engenhariaMetric = useMemo(() => {
@@ -168,18 +174,22 @@ export default function Dashboard() {
     const totalSalesEng = thisMonthActions
       .filter(a => {
         const type = actionTypes.find(t => t.id === a.actionTypeId);
-        return type?.classification === 'venda' && a.consultantId && engMemberIds.has(a.consultantId);
+        return type?.classification === 'venda'
+          && isEngenhariaConsultant(a.consultantId, a.salesChannel ?? null);
       })
       .reduce((sum, a) => sum + (a.value || 0), 0);
     const salesMetaEng = activeMetas
-      .filter(m => m.type === 'vendas' && m.teamMemberId && engMemberIds.has(m.teamMemberId))
+      .filter(m => m.type === 'vendas' && (
+        m.salesChannel === 'engenharia' ||
+        (!m.salesChannel && !!m.teamMemberId && engOnlyMemberIds.has(m.teamMemberId))
+      ))
       .reduce((sum, m) => sum + m.value, 0);
     return {
       value: totalSalesEng,
       meta: salesMetaEng,
       percentage: salesMetaEng > 0 ? (totalSalesEng / salesMetaEng) * 100 : 0,
     };
-  }, [actions, actionTypes, activeMetas, engMemberIds]);
+  }, [actions, actionTypes, activeMetas, engOnlyMemberIds, isEngenhariaConsultant]);
 
   // Metrics by consultant
   // ID da área de Projetos para lógica especial de ambientes

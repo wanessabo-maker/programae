@@ -16,6 +16,8 @@ import { safeNumber, safeParseInt } from '@/lib/validators';
 import { useCSContactSchedules, generateCSActionsForCase } from '@/hooks/useCustomerSuccess';
 import { createChecklistForProject } from '@/hooks/useChecklist';
 import { useCreateProjectEnvironment } from '@/hooks/useProjectEnvironments';
+import { useEngenhariaMembers } from '@/hooks/useEngenhariaMembers';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 interface ActionModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -53,6 +55,7 @@ interface FormState {
   aditivoLinkExisting: boolean;
   // Aditivo: original contract number (required when linking to principal)
   aditivoOriginalContract: string;
+  salesChannel: '' | 'convencional' | 'engenharia';
 }
 
 const initialFormState: FormState = {
@@ -81,6 +84,7 @@ const initialFormState: FormState = {
   commercialConsultantId: '',
   aditivoLinkExisting: true,
   aditivoOriginalContract: '',
+  salesChannel: '',
 };
 
 export function ActionModal({ open, onOpenChange }: ActionModalProps) {
@@ -107,6 +111,9 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
   
   // Project environments creation
   const createEnvironment = useCreateProjectEnvironment();
+
+  // Sales channel split (Convencional × Engenharia) — dual-role members must choose
+  const { dualMemberIds } = useEngenhariaMembers();
 
   // Query client for invalidating cached queries (e.g. dashboard value map)
   const queryClient = useQueryClient();
@@ -470,6 +477,9 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
   // Action types where ALL fields must be mandatory
   const isStrictValidationType = isApresentacaoProjeto || isVenda || isSeletiva || isProjeto;
 
+  // Sales channel: required only for Venda when consultant has BOTH cargos
+  const needsChannelChoice = isVenda && !!form.consultantId && dualMemberIds.has(form.consultantId);
+
   const handleFieldChange = useCallback((field: keyof FormState, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
@@ -565,6 +575,11 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     // For Aditivo "vincular ao principal": original contract number is mandatory
     if (isVendaAditivo && form.aditivoLinkExisting && !form.aditivoOriginalContract.trim()) {
       newErrors.aditivoOriginalContract = true;
+    }
+
+    // Canal da venda obrigatório quando o consultor tem os dois cargos
+    if (needsChannelChoice && !form.salesChannel) {
+      (newErrors as any).salesChannel = true;
     }
     
     // For Venda (including Aditivo), checklist assignment is mandatory
@@ -1293,6 +1308,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
         foccoProjectNumber: form.foccoProjectNumber || undefined,
         pointsGenerated: points,
         projectId,
+        salesChannel: isVenda && form.salesChannel ? form.salesChannel : undefined,
       });
 
       if (!actionId) {
@@ -1775,6 +1791,36 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 className={`input-flat w-full text-card-foreground ${errors.value ? 'border-destructive ring-1 ring-destructive' : ''}`}
               />
               {errors.value && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
+            </div>
+          )}
+
+          {/* Sales channel — required when consultant has both cargos (Comercial + Engenharia) */}
+          {needsChannelChoice && (
+            <div className={`border rounded-md p-3 bg-muted/30 space-y-2 ${(errors as any).salesChannel ? 'border-destructive' : 'border-border'}`}>
+              <label className="text-xs tracking-widest uppercase text-muted-foreground block">
+                Canal da Venda <span className="text-red-500">*</span>
+              </label>
+              <p className="text-xs text-muted-foreground">
+                Este consultor possui os dois cargos (Consultor Comercial e Consultor Comercial Engenharia).
+                Indique em qual canal esta venda deve ser contabilizada.
+              </p>
+              <RadioGroup
+                value={form.salesChannel}
+                onValueChange={(v) => setForm(prev => ({ ...prev, salesChannel: v as 'convencional' | 'engenharia' }))}
+                className="flex gap-6 pt-1"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="convencional" id="am-ch-conv" />
+                  <label htmlFor="am-ch-conv" className="cursor-pointer text-sm">Convencional</label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="engenharia" id="am-ch-eng" />
+                  <label htmlFor="am-ch-eng" className="cursor-pointer text-sm">Canal Engenharia</label>
+                </div>
+              </RadioGroup>
+              {(errors as any).salesChannel && (
+                <span className="text-xs text-destructive">Selecione o canal da venda.</span>
+              )}
             </div>
           )}
 
