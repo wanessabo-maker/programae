@@ -451,9 +451,9 @@ export function MetasTab() {
                     }`}
                   >
                     {/* Nome */}
-                    <td className="p-3">
+                    <td className="p-2">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">{linha.memberName}</span>
+                        <span className="font-medium text-xs">{linha.memberName}</span>
                         {linha.modificado && (
                           <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
                         )}
