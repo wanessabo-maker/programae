@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { parseISO, getMonth, getYear } from 'date-fns';
 import type { Meta } from '@/types';
+import { useEngenhariaMembers } from '@/hooks/useEngenhariaMembers';
 
 const MONTH_LABELS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
@@ -10,10 +11,12 @@ interface MonthlyData {
   contratosFechados: number;
   captacoes: number;
   acoesComEspecificador: number;
+  valorVendidoEng: number;
 }
 
 export function YearlyResultsBoard() {
   const { actions, actionTypes, metas } = useApp();
+  const { memberIds: engMemberIds } = useEngenhariaMembers();
 
   // Regra: considerar apenas dados do ano de 2026
   const targetYear = 2026;
@@ -24,6 +27,7 @@ export function YearlyResultsBoard() {
       contratosFechados: 0,
       captacoes: 0,
       acoesComEspecificador: 0,
+      valorVendidoEng: 0,
     }));
 
     actions.forEach(action => {
@@ -37,6 +41,9 @@ export function YearlyResultsBoard() {
       if (actionType?.classification === 'venda') {
         data[monthIndex].valorVendido += action.value || 0;
         data[monthIndex].contratosFechados += 1;
+        if (action.consultantId && engMemberIds.has(action.consultantId)) {
+          data[monthIndex].valorVendidoEng += action.value || 0;
+        }
       }
 
       // Captações: contagem de ações que impactam a meta 'captacao'
@@ -51,12 +58,12 @@ export function YearlyResultsBoard() {
     });
 
     return data;
-  }, [actions, actionTypes, targetYear]);
+  }, [actions, actionTypes, targetYear, engMemberIds]);
 
   // Meta mensal de vendas por mês — soma das metas de vendas ativas, normalizadas para mensal
-  const monthlyMeta = useMemo(() => {
+  const buildMonthlyMeta = (filter: (m: Meta) => boolean) => {
     const result = Array.from({ length: 12 }, () => 0);
-    const vendasMetas = metas.filter(m => m.type === 'vendas' && m.isActive);
+    const vendasMetas = metas.filter(m => m.type === 'vendas' && m.isActive && filter(m));
 
     // Parse 'YYYY-MM-DD' como data LOCAL (evita shift de UTC para timezones negativos)
     const parseLocalDate = (s: string | null | undefined): Date | null => {
@@ -130,9 +137,22 @@ export function YearlyResultsBoard() {
       });
     }
     return result;
-  }, [metas, targetYear]);
+  };
+
+  const monthlyMeta = useMemo(
+    () => buildMonthlyMeta(() => true),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [metas, targetYear]
+  );
+
+  const monthlyMetaEng = useMemo(
+    () => buildMonthlyMeta((m) => !!m.teamMemberId && engMemberIds.has(m.teamMemberId)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [metas, targetYear, engMemberIds]
+  );
 
   const totalMeta = useMemo(() => monthlyMeta.reduce((a, b) => a + b, 0), [monthlyMeta]);
+  const totalMetaEng = useMemo(() => monthlyMetaEng.reduce((a, b) => a + b, 0), [monthlyMetaEng]);
 
   const calcPct = (executado: number, meta: number) => meta > 0 ? (executado / meta) * 100 : 0;
   const pctClass = (pct: number, hasMeta: boolean) => {
@@ -149,8 +169,9 @@ export function YearlyResultsBoard() {
         contratosFechados: acc.contratosFechados + month.contratosFechados,
         captacoes: acc.captacoes + month.captacoes,
         acoesComEspecificador: acc.acoesComEspecificador + month.acoesComEspecificador,
+        valorVendidoEng: acc.valorVendidoEng + month.valorVendidoEng,
       }),
-      { valorVendido: 0, contratosFechados: 0, captacoes: 0, acoesComEspecificador: 0 }
+      { valorVendido: 0, contratosFechados: 0, captacoes: 0, acoesComEspecificador: 0, valorVendidoEng: 0 }
     );
   }, [monthlyData]);
 
@@ -264,6 +285,60 @@ export function YearlyResultsBoard() {
             </tr>
 
             {/* Ações com Especificador Row */}
+            {/* Valor Vendido — Engenharia */}
+            <tr className="border-b-2 border-foreground/40/10 bg-foreground/[0.03]">
+              <td className="p-3 text-sm font-medium">Valor Vendido — Engenharia</td>
+              {monthlyData.map((data, idx) => (
+                <td
+                  key={idx}
+                  className={`p-2 text-center text-xs ${idx === currentMonth ? 'bg-primary/25 ring-1 ring-primary/40 font-medium' : ''} ${idx > currentMonth ? 'text-muted-foreground/70' : ''}`}
+                  title={formatFullCurrency(data.valorVendidoEng)}
+                >
+                  {formatCurrency(data.valorVendidoEng)}
+                </td>
+              ))}
+              <td className="p-2 text-center text-sm font-bold bg-foreground/10" title={formatFullCurrency(totals.valorVendidoEng)}>
+                {formatCurrency(totals.valorVendidoEng)}
+              </td>
+            </tr>
+
+            {/* Meta Vendas — Engenharia */}
+            <tr className="border-b-2 border-foreground/40/10 bg-foreground/[0.03]">
+              <td className="p-3 text-sm font-medium">Meta Vendas — Engenharia</td>
+              {monthlyMetaEng.map((meta, idx) => (
+                <td
+                  key={idx}
+                  className={`p-2 text-center text-xs text-muted-foreground ${idx === currentMonth ? 'bg-primary/25 ring-1 ring-primary/40' : ''}`}
+                  title={formatFullCurrency(meta)}
+                >
+                  {meta > 0 ? formatCurrency(meta) : '—'}
+                </td>
+              ))}
+              <td className="p-2 text-center text-sm font-bold bg-foreground/10 text-muted-foreground" title={formatFullCurrency(totalMetaEng)}>
+                {totalMetaEng > 0 ? formatCurrency(totalMetaEng) : '—'}
+              </td>
+            </tr>
+
+            {/* % Meta — Engenharia */}
+            <tr className="border-b-2 border-foreground/40/10 bg-foreground/[0.03]">
+              <td className="p-3 text-sm font-medium">% Meta — Engenharia</td>
+              {monthlyData.map((data, idx) => {
+                const meta = monthlyMetaEng[idx];
+                const pct = calcPct(data.valorVendidoEng, meta);
+                return (
+                  <td
+                    key={idx}
+                    className={`p-2 text-center text-xs font-medium ${pctClass(pct, meta > 0)} ${idx === currentMonth ? 'bg-primary/25 ring-1 ring-primary/40' : ''}`}
+                  >
+                    {meta > 0 ? `${pct.toFixed(0)}%` : '—'}
+                  </td>
+                );
+              })}
+              <td className={`p-2 text-center text-sm font-bold bg-foreground/10 ${pctClass(calcPct(totals.valorVendidoEng, totalMetaEng), totalMetaEng > 0)}`}>
+                {totalMetaEng > 0 ? `${calcPct(totals.valorVendidoEng, totalMetaEng).toFixed(0)}%` : '—'}
+              </td>
+            </tr>
+
             <tr className="border-b-2 border-foreground/40/10 last:border-0">
               <td className="p-3 text-sm font-medium">Ações c/ Especificador</td>
               {monthlyData.map((data, idx) => (

@@ -23,6 +23,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { CleanlinessCheckBar } from '@/components/dashboard/CleanlinessCheckBar';
 import { PlannerTab } from '@/components/comercial/PlannerTab';
+import { useEngenhariaMembers } from '@/hooks/useEngenhariaMembers';
 
 export default function Dashboard() {
   // State hooks first
@@ -56,6 +57,9 @@ export default function Dashboard() {
   // Get current month environment stats for project goals
   const currentDate = new Date();
   const { data: envStats } = useMonthlyEnvironmentStats(currentDate.getFullYear(), currentDate.getMonth() + 1);
+
+  // Engenharia members (Consultor Comercial Engenharia) — usado para separar vendas/metas
+  const { memberIds: engMemberIds } = useEngenhariaMembers();
 
   // Map action_id -> latest presented_value (used for "Apresentação de Projeto")
   const { data: actionPresentedValueMap = {} } = useQuery<Record<string, number>>({
@@ -157,6 +161,25 @@ export default function Dashboard() {
       acoes: { value: totalAcoes, meta: acoesMeta, percentage: acoesMeta > 0 ? (totalAcoes / acoesMeta) * 100 : 0 },
     };
   }, [actions, activeMetas, actionTypes, activeMembers]);
+
+  // Métrica do canal Engenharia (Valor Vendido + Meta) — somente colaboradores no cargo "Consultor Comercial Engenharia"
+  const engenhariaMetric = useMemo(() => {
+    const thisMonthActions = actions.filter(a => isThisMonth(parseISO(a.date)));
+    const totalSalesEng = thisMonthActions
+      .filter(a => {
+        const type = actionTypes.find(t => t.id === a.actionTypeId);
+        return type?.classification === 'venda' && a.consultantId && engMemberIds.has(a.consultantId);
+      })
+      .reduce((sum, a) => sum + (a.value || 0), 0);
+    const salesMetaEng = activeMetas
+      .filter(m => m.type === 'vendas' && m.teamMemberId && engMemberIds.has(m.teamMemberId))
+      .reduce((sum, m) => sum + m.value, 0);
+    return {
+      value: totalSalesEng,
+      meta: salesMetaEng,
+      percentage: salesMetaEng > 0 ? (totalSalesEng / salesMetaEng) * 100 : 0,
+    };
+  }, [actions, actionTypes, activeMetas, engMemberIds]);
 
   // Metrics by consultant
   // ID da área de Projetos para lógica especial de ambientes
@@ -503,6 +526,14 @@ export default function Dashboard() {
             percentage={monthlyMetrics.acoes.percentage}
             subtitle={`Meta: ${monthlyMetrics.acoes.meta}`}
           />
+          {(engenhariaMetric.meta > 0 || engenhariaMetric.value > 0) && (
+            <MetricCard
+              value={formatCurrency(engenhariaMetric.value)}
+              label="Valor Vendido — Engenharia"
+              percentage={engenhariaMetric.percentage}
+              subtitle={`Meta: ${formatCurrency(engenhariaMetric.meta)}`}
+            />
+          )}
         </div>
       </section>
 
