@@ -381,8 +381,8 @@ export function MetasTab() {
       {areaId && membrosArea.length > 0 && (
         <div className="space-y-3">
 
-          {/* Ações da tabela */}
-          <div className="flex items-center justify-between flex-wrap gap-2">
+          {/* Ações da tabela — sticky para sempre visível ao rolar */}
+          <div className="sticky top-0 z-20 bg-card flex items-center justify-between flex-wrap gap-2 py-2 border-b border-black/10">
             <div className="flex items-center gap-2">
               <button
                 onClick={colarMesAnterior}
