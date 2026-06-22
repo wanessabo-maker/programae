@@ -1794,6 +1794,36 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
             </div>
           )}
 
+          {/* Sales channel — required when consultant has both cargos (Comercial + Engenharia) */}
+          {needsChannelChoice && (
+            <div className={`border rounded-md p-3 bg-muted/30 space-y-2 ${(errors as any).salesChannel ? 'border-destructive' : 'border-border'}`}>
+              <label className="text-xs tracking-widest uppercase text-muted-foreground block">
+                Canal da Venda <span className="text-red-500">*</span>
+              </label>
+              <p className="text-xs text-muted-foreground">
+                Este consultor possui os dois cargos (Consultor Comercial e Consultor Comercial Engenharia).
+                Indique em qual canal esta venda deve ser contabilizada.
+              </p>
+              <RadioGroup
+                value={form.salesChannel}
+                onValueChange={(v) => setForm(prev => ({ ...prev, salesChannel: v as 'convencional' | 'engenharia' }))}
+                className="flex gap-6 pt-1"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="convencional" id="am-ch-conv" />
+                  <label htmlFor="am-ch-conv" className="cursor-pointer text-sm">Convencional</label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="engenharia" id="am-ch-eng" />
+                  <label htmlFor="am-ch-eng" className="cursor-pointer text-sm">Canal Engenharia</label>
+                </div>
+              </RadioGroup>
+              {(errors as any).salesChannel && (
+                <span className="text-xs text-destructive">Selecione o canal da venda.</span>
+              )}
+            </div>
+          )}
+
           {/* Assigned Professionals for Checklist - For Venda and Apresentação de Projeto */}
           {isVendaAditivo && (
             <div className="border border-amber-500/40 rounded-md p-3 bg-amber-500/5 space-y-2">
