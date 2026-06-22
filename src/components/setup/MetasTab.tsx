@@ -421,7 +421,7 @@ export function MetasTab() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-black bg-muted/30">
-                  <th className="text-left p-3 text-xs uppercase tracking-widest font-medium min-w-[160px]">
+                  <th className="text-left p-1.5 text-xs uppercase tracking-widest font-medium min-w-[140px]">
                     Colaborador
                   </th>
                   {colunas.map(col => (
