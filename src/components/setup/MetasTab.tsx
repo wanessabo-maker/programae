@@ -383,13 +383,21 @@ export function MetasTab() {
 
           {/* Ações da tabela */}
           <div className="flex items-center justify-between flex-wrap gap-2 py-2 border-b border-black/10">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={colarMesAnterior}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-black/30 hover:border-black transition-colors"
               >
                 <Copy className="w-3.5 h-3.5" />
                 Copiar mês anterior
+              </button>
+              <button
+                onClick={salvarTudo}
+                disabled={saving || totalModificado === 0}
+                className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold bg-foreground text-background hover:opacity-80 disabled:opacity-40 transition-opacity uppercase tracking-wider"
+              >
+                {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                {saving ? 'Salvando...' : 'Salvar tudo'}
               </button>
             </div>
 
