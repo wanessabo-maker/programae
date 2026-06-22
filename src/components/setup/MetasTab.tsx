@@ -425,13 +425,13 @@ export function MetasTab() {
                     Colaborador
                   </th>
                   {colunas.map(col => (
-                    <th key={col.key} className={`p-3 text-xs uppercase tracking-widest font-medium ${col.kind === 'categoria' ? 'min-w-[95px]' : 'min-w-[120px]'}`}>
-                      <div className="flex items-center justify-between gap-2">
-                        <span>{col.label}</span>
+                    <th key={col.key} className={`p-1.5 text-[10px] uppercase tracking-wider font-medium ${col.kind === 'categoria' ? 'min-w-[58px]' : 'min-w-[100px]'}`}>
+                      <div className="flex items-center justify-between gap-1">
+                        <span title={col.kind === 'categoria' ? `% ${(col as any).categoryId ? categoriasOrdenadas.find(c => c.id === (col as any).categoryId)?.name.toUpperCase() : col.label}` : col.label}>{col.label}</span>
                         <button
                           onClick={() => copiarColuna(col.key)}
                           title={`Copiar valor do 1º colaborador para todos`}
-                          className="p-1 opacity-30 hover:opacity-80 transition-opacity"
+                          className="p-0.5 opacity-30 hover:opacity-80 transition-opacity"
                         >
                           <Copy className="w-3 h-3" />
                         </button>
