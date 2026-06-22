@@ -466,15 +466,15 @@ export function MetasTab() {
                       const isCurrency = col.kind === 'meta' && !!col.isCurrency;
                       const isPercent = col.kind === 'categoria';
                       return (
-                        <td key={col.key} className="p-2">
+                        <td key={col.key} className="p-1">
                           <div className="relative">
                             {isCurrency && (
-                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground select-none">
+                              <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground select-none">
                                 R$
                               </span>
                             )}
                             {isPercent && (
-                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground select-none">
+                              <span className="absolute right-1 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground select-none">
                                 %
                               </span>
                             )}
@@ -486,8 +486,8 @@ export function MetasTab() {
                               value={linha.valores[col.key] || ''}
                               onChange={e => handleValor(linha.memberId, col.key, e.target.value)}
                               placeholder={col.placeholder}
-                              className={`w-full border text-sm py-1.5 rounded-sm transition-colors focus:outline-none focus:ring-1 focus:ring-black bg-white text-neutral-900 placeholder:text-neutral-500 ${
-                                isCurrency ? 'pl-7 pr-2' : isPercent ? 'pl-2 pr-6' : 'pl-2 pr-2'
+                              className={`w-full border text-xs py-1 rounded-sm transition-colors focus:outline-none focus:ring-1 focus:ring-black bg-white text-neutral-900 placeholder:text-neutral-500 ${
+                                isCurrency ? 'pl-5 pr-1.5' : isPercent ? 'pl-1.5 pr-4' : 'pl-1.5 pr-1.5'
                               } ${
                                 temMetaExistente
                                   ? 'border-green-400/60'
@@ -504,8 +504,8 @@ export function MetasTab() {
                               data-tipo={col.key}
                             />
                             {temMetaExistente && !linha.modificado && (
-                              <span className="absolute right-1.5 top-1/2 -translate-y-1/2">
-                                <CheckCircle2 className="w-3 h-3 text-green-500" />
+                              <span className="absolute right-1 top-1/2 -translate-y-1/2">
+                                <CheckCircle2 className="w-2.5 h-2.5 text-green-500" />
                               </span>
                             )}
                           </div>
