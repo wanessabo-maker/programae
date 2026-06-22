@@ -86,6 +86,7 @@ export type Database = {
           presentation_number: string | null
           professional_id: string | null
           project_id: string | null
+          sales_channel: string | null
           value: number | null
         }
         Insert: {
@@ -103,6 +104,7 @@ export type Database = {
           presentation_number?: string | null
           professional_id?: string | null
           project_id?: string | null
+          sales_channel?: string | null
           value?: number | null
         }
         Update: {
@@ -120,6 +122,7 @@ export type Database = {
           presentation_number?: string | null
           professional_id?: string | null
           project_id?: string | null
+          sales_channel?: string | null
           value?: number | null
         }
         Relationships: [
@@ -991,6 +994,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           metric: string
+          sales_channel: string | null
           start_date: string | null
           team_member_id: string | null
           validity_type: string | null
@@ -1004,6 +1008,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           metric: string
+          sales_channel?: string | null
           start_date?: string | null
           team_member_id?: string | null
           validity_type?: string | null
@@ -1017,6 +1022,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           metric?: string
+          sales_channel?: string | null
           start_date?: string | null
           team_member_id?: string | null
           validity_type?: string | null
