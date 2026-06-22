@@ -526,6 +526,14 @@ export default function Dashboard() {
             percentage={monthlyMetrics.acoes.percentage}
             subtitle={`Meta: ${monthlyMetrics.acoes.meta}`}
           />
+          {(engenhariaMetric.meta > 0 || engenhariaMetric.value > 0) && (
+            <MetricCard
+              value={formatCurrency(engenhariaMetric.value)}
+              label="Valor Vendido — Engenharia"
+              percentage={engenhariaMetric.percentage}
+              subtitle={`Meta: ${formatCurrency(engenhariaMetric.meta)}`}
+            />
+          )}
         </div>
       </section>
 
