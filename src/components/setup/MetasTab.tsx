@@ -381,15 +381,23 @@ export function MetasTab() {
       {areaId && membrosArea.length > 0 && (
         <div className="space-y-3">
 
-          {/* Ações da tabela — sticky para sempre visível ao rolar */}
-          <div className="sticky top-0 z-20 bg-card flex items-center justify-between flex-wrap gap-2 py-2 border-b border-black/10">
-            <div className="flex items-center gap-2">
+          {/* Ações da tabela */}
+          <div className="flex items-center justify-between flex-wrap gap-2 py-2 border-b border-black/10">
+            <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={colarMesAnterior}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-black/30 hover:border-black transition-colors"
               >
                 <Copy className="w-3.5 h-3.5" />
                 Copiar mês anterior
+              </button>
+              <button
+                onClick={salvarTudo}
+                disabled={saving || totalModificado === 0}
+                className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold bg-foreground text-background hover:opacity-80 disabled:opacity-40 transition-opacity uppercase tracking-wider"
+              >
+                {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                {saving ? 'Salvando...' : 'Salvar tudo'}
               </button>
             </div>
 
@@ -405,14 +413,6 @@ export function MetasTab() {
                   {totalModificado} linha(s) com alterações
                 </span>
               )}
-              <button
-                onClick={salvarTudo}
-                disabled={saving || totalModificado === 0}
-                className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold bg-foreground text-background hover:opacity-80 disabled:opacity-40 transition-opacity uppercase tracking-wider"
-              >
-                {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-                {saving ? 'Salvando...' : 'Salvar tudo'}
-              </button>
             </div>
           </div>
 
@@ -526,6 +526,25 @@ export function MetasTab() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Salvar — fixo no rodapé visível da aba, fora da rolagem horizontal */}
+          <div className="sticky bottom-0 z-30 bg-card border-t border-black/10 py-3">
+            <div className="flex items-center justify-end gap-3">
+              {totalModificado > 0 && (
+                <span className="text-xs text-amber-600 font-medium">
+                  {totalModificado} linha(s) com alterações
+                </span>
+              )}
+              <button
+                onClick={salvarTudo}
+                disabled={saving || totalModificado === 0}
+                className="flex items-center gap-1.5 px-5 py-2 text-xs font-semibold bg-foreground text-background hover:opacity-80 disabled:opacity-40 transition-opacity uppercase tracking-wider"
+              >
+                {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                {saving ? 'Salvando...' : 'Salvar tudo'}
+              </button>
+            </div>
           </div>
 
           {/* Legenda */}
