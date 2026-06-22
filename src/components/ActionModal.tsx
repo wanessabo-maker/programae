@@ -1308,6 +1308,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
         foccoProjectNumber: form.foccoProjectNumber || undefined,
         pointsGenerated: points,
         projectId,
+        salesChannel: isVenda && form.salesChannel ? form.salesChannel : undefined,
       });
 
       if (!actionId) {
