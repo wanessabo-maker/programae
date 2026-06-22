@@ -34,7 +34,7 @@ type MetaType = 'vendas' | 'captacao' | 'acoes' | 'projeto';
 // Coluna dinâmica da tabela: meta clássica OU meta de % por categoria de especificador
 type ColunaMeta =
   | { kind: 'meta'; key: string; tipo: MetaType; label: string; placeholder: string; isCurrency?: boolean }
-  | { kind: 'categoria'; key: string; categoryId: string; label: string; placeholder: string };
+  | { kind: 'categoria'; key: string; categoryId: string; label: string; fullLabel: string; placeholder: string };
 
 interface LinhaConsultor {
   memberId: string;
@@ -116,7 +116,8 @@ export function MetasTab() {
       kind: 'categoria',
       key: `cat:${c.id}`,
       categoryId: c.id,
-      label: `% ${c.name.toUpperCase()}`,
+      label: `${c.name.charAt(0).toUpperCase()}%`,
+      fullLabel: `% ${c.name.toUpperCase()}`,
       placeholder: '0',
     }));
     return [...base, ...cats];
@@ -421,17 +422,17 @@ export function MetasTab() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-black bg-muted/30">
-                  <th className="text-left p-3 text-xs uppercase tracking-widest font-medium min-w-[160px]">
+                  <th className="text-left p-1.5 text-xs uppercase tracking-widest font-medium min-w-[140px]">
                     Colaborador
                   </th>
                   {colunas.map(col => (
-                    <th key={col.key} className={`p-3 text-xs uppercase tracking-widest font-medium ${col.kind === 'categoria' ? 'min-w-[95px]' : 'min-w-[120px]'}`}>
-                      <div className="flex items-center justify-between gap-2">
-                        <span>{col.label}</span>
+                    <th key={col.key} className={`p-1.5 text-[10px] uppercase tracking-wider font-medium ${col.kind === 'categoria' ? 'min-w-[58px]' : 'min-w-[100px]'}`}>
+                      <div className="flex items-center justify-between gap-1">
+                        <span title={col.kind === 'categoria' ? (col as any).fullLabel : col.label}>{col.label}</span>
                         <button
                           onClick={() => copiarColuna(col.key)}
                           title={`Copiar valor do 1º colaborador para todos`}
-                          className="p-1 opacity-30 hover:opacity-80 transition-opacity"
+                          className="p-0.5 opacity-30 hover:opacity-80 transition-opacity"
                         >
                           <Copy className="w-3 h-3" />
                         </button>
@@ -450,9 +451,9 @@ export function MetasTab() {
                     }`}
                   >
                     {/* Nome */}
-                    <td className="p-3">
+                    <td className="p-2">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">{linha.memberName}</span>
+                        <span className="font-medium text-xs">{linha.memberName}</span>
                         {linha.modificado && (
                           <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
                         )}
@@ -465,15 +466,15 @@ export function MetasTab() {
                       const isCurrency = col.kind === 'meta' && !!col.isCurrency;
                       const isPercent = col.kind === 'categoria';
                       return (
-                        <td key={col.key} className="p-2">
+                        <td key={col.key} className="p-1">
                           <div className="relative">
                             {isCurrency && (
-                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground select-none">
+                              <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground select-none">
                                 R$
                               </span>
                             )}
                             {isPercent && (
-                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground select-none">
+                              <span className="absolute right-1 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground select-none">
                                 %
                               </span>
                             )}
@@ -485,8 +486,8 @@ export function MetasTab() {
                               value={linha.valores[col.key] || ''}
                               onChange={e => handleValor(linha.memberId, col.key, e.target.value)}
                               placeholder={col.placeholder}
-                              className={`w-full border text-sm py-1.5 rounded-sm transition-colors focus:outline-none focus:ring-1 focus:ring-black bg-white text-neutral-900 placeholder:text-neutral-500 ${
-                                isCurrency ? 'pl-7 pr-2' : isPercent ? 'pl-2 pr-6' : 'pl-2 pr-2'
+                              className={`w-full border text-xs py-1 rounded-sm transition-colors focus:outline-none focus:ring-1 focus:ring-black bg-white text-neutral-900 placeholder:text-neutral-500 ${
+                                isCurrency ? 'pl-5 pr-1.5' : isPercent ? 'pl-1.5 pr-4' : 'pl-1.5 pr-1.5'
                               } ${
                                 temMetaExistente
                                   ? 'border-green-400/60'
@@ -503,8 +504,8 @@ export function MetasTab() {
                               data-tipo={col.key}
                             />
                             {temMetaExistente && !linha.modificado && (
-                              <span className="absolute right-1.5 top-1/2 -translate-y-1/2">
-                                <CheckCircle2 className="w-3 h-3 text-green-500" />
+                              <span className="absolute right-1 top-1/2 -translate-y-1/2">
+                                <CheckCircle2 className="w-2.5 h-2.5 text-green-500" />
                               </span>
                             )}
                           </div>
