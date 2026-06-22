@@ -462,6 +462,7 @@ export function useCreateAction() {
       action_date: string; value?: number | null; client_name?: string | null; client_age?: number | null;
       client_profession?: string | null; presentation_number?: string | null;
       focco_project_number?: string | null; project_id?: string | null; notes?: string | null;
+      sales_channel?: string | null;
     }) => {
       const { data, error } = await supabase.from('actions').insert(action).select().single();
       if (error) throw error;
@@ -487,6 +488,7 @@ export function useUpdateAction() {
       action_type_id?: string | null; action_date?: string; value?: number | null;
       client_name?: string | null; client_age?: number | null; client_profession?: string | null;
       presentation_number?: string | null; notes?: string | null;
+      sales_channel?: string | null;
     }) => {
       const { data, error } = await supabase.from('actions').update(updates).eq('id', id).select().single();
       if (error) throw error;
