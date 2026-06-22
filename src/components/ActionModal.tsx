@@ -576,6 +576,11 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
     if (isVendaAditivo && form.aditivoLinkExisting && !form.aditivoOriginalContract.trim()) {
       newErrors.aditivoOriginalContract = true;
     }
+
+    // Canal da venda obrigatório quando o consultor tem os dois cargos
+    if (needsChannelChoice && !form.salesChannel) {
+      (newErrors as any).salesChannel = true;
+    }
     
     // For Venda (including Aditivo), checklist assignment is mandatory
     // EXCEPT when Aditivo is configured to link to the existing sale's checklist
