@@ -4,14 +4,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import logo from '@/assets/logo-dark.svg';
 
-type AuthMode = 'login' | 'signup' | 'forgot';
+type AuthMode = 'login' | 'forgot';
 
 export default function Auth() {
   const [mode, setMode] = useState<AuthMode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { signIn, signUp } = useAuthContext();
+  const { signIn } = useAuthContext();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,25 +32,6 @@ export default function Auth() {
           }
         } else {
           toast.success('Login realizado com sucesso!');
-        }
-      } else if (mode === 'signup') {
-        if (!email || !password) {
-          toast.error('Preencha todos os campos');
-          return;
-        }
-        if (password.length < 6) {
-          toast.error('A senha deve ter pelo menos 6 caracteres');
-          return;
-        }
-        const { error } = await signUp(email, password);
-        if (error) {
-          if (error.message.includes('already registered')) {
-            toast.error('Este email já está cadastrado');
-          } else {
-            toast.error(error.message);
-          }
-        } else {
-          toast.success('Conta criada com sucesso!');
         }
       } else if (mode === 'forgot') {
         if (!email) {
@@ -77,7 +58,6 @@ export default function Auth() {
   const getTitle = () => {
     switch (mode) {
       case 'login': return 'Entrar';
-      case 'signup': return 'Criar Conta';
       case 'forgot': return 'Recuperar Senha';
     }
   };
@@ -133,7 +113,7 @@ export default function Auth() {
                 disabled={isSubmitting}
                 className="btn-primary w-full bg-card-foreground text-card mt-6 disabled:opacity-50"
               >
-                {isSubmitting ? 'Aguarde...' : mode === 'login' ? 'Entrar' : mode === 'signup' ? 'Criar Conta' : 'Enviar Email'}
+                {isSubmitting ? 'Aguarde...' : mode === 'login' ? 'Entrar' : 'Enviar Email'}
               </button>
             </form>
 
@@ -157,14 +137,6 @@ export default function Auth() {
                 className="text-xs tracking-widest uppercase text-muted-foreground hover:text-card-foreground transition-colors"
               >
                 Voltar ao login
-              </button>
-            )}
-            {(mode === 'login' || mode === 'signup') && (
-              <button
-                onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
-                className="text-xs tracking-widest uppercase text-muted-foreground hover:text-card-foreground transition-colors block w-full"
-              >
-                {mode === 'login' ? 'Não tem conta? Criar agora' : 'Já tem conta? Entrar'}
               </button>
             )}
           </div>
