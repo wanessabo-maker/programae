@@ -34,7 +34,7 @@ type MetaType = 'vendas' | 'captacao' | 'acoes' | 'projeto';
 // Coluna dinâmica da tabela: meta clássica OU meta de % por categoria de especificador
 type ColunaMeta =
   | { kind: 'meta'; key: string; tipo: MetaType; label: string; placeholder: string; isCurrency?: boolean }
-  | { kind: 'categoria'; key: string; categoryId: string; label: string; placeholder: string };
+  | { kind: 'categoria'; key: string; categoryId: string; label: string; fullLabel: string; placeholder: string };
 
 interface LinhaConsultor {
   memberId: string;
