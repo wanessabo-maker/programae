@@ -16,6 +16,8 @@ import { safeNumber, safeParseInt } from '@/lib/validators';
 import { useCSContactSchedules, generateCSActionsForCase } from '@/hooks/useCustomerSuccess';
 import { createChecklistForProject } from '@/hooks/useChecklist';
 import { useCreateProjectEnvironment } from '@/hooks/useProjectEnvironments';
+import { useEngenhariaMembers } from '@/hooks/useEngenhariaMembers';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 interface ActionModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
