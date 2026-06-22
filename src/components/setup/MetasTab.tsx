@@ -117,6 +117,7 @@ export function MetasTab() {
       key: `cat:${c.id}`,
       categoryId: c.id,
       label: `${c.name.charAt(0).toUpperCase()}%`,
+      fullLabel: `% ${c.name.toUpperCase()}`,
       placeholder: '0',
     }));
     return [...base, ...cats];
