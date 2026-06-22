@@ -421,12 +421,12 @@ export function MetasTab() {
                   <th className="text-left p-3 text-xs uppercase tracking-widest font-medium min-w-[160px]">
                     Colaborador
                   </th>
-                  {TIPOS.map(tipo => (
-                    <th key={tipo} className="p-3 text-xs uppercase tracking-widest font-medium min-w-[130px]">
+                  {colunas.map(col => (
+                    <th key={col.key} className="p-3 text-xs uppercase tracking-widest font-medium min-w-[130px]">
                       <div className="flex items-center justify-between gap-2">
-                        <span>{TIPO_LABELS[tipo].label}</span>
+                        <span>{col.label}</span>
                         <button
-                          onClick={() => copiarColuna(tipo)}
+                          onClick={() => copiarColuna(col.key)}
                           title={`Copiar valor do 1º colaborador para todos`}
                           className="p-1 opacity-30 hover:opacity-80 transition-opacity"
                         >
@@ -456,42 +456,48 @@ export function MetasTab() {
                       </div>
                     </td>
 
-                    {/* Inputs por tipo */}
-                    {TIPOS.map(tipo => {
-                      const temMetaExistente = !!linha.metasExistentes[tipo];
+                    {/* Inputs por coluna */}
+                    {colunas.map(col => {
+                      const temMetaExistente = !!linha.metasExistentes[col.key];
+                      const isCurrency = col.kind === 'meta' && !!col.isCurrency;
+                      const isPercent = col.kind === 'categoria';
                       return (
-                        <td key={tipo} className="p-2">
+                        <td key={col.key} className="p-2">
                           <div className="relative">
-                            {tipo === 'vendas' && (
+                            {isCurrency && (
                               <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground select-none">
                                 R$
                               </span>
                             )}
+                            {isPercent && (
+                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground select-none">
+                                %
+                              </span>
+                            )}
                             <input
-                              type={tipo === 'vendas' ? 'text' : 'number'}
-                              inputMode={tipo === 'vendas' ? 'decimal' : 'numeric'}
+                              type={isCurrency ? 'text' : 'number'}
+                              inputMode={isCurrency ? 'decimal' : 'numeric'}
                               min="0"
-                              value={linha.valores[tipo]}
-                              onChange={e => handleValor(linha.memberId, tipo, e.target.value)}
-                              placeholder={TIPO_LABELS[tipo].placeholder}
-                              className={`w-full border text-sm py-1.5 pr-2 rounded-sm transition-colors focus:outline-none focus:ring-1 focus:ring-black bg-white text-neutral-900 placeholder:text-neutral-500 ${
-                                tipo === 'vendas' ? 'pl-7' : 'pl-2'
+                              max={isPercent ? 100 : undefined}
+                              value={linha.valores[col.key] || ''}
+                              onChange={e => handleValor(linha.memberId, col.key, e.target.value)}
+                              placeholder={col.placeholder}
+                              className={`w-full border text-sm py-1.5 rounded-sm transition-colors focus:outline-none focus:ring-1 focus:ring-black bg-white text-neutral-900 placeholder:text-neutral-500 ${
+                                isCurrency ? 'pl-7 pr-2' : isPercent ? 'pl-2 pr-6' : 'pl-2 pr-2'
                               } ${
                                 temMetaExistente
                                   ? 'border-green-400/60'
                                   : 'border-black/20 hover:border-black/50'
                               }`}
-                              // Tab para próxima célula da mesma coluna
                               onKeyDown={e => {
                                 if (e.key === 'Enter') {
                                   e.preventDefault();
-                                  // Focar na próxima linha, mesma coluna
-                                  const rows = document.querySelectorAll(`[data-tipo="${tipo}"]`);
+                                  const rows = document.querySelectorAll(`[data-tipo="${col.key}"]`);
                                   const next = rows[idx + 1] as HTMLElement;
                                   if (next) next.focus();
                                 }
                               }}
-                              data-tipo={tipo}
+                              data-tipo={col.key}
                             />
                             {temMetaExistente && !linha.modificado && (
                               <span className="absolute right-1.5 top-1/2 -translate-y-1/2">
