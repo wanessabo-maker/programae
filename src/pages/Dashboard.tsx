@@ -333,6 +333,12 @@ export default function Dashboard() {
             ? (categoryCount / memberProfessionals.length) * 100 
             : 0;
           const category = professionalCategories.find(c => c.id === meta.categoryId);
+          const catName = (category?.name || '').toUpperCase();
+          // Fixed sequence: ENCANTADO → CURIOSO → DISTANTE
+          let categoryOrder = 10;
+          if (catName.includes('ENCANT')) categoryOrder = 10;
+          else if (catName.includes('CURIOS')) categoryOrder = 11;
+          else if (catName.includes('DISTANT')) categoryOrder = 12;
           metricsForArea.push({
             type: `categoria-${meta.categoryId}`, // Unique key per category
             label: `% ${category?.name?.toUpperCase() || 'CATEGORIA'}`,
@@ -341,7 +347,7 @@ export default function Dashboard() {
             percentage: individualMeta > 0 ? (percentage / individualMeta) * 100 : 0,
             isCategory: true,
             isPrimary: false,
-            order: 10,
+            order: categoryOrder,
           });
         }
       });
