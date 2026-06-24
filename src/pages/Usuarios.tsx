@@ -768,6 +768,107 @@ export default function Usuarios() {
         </DialogContent>
       </Dialog>
 
+      {/* Create User Dialog */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="text-base tracking-widest uppercase">
+              Novo Usuário
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-xs tracking-widest uppercase text-muted-foreground">
+                Email
+              </label>
+              <input
+                type="email"
+                value={createEmail}
+                onChange={(e) => setCreateEmail(e.target.value)}
+                placeholder="usuario@evviva.com.br"
+                className="w-full px-3 py-2 text-sm bg-background border border-border focus:outline-none focus:ring-1 focus:ring-primary"
+                autoComplete="off"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs tracking-widest uppercase text-muted-foreground">
+                Senha (mín. 6 caracteres)
+              </label>
+              <input
+                type="text"
+                value={createPassword}
+                onChange={(e) => setCreatePassword(e.target.value)}
+                placeholder="Senha inicial"
+                className="w-full px-3 py-2 text-sm bg-background border border-border focus:outline-none focus:ring-1 focus:ring-primary"
+                autoComplete="new-password"
+              />
+              <p className="text-xs text-muted-foreground">
+                Compartilhe com o colaborador. Ele pode trocar depois em "Esqueci minha senha".
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs tracking-widest uppercase text-muted-foreground">
+                Vincular a Membro da Equipe (opcional)
+              </label>
+              <Select
+                value={createTeamMemberId}
+                onValueChange={setCreateTeamMemberId}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">
+                    <span className="text-muted-foreground">Nenhum (vincular depois)</span>
+                  </SelectItem>
+                  {unlinkedTeamMembers.map((tm) => (
+                    <SelectItem key={tm.id} value={tm.id}>
+                      <div className="flex items-center gap-2">
+                        <span>{tm.name}</span>
+                        {tm.areaName && (
+                          <span className="text-xs text-muted-foreground">({tm.areaName})</span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={createMakeAdmin}
+                onChange={(e) => setCreateMakeAdmin(e.target.checked)}
+                className="w-4 h-4"
+              />
+              <span>Promover a Admin</span>
+            </label>
+          </div>
+
+          <DialogFooter>
+            <button
+              onClick={() => setCreateOpen(false)}
+              disabled={isCreating}
+              className="px-4 py-2 text-xs tracking-widest uppercase border border-border hover:bg-muted transition-colors disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleCreateUser}
+              disabled={isCreating}
+              className="px-4 py-2 text-xs tracking-widest uppercase bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 inline-flex items-center gap-2"
+            >
+              {isCreating ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+              Criar Usuário
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deletingUser} onOpenChange={() => setDeletingUser(null)}>
         <AlertDialogContent className="bg-card border-border">
