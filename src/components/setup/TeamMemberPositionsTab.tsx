@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, X, Briefcase, Pencil, Power } from 'lucide-react';
+import { Plus, X, Briefcase, Pencil, Power, Check } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { usePositions } from '@/hooks/usePositions';
 import { Badge } from '@/components/ui/badge';
