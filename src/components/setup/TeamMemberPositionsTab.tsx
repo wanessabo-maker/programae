@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, X, Briefcase, Pencil, Power } from 'lucide-react';
+import { Plus, X, Briefcase, Pencil, Power, Check } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { usePositions } from '@/hooks/usePositions';
 import { Badge } from '@/components/ui/badge';
@@ -13,7 +13,7 @@ import {
 import { EditMemberPositionsModal } from './EditMemberPositionsModal';
 
 export function TeamMemberPositionsTab() {
-  const { teamMembers, areas, updateTeamMember } = useApp();
+  const { teamMembers, areas, updateTeamMember, addTeamMember } = useApp();
   const {
     positions,
     areas: positionAreas,
@@ -28,6 +28,28 @@ export function TeamMemberPositionsTab() {
   const [selectedMemberId, setSelectedMemberId] = useState<string>('');
   const [selectedPositionId, setSelectedPositionId] = useState<string>('');
   const [editingMember, setEditingMember] = useState<{ id: string; name: string } | null>(null);
+
+  // New member form state
+  const [newMemberName, setNewMemberName] = useState('');
+  const [newMemberAreaId, setNewMemberAreaId] = useState<string>('');
+  const [isAddingMember, setIsAddingMember] = useState(false);
+
+  const handleAddMember = async () => {
+    const name = newMemberName.trim();
+    if (!name) return;
+    setIsAddingMember(true);
+    try {
+      await addTeamMember({
+        name,
+        areaId: newMemberAreaId || undefined,
+        active: true,
+      });
+      setNewMemberName('');
+      setNewMemberAreaId('');
+    } finally {
+      setIsAddingMember(false);
+    }
+  };
 
   const handleAssignPosition = async () => {
     if (selectedMemberId && selectedPositionId) {
@@ -55,6 +77,44 @@ export function TeamMemberPositionsTab() {
 
   return (
     <div className="space-y-6">
+      {/* Add new member section */}
+      <div className="space-y-3 border border-black p-4">
+        <p className="text-xs uppercase tracking-widest text-muted-foreground">Novo Colaborador</p>
+        <div className="flex gap-2 flex-wrap items-end">
+          <div className="flex-1 min-w-[200px]">
+            <label className="text-xs text-muted-foreground mb-1 block">Nome</label>
+            <input
+              value={newMemberName}
+              onChange={(e) => setNewMemberName(e.target.value)}
+              placeholder="Nome do colaborador"
+              className="input-flat w-full text-card-foreground"
+            />
+          </div>
+          <div className="flex-1 min-w-[200px]">
+            <label className="text-xs text-muted-foreground mb-1 block">Área</label>
+            <select
+              value={newMemberAreaId}
+              onChange={(e) => setNewMemberAreaId(e.target.value)}
+              className="input-flat w-full text-card-foreground"
+            >
+              <option value="">Selecione (opcional)</option>
+              {areas.map((area) => (
+                <option key={area.id} value={area.id}>
+                  {area.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            onClick={handleAddMember}
+            disabled={!newMemberName.trim() || isAddingMember}
+            className="btn-primary bg-card-foreground text-card disabled:opacity-50"
+          >
+            <Check className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
       {/* Quick assign section */}
       <div className="space-y-3 border border-black p-4">
         <p className="text-xs uppercase tracking-widest text-muted-foreground">Atribuir Cargo</p>
