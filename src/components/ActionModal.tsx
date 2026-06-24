@@ -1063,6 +1063,10 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   closed_date: form.date,
                   closed_value: safeNumber(form.value, { min: 0 }) ?? existingProject.estimated_value,
                   apresentacao_projetista_id: form.assignedApresentacaoProjetistaId || (existingProject as any).apresentacao_projetista_id || null,
+                  planner_status: 'VENDIDO',
+                  planner_data_vendido: new Date().toISOString(),
+                  planner_status_at: new Date().toISOString(),
+                  status: 'closed',
                 } as any)
                 .eq('id', existingProject.id)
                 .select('id');
@@ -1180,6 +1184,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   estimated_value: safeNumber(form.value, { min: 0 }),
                   origin_type: 'venda_direta',
                   apresentacao_projetista_id: form.assignedApresentacaoProjetistaId || null,
+                  planner_status: 'VENDIDO',
+                  status: 'closed',
                 } as any)
                 .select('id')
                 .single();
@@ -1248,6 +1254,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 estimated_value: safeNumber(form.value, { min: 0 }),
                 origin_type: 'venda_direta',
                 apresentacao_projetista_id: form.assignedApresentacaoProjetistaId || null,
+                planner_status: 'VENDIDO',
+                status: 'closed',
               } as any)
               .select('id')
               .single();
