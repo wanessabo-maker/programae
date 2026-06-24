@@ -1,0 +1,2 @@
+DROP POLICY IF EXISTS "Authenticated can insert project deletion audit" ON public.project_deletion_audit;
+CREATE POLICY "No direct inserts allowed" ON public.project_deletion_audit FOR INSERT WITH CHECK (false);
