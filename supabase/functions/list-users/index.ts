@@ -6,12 +6,25 @@ const allowedOrigins = [
   "https://id-preview--04beb7ed-ac3f-4bc0-847c-d8e68594dad9.lovable.app",
 ];
 
+const isAllowedOrigin = (origin: string) => {
+  if (!origin) return false;
+  if (allowedOrigins.includes(origin)) return true;
+  try {
+    const host = new URL(origin).hostname;
+    return host.endsWith(".lovableproject.com") || host.endsWith(".lovable.app");
+  } catch {
+    return false;
+  }
+};
+
 const getCorsHeaders = (req: Request) => {
   const origin = req.headers.get("origin") ?? "";
-  const allowedOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
+  const allowedOrigin = isAllowedOrigin(origin) ? origin : allowedOrigins[0];
   return {
     "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "Vary": "Origin",
   };
 };
 
