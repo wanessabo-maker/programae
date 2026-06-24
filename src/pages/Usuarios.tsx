@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { Shield, ShieldOff, Users, Loader2, RefreshCw, Trash2, ChevronLeft, ChevronRight, Link, Unlink, AlertCircle, MapPin } from 'lucide-react';
+import { Shield, ShieldOff, Users, Loader2, RefreshCw, Trash2, ChevronLeft, ChevronRight, Link, Unlink, AlertCircle, MapPin, UserPlus } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -69,6 +69,14 @@ export default function Usuarios() {
   // Areas modal state
   const [areasUser, setAreasUser] = useState<UserWithRole | null>(null);
 
+  // Create user modal state
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createEmail, setCreateEmail] = useState('');
+  const [createPassword, setCreatePassword] = useState('');
+  const [createTeamMemberId, setCreateTeamMemberId] = useState<string>('__none__');
+  const [createMakeAdmin, setCreateMakeAdmin] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
@@ -96,6 +104,59 @@ export default function Usuarios() {
       toast.error('Erro ao carregar usuários');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const unlinkedTeamMembers = useMemo(
+    () => teamMembers.filter((tm) => !tm.userId),
+    [teamMembers]
+  );
+
+  const handleCreateUser = async () => {
+    const email = createEmail.trim().toLowerCase();
+    if (!email || !createPassword) {
+      toast.error('Informe email e senha');
+      return;
+    }
+    if (createPassword.length < 6) {
+      toast.error('Senha deve ter ao menos 6 caracteres');
+      return;
+    }
+
+    setIsCreating(true);
+    try {
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError || !refreshData.session) {
+        toast.error('Sessão expirada');
+        return;
+      }
+
+      const response = await supabase.functions.invoke('create-user', {
+        headers: { Authorization: `Bearer ${refreshData.session.access_token}` },
+        body: {
+          email,
+          password: createPassword,
+          teamMemberId: createTeamMemberId === '__none__' ? null : createTeamMemberId,
+          makeAdmin: createMakeAdmin,
+        },
+      });
+
+      if (response.error) throw new Error(response.error.message);
+      if (response.data?.error) throw new Error(response.data.error);
+
+      toast.success('Usuário criado com sucesso');
+      setCreateOpen(false);
+      setCreateEmail('');
+      setCreatePassword('');
+      setCreateTeamMemberId('__none__');
+      setCreateMakeAdmin(false);
+      await fetchUsers();
+    } catch (error) {
+      console.error('Error creating user:', error);
+      const msg = error instanceof Error ? error.message : 'Erro ao criar usuário';
+      toast.error(msg);
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -308,13 +369,22 @@ export default function Usuarios() {
           <Users className="w-6 h-6" />
           <h1 className="text-lg tracking-widest uppercase">Gerenciar Usuários</h1>
         </div>
-        <button
-          onClick={fetchUsers}
-          className="flex items-center gap-2 px-3 py-1.5 text-xs tracking-widest uppercase border border-border hover:bg-muted transition-colors"
-        >
-          <RefreshCw className="w-3 h-3" />
-          Atualizar
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setCreateOpen(true)}
+            className="flex items-center gap-2 px-3 py-1.5 text-xs tracking-widest uppercase border border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
+          >
+            <UserPlus className="w-3 h-3" />
+            Novo Usuário
+          </button>
+          <button
+            onClick={fetchUsers}
+            className="flex items-center gap-2 px-3 py-1.5 text-xs tracking-widest uppercase border border-border hover:bg-muted transition-colors"
+          >
+            <RefreshCw className="w-3 h-3" />
+            Atualizar
+          </button>
+        </div>
       </div>
 
       {/* Alert for users without link */}
