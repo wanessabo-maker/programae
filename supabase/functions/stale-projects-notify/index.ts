@@ -28,6 +28,15 @@ const CRON_SECRET = Deno.env.get('CRON_SECRET');
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
+// Escape user-sourced values before embedding in HTML emails
+const esc = (s: string | number | null | undefined): string =>
+  String(s ?? '—')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
 interface StaleProject {
   projectId: string;
   clientName: string | null;
@@ -186,10 +195,10 @@ Deno.serve(async (req) => {
 
         const projectLines = alert.staleProjects.map(p => `
           <tr>
-            <td style="padding:8px 12px;border-bottom:1px solid #eee">${p.clientName || '—'}</td>
-            <td style="padding:8px 12px;border-bottom:1px solid #eee">${p.foccoNumber || '—'}</td>
-            <td style="padding:8px 12px;border-bottom:1px solid #eee">${p.lastApresentacaoDate}</td>
-            <td style="padding:8px 12px;border-bottom:1px solid #eee;color:#b45309;font-weight:600">${p.daysSince} dias</td>
+            <td style="padding:8px 12px;border-bottom:1px solid #eee">${esc(p.clientName)}</td>
+            <td style="padding:8px 12px;border-bottom:1px solid #eee">${esc(p.foccoNumber)}</td>
+            <td style="padding:8px 12px;border-bottom:1px solid #eee">${esc(p.lastApresentacaoDate)}</td>
+            <td style="padding:8px 12px;border-bottom:1px solid #eee;color:#b45309;font-weight:600">${esc(p.daysSince)} dias</td>
           </tr>`).join('');
 
         const html = `
@@ -198,7 +207,7 @@ Deno.serve(async (req) => {
               <h1 style="color:#c8a96e;margin:0;font-size:20px">Evvivago · Programa E+</h1>
             </div>
             <div style="background:#fff;padding:24px;border:1px solid #eee;border-top:none">
-              <p style="color:#333">Olá, <strong>${alert.consultantName}</strong>!</p>
+              <p style="color:#333">Olá, <strong>${esc(alert.consultantName)}</strong>!</p>
               <p style="color:#555">Você tem <strong>${alert.staleProjects.length} projeto(s)</strong> sem nova Apresentação de Projeto há mais de ${STALE_DAYS} dias. Por favor, atualize o status no sistema.</p>
               <table style="width:100%;border-collapse:collapse;margin-top:16px">
                 <thead>
@@ -239,9 +248,9 @@ Deno.serve(async (req) => {
       if (ADMIN_EMAIL) {
         const summaryRows = alerts.map(a => `
           <tr>
-            <td style="padding:8px 12px;border-bottom:1px solid #eee">${a.consultantName}</td>
+            <td style="padding:8px 12px;border-bottom:1px solid #eee">${esc(a.consultantName)}</td>
             <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center">${a.staleProjects.length}</td>
-            <td style="padding:8px 12px;border-bottom:1px solid #eee">${a.staleProjects.map(p => p.clientName || p.foccoNumber || p.projectId).join(', ')}</td>
+            <td style="padding:8px 12px;border-bottom:1px solid #eee">${a.staleProjects.map(p => esc(p.clientName || p.foccoNumber || p.projectId)).join(', ')}</td>
           </tr>`).join('');
 
         const adminHtml = `

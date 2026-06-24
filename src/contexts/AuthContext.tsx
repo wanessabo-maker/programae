@@ -10,7 +10,6 @@ interface AuthContextType {
   roles: AppRole[];
   userAreas: FunctionalArea[];
   signIn: (email: string, password: string) => Promise<{ data: any; error: any }>;
-  signUp: (email: string, password: string) => Promise<{ data: any; error: any }>;
   signOut: () => Promise<{ error: any }>;
   hasAreaAccess: (area: FunctionalArea) => boolean;
   refreshAreas: () => Promise<void>;
