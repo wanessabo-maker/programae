@@ -13,7 +13,7 @@ import {
 import { EditMemberPositionsModal } from './EditMemberPositionsModal';
 
 export function TeamMemberPositionsTab() {
-  const { teamMembers, areas, updateTeamMember } = useApp();
+  const { teamMembers, areas, updateTeamMember, addTeamMember } = useApp();
   const {
     positions,
     areas: positionAreas,
@@ -28,6 +28,28 @@ export function TeamMemberPositionsTab() {
   const [selectedMemberId, setSelectedMemberId] = useState<string>('');
   const [selectedPositionId, setSelectedPositionId] = useState<string>('');
   const [editingMember, setEditingMember] = useState<{ id: string; name: string } | null>(null);
+
+  // New member form state
+  const [newMemberName, setNewMemberName] = useState('');
+  const [newMemberAreaId, setNewMemberAreaId] = useState<string>('');
+  const [isAddingMember, setIsAddingMember] = useState(false);
+
+  const handleAddMember = async () => {
+    const name = newMemberName.trim();
+    if (!name) return;
+    setIsAddingMember(true);
+    try {
+      await addTeamMember({
+        name,
+        areaId: newMemberAreaId || undefined,
+        active: true,
+      });
+      setNewMemberName('');
+      setNewMemberAreaId('');
+    } finally {
+      setIsAddingMember(false);
+    }
+  };
 
   const handleAssignPosition = async () => {
     if (selectedMemberId && selectedPositionId) {
