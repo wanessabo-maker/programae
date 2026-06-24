@@ -77,6 +77,44 @@ export function TeamMemberPositionsTab() {
 
   return (
     <div className="space-y-6">
+      {/* Add new member section */}
+      <div className="space-y-3 border border-black p-4">
+        <p className="text-xs uppercase tracking-widest text-muted-foreground">Novo Colaborador</p>
+        <div className="flex gap-2 flex-wrap items-end">
+          <div className="flex-1 min-w-[200px]">
+            <label className="text-xs text-muted-foreground mb-1 block">Nome</label>
+            <input
+              value={newMemberName}
+              onChange={(e) => setNewMemberName(e.target.value)}
+              placeholder="Nome do colaborador"
+              className="input-flat w-full text-card-foreground"
+            />
+          </div>
+          <div className="flex-1 min-w-[200px]">
+            <label className="text-xs text-muted-foreground mb-1 block">Área</label>
+            <select
+              value={newMemberAreaId}
+              onChange={(e) => setNewMemberAreaId(e.target.value)}
+              className="input-flat w-full text-card-foreground"
+            >
+              <option value="">Selecione (opcional)</option>
+              {areas.map((area) => (
+                <option key={area.id} value={area.id}>
+                  {area.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            onClick={handleAddMember}
+            disabled={!newMemberName.trim() || isAddingMember}
+            className="btn-primary bg-card-foreground text-card disabled:opacity-50"
+          >
+            <Check className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
       {/* Quick assign section */}
       <div className="space-y-3 border border-black p-4">
         <p className="text-xs uppercase tracking-widest text-muted-foreground">Atribuir Cargo</p>
