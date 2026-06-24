@@ -1184,6 +1184,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   estimated_value: safeNumber(form.value, { min: 0 }),
                   origin_type: 'venda_direta',
                   apresentacao_projetista_id: form.assignedApresentacaoProjetistaId || null,
+                  planner_status: 'VENDIDO',
+                  status: 'closed',
                 } as any)
                 .select('id')
                 .single();
@@ -1252,6 +1254,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 estimated_value: safeNumber(form.value, { min: 0 }),
                 origin_type: 'venda_direta',
                 apresentacao_projetista_id: form.assignedApresentacaoProjetistaId || null,
+                planner_status: 'VENDIDO',
+                status: 'closed',
               } as any)
               .select('id')
               .single();
