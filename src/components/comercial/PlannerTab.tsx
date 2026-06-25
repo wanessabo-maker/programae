@@ -19,6 +19,7 @@ import {
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useEngenhariaMembers } from "@/hooks/useEngenhariaMembers";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import ClienteHistoryButton from "@/components/ClienteHistoryButton";
 
 type PlannerStatus =
   | "AGUARDANDO_INICIO" | "INICIADO" | "CONCLUIDO" | "EM_REFORMA" | "VENDIDO" | "PERDIDO";
@@ -713,6 +714,7 @@ function Card({ card, onEdit, onDelete }: { card: PlannerCard; onEdit: (c: Plann
           {card.clients?.name || card.name}
         </div>
         <div className="flex items-center gap-1 shrink-0">
+          <ClienteHistoryButton clientId={card.client_id} variant="icon" />
         {days !== null && !isFinal && (
           <span
             className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded shrink-0 ${
