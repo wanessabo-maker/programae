@@ -686,6 +686,7 @@ export function ATTab() {
                         </td>
                         <td className="p-2">
                           <div className="flex items-center gap-1">
+                            <ClienteHistoryButton clientId={atCase.client_id} variant="icon" className="text-muted-foreground" />
                             <button
                               onClick={() => openEditModal(atCase)}
                               className="p-1 hover:bg-muted rounded"
