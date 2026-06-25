@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCurrentTeamMember } from '@/hooks/useCurrentTeamMember';
+import ClienteHistoryButton from '@/components/ClienteHistoryButton';
 
 type PeriodFilter = 'all' | 'month' | 'year' | 'custom';
 
@@ -357,6 +358,7 @@ export default function ContratosTab() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
+                    <ClienteHistoryButton clientId={project.client_id} variant="compact" className="mr-1" />
                     <button
                       onClick={() => handleEditProject(project)}
                       className="p-2 hover:bg-muted rounded"
