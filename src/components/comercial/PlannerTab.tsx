@@ -1289,7 +1289,7 @@ export function PlannerTab() {
       <Dialog
         open={!!managerApproval}
         onOpenChange={(b) => {
-          if (!b) { setManagerApproval(null); setApprovalEmail(""); setApprovalPwd(""); }
+          if (!b) { setManagerApproval(null); setApprovalReason(""); }
         }}
       >
         <DialogContent className="bg-background border-border">
@@ -1297,41 +1297,32 @@ export function PlannerTab() {
             <DialogTitle>Liberação da Gerência necessária</DialogTitle>
             <DialogDescription>
               O card <strong>{managerApproval?.card.clients?.name || managerApproval?.card.name}</strong> não é o mais antigo da fila
-              <strong> Aguardando Início</strong>. Para iniciar fora de ordem, é preciso que a Gerência (admin) autorize com email e senha.
+              <strong> Aguardando Início</strong>. Envie a solicitação para a <strong>Gerência Comercial</strong> aprovar dentro do sistema.
+              O card será movido automaticamente para <strong>Iniciado</strong> quando a solicitação for aprovada.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div className="space-y-2">
-              <Label>Email da Gerência</Label>
-              <Input
-                type="email"
-                value={approvalEmail}
-                onChange={(e) => setApprovalEmail(e.target.value)}
-                placeholder="admin@empresa.com"
-                autoComplete="off"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Senha</Label>
-              <Input
-                type="password"
-                value={approvalPwd}
-                onChange={(e) => setApprovalPwd(e.target.value)}
-                autoComplete="new-password"
+              <Label>Motivo (opcional)</Label>
+              <Textarea
+                value={approvalReason}
+                onChange={(e) => setApprovalReason(e.target.value)}
+                placeholder="Ex.: cliente com urgência, projeto prioritário…"
+                rows={3}
               />
             </div>
           </div>
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => { setManagerApproval(null); setApprovalEmail(""); setApprovalPwd(""); }}
-              disabled={approving}
+              onClick={() => { setManagerApproval(null); setApprovalReason(""); }}
+              disabled={submittingRequest}
             >
               Cancelar
             </Button>
-            <Button onClick={handleManagerApproval} disabled={approving}>
-              {approving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Liberar início
+            <Button onClick={handleRequestApproval} disabled={submittingRequest}>
+              {submittingRequest && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Solicitar liberação
             </Button>
           </DialogFooter>
         </DialogContent>
