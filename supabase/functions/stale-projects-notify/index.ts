@@ -61,13 +61,17 @@ Deno.serve(async (req) => {
     if (CRON_SECRET && bearer && bearer === CRON_SECRET) {
       authorized = true;
     } else if (bearer) {
-      const { data: claimsData } = await supabase.auth.getClaims(bearer);
-      const userId = claimsData?.claims?.sub;
-      if (userId) {
+      // Verify JWT signature server-side via Auth (getUser makes a network call)
+      const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+      const userClient = createClient(SUPABASE_URL, anonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: { user }, error: userErr } = await userClient.auth.getUser();
+      if (!userErr && user) {
         const { data: roleRow } = await supabase
           .from('user_roles')
           .select('role')
-          .eq('user_id', userId)
+          .eq('user_id', user.id)
           .eq('role', 'admin')
           .maybeSingle();
         if (roleRow) authorized = true;
