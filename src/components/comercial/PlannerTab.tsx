@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { createClient } from "@supabase/supabase-js";
 import { useToast } from "@/hooks/use-toast";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { Button } from "@/components/ui/button";
@@ -963,9 +962,9 @@ export function PlannerTab() {
     card: PlannerCard;
     dest: PlannerStatus;
   } | null>(null);
-  const [approvalEmail, setApprovalEmail] = useState("");
-  const [approvalPwd, setApprovalPwd] = useState("");
-  const [approving, setApproving] = useState(false);
+  const [approvalReason, setApprovalReason] = useState("");
+  const [submittingRequest, setSubmittingRequest] = useState(false);
+  const { user } = useAuthContext();
 
   const grouped = COLUMNS.reduce((acc, col) => {
     const list = cards.filter((c) => {
@@ -1041,48 +1040,42 @@ export function PlannerTab() {
     upd.mutate({ id: draggableId, status: dest });
   };
 
-  const handleManagerApproval = async () => {
-    if (!managerApproval) return;
-    if (!approvalEmail.trim() || !approvalPwd) {
-      toast({ title: "Informe email e senha da Gerência", variant: "destructive" });
-      return;
-    }
-    setApproving(true);
+  const handleRequestApproval = async () => {
+    if (!managerApproval || !user) return;
+    setSubmittingRequest(true);
     try {
-      // Cliente isolado para não afetar a sessão atual
-      const verifier = createClient(
-        import.meta.env.VITE_SUPABASE_URL,
-        import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        { auth: { persistSession: false, autoRefreshToken: false } }
-      );
-      const { data: signIn, error: sErr } = await verifier.auth.signInWithPassword({
-        email: approvalEmail.trim(),
-        password: approvalPwd,
+      // Localiza team_member do solicitante (opcional)
+      const { data: tm } = await supabase
+        .from("team_members")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      const { error } = await supabase.from("planner_start_approvals").insert({
+        project_id: managerApproval.card.id,
+        requested_by_user_id: user.id,
+        requested_by_team_member_id: tm?.id ?? null,
+        reason: approvalReason.trim() || null,
+        status: "pending",
       });
-      if (sErr || !signIn.user) {
-        toast({ title: "Credenciais inválidas", variant: "destructive" });
-        setApproving(false);
-        return;
+      if (error) {
+        if (error.code === "23505") {
+          toast({ title: "Já existe uma solicitação pendente para este card" });
+        } else {
+          throw error;
+        }
+      } else {
+        toast({
+          title: "Solicitação enviada",
+          description: "A Gerência Comercial receberá a notificação. O card será movido automaticamente quando aprovado.",
+        });
       }
-      const { data: isAdmin } = await verifier.rpc("has_role", {
-        _user_id: signIn.user.id,
-        _role: "admin",
-      });
-      await verifier.auth.signOut();
-      if (!isAdmin) {
-        toast({ title: "Usuário não é Gerência (admin)", variant: "destructive" });
-        setApproving(false);
-        return;
-      }
-      upd.mutate({ id: managerApproval.card.id, status: managerApproval.dest });
-      toast({ title: "Liberação aprovada pela Gerência" });
       setManagerApproval(null);
-      setApprovalEmail("");
-      setApprovalPwd("");
+      setApprovalReason("");
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
     } finally {
-      setApproving(false);
+      setSubmittingRequest(false);
     }
   };
 
@@ -1296,7 +1289,7 @@ export function PlannerTab() {
       <Dialog
         open={!!managerApproval}
         onOpenChange={(b) => {
-          if (!b) { setManagerApproval(null); setApprovalEmail(""); setApprovalPwd(""); }
+          if (!b) { setManagerApproval(null); setApprovalReason(""); }
         }}
       >
         <DialogContent className="bg-background border-border">
@@ -1304,41 +1297,32 @@ export function PlannerTab() {
             <DialogTitle>Liberação da Gerência necessária</DialogTitle>
             <DialogDescription>
               O card <strong>{managerApproval?.card.clients?.name || managerApproval?.card.name}</strong> não é o mais antigo da fila
-              <strong> Aguardando Início</strong>. Para iniciar fora de ordem, é preciso que a Gerência (admin) autorize com email e senha.
+              <strong> Aguardando Início</strong>. Envie a solicitação para a <strong>Gerência Comercial</strong> aprovar dentro do sistema.
+              O card será movido automaticamente para <strong>Iniciado</strong> quando a solicitação for aprovada.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div className="space-y-2">
-              <Label>Email da Gerência</Label>
-              <Input
-                type="email"
-                value={approvalEmail}
-                onChange={(e) => setApprovalEmail(e.target.value)}
-                placeholder="admin@empresa.com"
-                autoComplete="off"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Senha</Label>
-              <Input
-                type="password"
-                value={approvalPwd}
-                onChange={(e) => setApprovalPwd(e.target.value)}
-                autoComplete="new-password"
+              <Label>Motivo (opcional)</Label>
+              <Textarea
+                value={approvalReason}
+                onChange={(e) => setApprovalReason(e.target.value)}
+                placeholder="Ex.: cliente com urgência, projeto prioritário…"
+                rows={3}
               />
             </div>
           </div>
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => { setManagerApproval(null); setApprovalEmail(""); setApprovalPwd(""); }}
-              disabled={approving}
+              onClick={() => { setManagerApproval(null); setApprovalReason(""); }}
+              disabled={submittingRequest}
             >
               Cancelar
             </Button>
-            <Button onClick={handleManagerApproval} disabled={approving}>
-              {approving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Liberar início
+            <Button onClick={handleRequestApproval} disabled={submittingRequest}>
+              {submittingRequest && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Solicitar liberação
             </Button>
           </DialogFooter>
         </DialogContent>

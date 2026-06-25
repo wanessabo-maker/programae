@@ -1052,6 +1052,70 @@ export type Database = {
           },
         ]
       }
+      planner_start_approvals: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by_user_id: string | null
+          decision_reason: string | null
+          id: string
+          project_id: string
+          reason: string | null
+          requested_by_team_member_id: string | null
+          requested_by_user_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by_user_id?: string | null
+          decision_reason?: string | null
+          id?: string
+          project_id: string
+          reason?: string | null
+          requested_by_team_member_id?: string | null
+          requested_by_user_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by_user_id?: string | null
+          decision_reason?: string | null
+          id?: string
+          project_id?: string
+          reason?: string | null
+          requested_by_team_member_id?: string | null
+          requested_by_user_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "planner_start_approvals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "planner_start_approvals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vw_planner_apresentacao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "planner_start_approvals_requested_by_team_member_id_fkey"
+            columns: ["requested_by_team_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       position_permissions: {
         Row: {
           created_at: string | null

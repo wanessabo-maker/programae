@@ -6,6 +6,7 @@ import { useAuthContext, FunctionalArea } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import logo from '@/assets/logo-evviva-white.png';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { PlannerApprovalsBell } from './PlannerApprovalsBell';
 
 interface LayoutProps {
   children: ReactNode;
@@ -134,6 +135,7 @@ export function Layout({ children }: LayoutProps) {
 
             {/* Desktop User Info & Logout */}
             <div className="hidden md:flex items-center gap-4">
+              <PlannerApprovalsBell />
               <span className="text-xs tracking-widest uppercase text-muted-foreground">
                 {user?.email?.split('@')[0]}
                 {isAdmin && <span className="ml-2 text-primary">(Admin)</span>}
