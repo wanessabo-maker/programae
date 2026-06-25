@@ -962,9 +962,9 @@ export function PlannerTab() {
     card: PlannerCard;
     dest: PlannerStatus;
   } | null>(null);
-  const [approvalEmail, setApprovalEmail] = useState("");
-  const [approvalPwd, setApprovalPwd] = useState("");
-  const [approving, setApproving] = useState(false);
+  const [approvalReason, setApprovalReason] = useState("");
+  const [submittingRequest, setSubmittingRequest] = useState(false);
+  const { user } = useAuthContext();
 
   const grouped = COLUMNS.reduce((acc, col) => {
     const list = cards.filter((c) => {
@@ -1040,48 +1040,42 @@ export function PlannerTab() {
     upd.mutate({ id: draggableId, status: dest });
   };
 
-  const handleManagerApproval = async () => {
-    if (!managerApproval) return;
-    if (!approvalEmail.trim() || !approvalPwd) {
-      toast({ title: "Informe email e senha da Gerência", variant: "destructive" });
-      return;
-    }
-    setApproving(true);
+  const handleRequestApproval = async () => {
+    if (!managerApproval || !user) return;
+    setSubmittingRequest(true);
     try {
-      // Cliente isolado para não afetar a sessão atual
-      const verifier = createClient(
-        import.meta.env.VITE_SUPABASE_URL,
-        import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        { auth: { persistSession: false, autoRefreshToken: false } }
-      );
-      const { data: signIn, error: sErr } = await verifier.auth.signInWithPassword({
-        email: approvalEmail.trim(),
-        password: approvalPwd,
+      // Localiza team_member do solicitante (opcional)
+      const { data: tm } = await supabase
+        .from("team_members")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      const { error } = await supabase.from("planner_start_approvals").insert({
+        project_id: managerApproval.card.id,
+        requested_by_user_id: user.id,
+        requested_by_team_member_id: tm?.id ?? null,
+        reason: approvalReason.trim() || null,
+        status: "pending",
       });
-      if (sErr || !signIn.user) {
-        toast({ title: "Credenciais inválidas", variant: "destructive" });
-        setApproving(false);
-        return;
+      if (error) {
+        if (error.code === "23505") {
+          toast({ title: "Já existe uma solicitação pendente para este card" });
+        } else {
+          throw error;
+        }
+      } else {
+        toast({
+          title: "Solicitação enviada",
+          description: "A Gerência Comercial receberá a notificação. O card será movido automaticamente quando aprovado.",
+        });
       }
-      const { data: isAdmin } = await verifier.rpc("has_role", {
-        _user_id: signIn.user.id,
-        _role: "admin",
-      });
-      await verifier.auth.signOut();
-      if (!isAdmin) {
-        toast({ title: "Usuário não é Gerência (admin)", variant: "destructive" });
-        setApproving(false);
-        return;
-      }
-      upd.mutate({ id: managerApproval.card.id, status: managerApproval.dest });
-      toast({ title: "Liberação aprovada pela Gerência" });
       setManagerApproval(null);
-      setApprovalEmail("");
-      setApprovalPwd("");
+      setApprovalReason("");
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
     } finally {
-      setApproving(false);
+      setSubmittingRequest(false);
     }
   };
 
