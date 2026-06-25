@@ -22,6 +22,7 @@ import {
 import { useClients, useCreateClient } from '@/hooks/useClients';
 import { useProjects } from '@/hooks/useProjects';
 import { useCurrentTeamMember } from '@/hooks/useCurrentTeamMember';
+import ClienteHistoryButton from '@/components/ClienteHistoryButton';
 
 export function ATTab() {
   const { toast } = useToast();
@@ -564,6 +565,7 @@ export function ATTab() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
+                        <ClienteHistoryButton clientId={atCase.client_id} variant="compact" />
                         <button
                           onClick={() => openEditModal(atCase)}
                           className="btn-secondary border-border text-xs px-2 py-1.5"
