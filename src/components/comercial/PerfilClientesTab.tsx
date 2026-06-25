@@ -22,6 +22,7 @@ import { TrendingUp, TrendingDown, Users, Target, ChevronDown, ChevronUp } from 
 import { useClients } from '@/hooks/useClients';
 import { useProjects } from '@/hooks/useProjects';
 import { useApp } from '@/contexts/AppContext';
+import { useEngenhariaMembers } from '@/hooks/useEngenhariaMembers';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -68,6 +69,7 @@ export default function PerfilClientesTab() {
   const { data: clients = [], isLoading: clientsLoading } = useClients();
   const { data: projects = [], isLoading: projectsLoading } = useProjects();
   const { actions, actionTypes, professionals, teamMembers } = useApp();
+  const { memberIds: engMemberIds, convMemberIds } = useEngenhariaMembers();
 
   const [viewMode, setViewMode] = useState<'idade' | 'profissao' | 'especificador' | 'consultor'>('idade');
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
@@ -211,12 +213,16 @@ export default function PerfilClientesTab() {
     }
     if (viewMode === 'consultor') {
       return buildRows(c => {
+        // Apenas membros com cargo de Consultor Comercial (ou Engenharia).
+        // Projetistas que aparecem como consultantId em apresentações não devem entrar aqui.
+        if (!c.consultorId) return null;
+        if (!engMemberIds.has(c.consultorId) && !convMemberIds.has(c.consultorId)) return null;
         const member = teamMembers.find(m => m.id === c.consultorId);
         return member?.name || null;
       });
     }
     return [];
-  }, [viewMode, enrichedClients, professionals, teamMembers]);
+  }, [viewMode, enrichedClients, professionals, teamMembers, engMemberIds, convMemberIds]);
 
   // Taxa de fechamento média geral (para referência visual)
   const taxaMedia = kpis.taxaGeral;
