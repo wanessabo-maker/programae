@@ -21,6 +21,7 @@ import {
 } from '@/hooks/useCustomerSuccess';
 import { useProjects } from '@/hooks/useProjects';
 import { useClients, useCreateClient, useUpdateClient } from '@/hooks/useClients';
+import ClienteHistoryButton from '@/components/ClienteHistoryButton';
 
 export function CSTab() {
   const { toast } = useToast();
@@ -532,6 +533,7 @@ export function CSTab() {
                         >
                           <Pencil className="w-3 h-3" />
                         </button>
+                        <ClienteHistoryButton clientId={csCase.client_id} variant="compact" />
                       </div>
                       <div className="text-xs text-muted-foreground mt-1">
                         Assinatura: {format(parseISO(csCase.signature_date), "dd/MM/yyyy", { locale: ptBR })}
@@ -653,6 +655,7 @@ export function CSTab() {
                         >
                           <Pencil className="w-3 h-3" />
                         </button>
+                        <ClienteHistoryButton clientId={csCase.client_id} variant="compact" />
                       </div>
                       <div className="text-xs text-muted-foreground mt-1">
                         Assinatura: {format(parseISO(csCase.signature_date), "dd/MM/yyyy", { locale: ptBR })}
