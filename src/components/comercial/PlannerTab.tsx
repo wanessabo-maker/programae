@@ -713,6 +713,7 @@ function Card({ card, onEdit, onDelete }: { card: PlannerCard; onEdit: (c: Plann
           {card.clients?.name || card.name}
         </div>
         <div className="flex items-center gap-1 shrink-0">
+          <ClienteHistoryButton clientId={card.client_id} variant="icon" />
         {days !== null && !isFinal && (
           <span
             className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded shrink-0 ${
