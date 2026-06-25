@@ -19,6 +19,7 @@ import {
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useEngenhariaMembers } from "@/hooks/useEngenhariaMembers";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import ClienteHistoryButton from "@/components/ClienteHistoryButton";
 
 type PlannerStatus =
   | "AGUARDANDO_INICIO" | "INICIADO" | "CONCLUIDO" | "EM_REFORMA" | "VENDIDO" | "PERDIDO";
