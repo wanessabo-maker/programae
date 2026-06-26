@@ -177,7 +177,9 @@ export function useDashboardMetrics() {
             isMaxLimit,
             isPrimary: false,
             order: 10,
-            onTarget
+            onTarget,
+            categoryMin: category?.minPercentage,
+            categoryMax: category?.maxPercentage,
           });
         }
       });
