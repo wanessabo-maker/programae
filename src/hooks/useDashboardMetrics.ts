@@ -132,7 +132,33 @@ export function useDashboardMetrics() {
           const catCount = memberProfessionals.filter(p => p.categoryId === meta.categoryId).length;
           const pct = memberProfessionals.length > 0 ? (catCount / memberProfessionals.length) * 100 : 0;
           const category = professionalCategories.find(c => c.id === meta.categoryId);
-          metricsForArea.push({ type: `categoria-${meta.categoryId}`, label: `% ${category?.name?.toUpperCase() || 'CATEGORIA'}`, value: `${pct.toFixed(0)}%`, meta: v, percentage: v > 0 ? (pct / v) * 100 : 0, isCategory: true, isPrimary: false, order: 10 });
+          
+          let effectiveMeta = v;
+          let effectivePercentage = v > 0 ? (pct / v) * 100 : 0;
+          let isMaxLimit = false;
+          
+          if (category?.minPercentage !== undefined && category.minPercentage > 0) {
+            effectiveMeta = category.minPercentage;
+            effectivePercentage = category.minPercentage > 0 ? (pct / category.minPercentage) * 100 : 0;
+          } else if (category?.maxPercentage !== undefined && category.maxPercentage > 0) {
+            effectiveMeta = category.maxPercentage;
+            isMaxLimit = true;
+            effectivePercentage = pct > 0 && category.maxPercentage > 0
+              ? (category.maxPercentage / pct) * 100
+              : 100;
+          }
+          
+          metricsForArea.push({
+            type: `categoria-${meta.categoryId}`,
+            label: `% ${category?.name?.toUpperCase() || 'CATEGORIA'}`,
+            value: `${pct.toFixed(0)}%`,
+            meta: effectiveMeta,
+            percentage: effectivePercentage,
+            isCategory: true,
+            isMaxLimit,
+            isPrimary: false,
+            order: 10
+          });
         }
       });
 
