@@ -751,6 +751,16 @@ const CategoriasTab = () => {
         ...form,
         daysToChange: Number(e.target.value)
       })} placeholder="Dias para mudar" className="input-flat w-full text-card-foreground" />
+          <div className="grid grid-cols-2 gap-2">
+            <input type="number" min={0} max={100} value={form.minPercentage ?? ''} onChange={e => setForm({
+        ...form,
+        minPercentage: e.target.value ? Number(e.target.value) : undefined
+      })} placeholder="Mais que X% (mín.)" className="input-flat w-full text-card-foreground" />
+            <input type="number" min={0} max={100} value={form.maxPercentage ?? ''} onChange={e => setForm({
+        ...form,
+        maxPercentage: e.target.value ? Number(e.target.value) : undefined
+      })} placeholder="Até X% (máx.)" className="input-flat w-full text-card-foreground" />
+          </div>
           <div className="flex gap-2">
             <button onClick={handleAdd} className="btn-primary bg-card-foreground text-card">{editingId ? 'Atualizar' : 'Salvar'}</button>
             <button onClick={resetForm} className="btn-secondary border-card-foreground text-card-foreground">Cancelar</button>
@@ -763,6 +773,8 @@ const CategoriasTab = () => {
               <span className="text-sm">{cat.name}</span>
               <span className="text-xs text-muted-foreground uppercase">{condLabels[cat.condition]}</span>
               <span className="text-xs text-muted-foreground">{cat.daysToChange} dias</span>
+              {cat.minPercentage !== undefined && <span className="text-xs text-green-600 font-medium">mais que {cat.minPercentage}%</span>}
+              {cat.maxPercentage !== undefined && <span className="text-xs text-amber-600 font-medium">até {cat.maxPercentage}%</span>}
             </div>
             <div className="flex gap-1">
               <button onClick={() => handleEdit(cat.id)} className="p-2 opacity-60 hover:opacity-100">
