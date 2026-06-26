@@ -802,7 +802,7 @@ export default function Dashboard() {
                             </div>
                             <div className="h-1.5 bg-muted rounded-sm">
                               <div 
-                                className="h-full bg-foreground rounded-sm transition-all" 
+                                className={`h-full rounded-sm transition-all ${metric.onTarget ? 'bg-success' : 'bg-destructive'}`} 
                                 style={{ width: `${Math.min(metric.percentage, 100)}%` }}
                               />
                             </div>
@@ -836,7 +836,7 @@ export default function Dashboard() {
                                       </div>
                                       <div className="h-1 bg-black/20 mt-1 relative">
                                         <div 
-                                          className="h-full bg-black/60" 
+                                          className={`h-full ${metric.onTarget ? 'bg-success' : 'bg-destructive'}`} 
                                           style={{ width: `${Math.min(metric.percentage, 100)}%` }}
                                         />
                                       </div>
@@ -860,7 +860,7 @@ export default function Dashboard() {
                                       </div>
                                       <div className="h-0.5 bg-black/20 mt-1">
                                         <div 
-                                          className="h-full bg-black/60" 
+                                          className={`h-full ${metric.onTarget ? 'bg-success' : 'bg-destructive'}`} 
                                           style={{ width: `${Math.min(metric.percentage, 100)}%` }}
                                         />
                                       </div>
