@@ -257,6 +257,7 @@ export default function Dashboard() {
         isCategory?: boolean;
         isPrimary?: boolean;
         order?: number;
+        onTarget?: boolean;
       }> = [];
 
       // Build metrics only for goals that exist AND have value > 1
