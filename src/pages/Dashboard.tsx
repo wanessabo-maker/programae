@@ -883,7 +883,25 @@ export default function Dashboard() {
                                     // Category metrics: show category name, meta below, current % in bar
                                     <>
                                       <div className="flex flex-col gap-0.5">
-                                        <span className="text-xs text-black font-medium">{metric.label}</span>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <div className="flex items-center gap-1 cursor-help">
+                                              <span className="text-xs text-black font-medium">{metric.label}</span>
+                                              <Info className="w-3 h-3 text-black/50" />
+                                            </div>
+                                          </TooltipTrigger>
+                                          <TooltipContent side="top" className="max-w-[220px]">
+                                            <p className="text-xs">
+                                              {metric.categoryMin !== undefined && metric.categoryMin > 0 && metric.categoryMax !== undefined && metric.categoryMax > 0
+                                                ? `Meta: entre ${metric.categoryMin}% e ${metric.categoryMax}%`
+                                                : metric.categoryMin !== undefined && metric.categoryMin > 0
+                                                  ? `Meta: mais que ${metric.categoryMin}%`
+                                                  : metric.categoryMax !== undefined && metric.categoryMax > 0
+                                                    ? `Meta: menos que ${metric.categoryMax}%`
+                                                    : `Meta: ${metric.metaLabelPrefix || 'mais que'} ${Math.round(metric.metaDisplayValue ?? metric.meta)}%`}
+                                            </p>
+                                          </TooltipContent>
+                                        </Tooltip>
                                         <span className="text-[10px] text-black/70">
                                           Meta: {metric.metaLabelPrefix || 'mais que'} {Math.round(metric.metaDisplayValue ?? metric.meta)}%
                                         </span>
