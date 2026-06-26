@@ -685,7 +685,9 @@ const CategoriasTab = () => {
   const [form, setForm] = useState({
     name: '',
     condition: 'relacionamento' as 'relacionamento' | 'venda' | 'projeto' | 'outro',
-    daysToChange: 30
+    daysToChange: 30,
+    minPercentage: undefined as number | undefined,
+    maxPercentage: undefined as number | undefined,
   });
   const condLabels = {
     relacionamento: 'Relacionamento',
