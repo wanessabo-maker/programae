@@ -67,6 +67,8 @@ export interface ProfessionalCategory {
   order: number;
   condition: 'venda' | 'relacionamento' | 'projeto' | 'outro';
   daysToChange: number;
+  minPercentage?: number;
+  maxPercentage?: number;
 }
 
 export interface Reward {
