@@ -141,10 +141,17 @@ export function useDashboardMetrics() {
           let effectivePercentage = v > 0 ? (pct / v) * 100 : 0;
           let isMaxLimit = false;
           
-          if (category?.minPercentage !== undefined && category.minPercentage > 0) {
+          const hasMin = category?.minPercentage !== undefined && category.minPercentage > 0;
+          const hasMax = category?.maxPercentage !== undefined && category.maxPercentage > 0;
+          
+          if (hasMin && hasMax) {
+            effectiveMeta = category.maxPercentage;
+            isMaxLimit = true;
+            effectivePercentage = category.maxPercentage > 0 ? (pct / category.maxPercentage) * 100 : 0;
+          } else if (hasMin) {
             effectiveMeta = category.minPercentage;
             effectivePercentage = category.minPercentage > 0 ? (pct / category.minPercentage) * 100 : 0;
-          } else if (category?.maxPercentage !== undefined && category.maxPercentage > 0) {
+          } else if (hasMax) {
             effectiveMeta = category.maxPercentage;
             isMaxLimit = true;
             effectivePercentage = pct > 0 && category.maxPercentage > 0
@@ -152,7 +159,12 @@ export function useDashboardMetrics() {
               : 100;
           }
           
-          const onTarget = isMaxLimit ? pct <= effectiveMeta : pct >= effectiveMeta;
+          let onTarget: boolean;
+          if (hasMin && hasMax) {
+            onTarget = pct >= category.minPercentage && pct <= category.maxPercentage;
+          } else {
+            onTarget = isMaxLimit ? pct <= effectiveMeta : pct >= effectiveMeta;
+          }
           
           metricsForArea.push({
             type: `categoria-${meta.categoryId}`,
