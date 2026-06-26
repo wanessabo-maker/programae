@@ -277,39 +277,45 @@ export default function Dashboard() {
         const individualMeta = meta.value; // Direct value - no more division
         
         if (meta.type === 'vendas') {
+          const percentage = individualMeta > 0 ? (totalSales / individualMeta) * 100 : 0;
           metricsForArea.push({
             type: 'vendas',
             label: 'VENDAS',
             value: totalSales,
             meta: individualMeta,
-            percentage: individualMeta > 0 ? (totalSales / individualMeta) * 100 : 0,
+            percentage,
             isCurrency: true,
             isPrimary: true,
             order: 1,
+            onTarget: totalSales >= individualMeta,
           });
         } else if (meta.type === 'captacao') {
           const totalCaptacoes = thisMonthActions.filter(a => {
             const type = actionTypes.find(t => t.id === a.actionTypeId);
             return type?.impactsMetas.includes('captacao');
           }).length;
+          const percentage = individualMeta > 0 ? (totalCaptacoes / individualMeta) * 100 : 0;
           metricsForArea.push({
             type: 'captacao',
             label: 'CAPTAÇÃO',
             value: totalCaptacoes,
             meta: individualMeta,
-            percentage: individualMeta > 0 ? (totalCaptacoes / individualMeta) * 100 : 0,
+            percentage,
             isPrimary: true,
             order: 2,
+            onTarget: totalCaptacoes >= individualMeta,
           });
         } else if (meta.type === 'acoes') {
+          const percentage = individualMeta > 0 ? (totalAcoes / individualMeta) * 100 : 0;
           metricsForArea.push({
             type: 'acoes',
             label: 'AÇÕES',
             value: totalAcoes,
             meta: individualMeta,
-            percentage: individualMeta > 0 ? (totalAcoes / individualMeta) * 100 : 0,
+            percentage,
             isPrimary: true,
             order: 3,
+            onTarget: totalAcoes >= individualMeta,
           });
         } else if (meta.type === 'projeto') {
           // Projetos: usar contagem de AMBIENTES (não ações)
@@ -318,19 +324,21 @@ export default function Dashboard() {
           const totalAmbientes = memberEnvStats 
             ? (memberEnvStats.apresentacao || 0) + (memberEnvStats.tecnico || 0)
             : 0;
+          const percentage = individualMeta > 0 ? (totalAmbientes / individualMeta) * 100 : 0;
           metricsForArea.push({
             type: 'projeto',
             label: 'AMBIENTES',
             value: totalAmbientes,
             meta: individualMeta,
-            percentage: individualMeta > 0 ? (totalAmbientes / individualMeta) * 100 : 0,
+            percentage,
             isPrimary: false,
             order: 4,
+            onTarget: totalAmbientes >= individualMeta,
           });
         } else if (meta.type === 'categoria' && meta.categoryId) {
           // Calculate percentage of professionals in the specified category
           const categoryCount = memberProfessionals.filter(p => p.categoryId === meta.categoryId).length;
-          const percentage = memberProfessionals.length > 0 
+          const pct = memberProfessionals.length > 0 
             ? (categoryCount / memberProfessionals.length) * 100 
             : 0;
           const category = professionalCategories.find(c => c.id === meta.categoryId);
@@ -340,15 +348,25 @@ export default function Dashboard() {
           if (catName.includes('ENCANT')) categoryOrder = 10;
           else if (catName.includes('CURIOS')) categoryOrder = 11;
           else if (catName.includes('DISTANT')) categoryOrder = 12;
+
+          const isMaxLimit = category?.maxPercentage !== undefined && category.maxPercentage > 0;
+          const effectiveMeta = isMaxLimit
+            ? (category?.maxPercentage ?? individualMeta)
+            : (category?.minPercentage !== undefined && category.minPercentage > 0
+                ? category.minPercentage
+                : individualMeta);
+          const onTarget = isMaxLimit ? pct <= effectiveMeta : pct >= effectiveMeta;
+
           metricsForArea.push({
             type: `categoria-${meta.categoryId}`, // Unique key per category
             label: `% ${category?.name?.toUpperCase() || 'CATEGORIA'}`,
-            value: `${percentage.toFixed(0)}%`,
-            meta: individualMeta,
-            percentage: individualMeta > 0 ? (percentage / individualMeta) * 100 : 0,
+            value: `${pct.toFixed(0)}%`,
+            meta: effectiveMeta,
+            percentage: effectiveMeta > 0 ? (pct / effectiveMeta) * 100 : 0,
             isCategory: true,
             isPrimary: false,
             order: categoryOrder,
+            onTarget,
           });
         }
       });
