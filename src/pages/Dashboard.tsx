@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, Trash2, Pencil, ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Plus, Trash2, Pencil, ChevronDown, ChevronRight, ChevronLeft, Info } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useCurrentTeamMember } from '@/hooks/useCurrentTeamMember';
@@ -11,6 +11,7 @@ import { EditActionModal } from '@/components/EditActionModal';
 import { YearlyResultsBoard } from '@/components/YearlyResultsBoard';
 import { DeleteActionConfirmDialog } from '@/components/DeleteActionConfirmDialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import { 
   DashboardSkeleton, 
   LoadingTimeoutMessage,
