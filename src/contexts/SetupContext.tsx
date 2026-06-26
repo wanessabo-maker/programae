@@ -75,8 +75,13 @@ function transformProfessionalType(d: { id: string; name: string }): Professiona
   return { id: d.id, name: d.name };
 }
 
-function transformProfessionalCategory(d: { id: string; name: string; condition: string; days: number; hierarchy: number; points: number | null }): ProfessionalCategory {
-  return { id: d.id, name: d.name, order: d.hierarchy, condition: d.condition as ProfessionalCategory['condition'], daysToChange: d.days };
+function transformProfessionalCategory(d: { id: string; name: string; condition: string; days: number; hierarchy: number; points: number | null; min_percentage: number | null; max_percentage: number | null }): ProfessionalCategory {
+  return {
+    id: d.id, name: d.name, order: d.hierarchy,
+    condition: d.condition as ProfessionalCategory['condition'], daysToChange: d.days,
+    minPercentage: d.min_percentage ?? undefined,
+    maxPercentage: d.max_percentage ?? undefined,
+  };
 }
 
 function transformReward(d: { id: string; name: string; cost: number }): Reward {
