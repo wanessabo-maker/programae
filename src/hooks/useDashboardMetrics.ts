@@ -113,6 +113,7 @@ export function useDashboardMetrics() {
         type: string; label: string; value: number | string; meta: number;
         percentage: number; isCurrency?: boolean; isCategory?: boolean; isPrimary?: boolean; order?: number;
         isMaxLimit?: boolean; onTarget?: boolean;
+        categoryMin?: number; categoryMax?: number;
       }> = [];
 
       areaMetas.filter(meta => meta.value > 1).forEach(meta => {
