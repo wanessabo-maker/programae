@@ -176,7 +176,7 @@ export function useProfessionalCategories() {
 export function useCreateProfessionalCategory() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (category: { name: string; condition: string; days: number; hierarchy: number; points?: number }) => {
+    mutationFn: async (category: { name: string; condition: string; days: number; hierarchy: number; points?: number; min_percentage?: number | null; max_percentage?: number | null }) => {
       const { data, error } = await supabase.from('professional_categories').insert(category).select().single();
       if (error) throw error;
       return data;
@@ -189,7 +189,7 @@ export function useCreateProfessionalCategory() {
 export function useUpdateProfessionalCategory() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string; name?: string; condition?: string; days?: number; hierarchy?: number; points?: number }) => {
+    mutationFn: async ({ id, ...updates }: { id: string; name?: string; condition?: string; days?: number; hierarchy?: number; points?: number; min_percentage?: number | null; max_percentage?: number | null }) => {
       const { data, error } = await supabase.from('professional_categories').update(updates).eq('id', id).select().single();
       if (error) throw error;
       return data;

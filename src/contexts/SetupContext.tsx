@@ -75,8 +75,13 @@ function transformProfessionalType(d: { id: string; name: string }): Professiona
   return { id: d.id, name: d.name };
 }
 
-function transformProfessionalCategory(d: { id: string; name: string; condition: string; days: number; hierarchy: number; points: number | null }): ProfessionalCategory {
-  return { id: d.id, name: d.name, order: d.hierarchy, condition: d.condition as ProfessionalCategory['condition'], daysToChange: d.days };
+function transformProfessionalCategory(d: { id: string; name: string; condition: string; days: number; hierarchy: number; points: number | null; min_percentage: number | null; max_percentage: number | null }): ProfessionalCategory {
+  return {
+    id: d.id, name: d.name, order: d.hierarchy,
+    condition: d.condition as ProfessionalCategory['condition'], daysToChange: d.days,
+    minPercentage: d.min_percentage ?? undefined,
+    maxPercentage: d.max_percentage ?? undefined,
+  };
 }
 
 function transformReward(d: { id: string; name: string; cost: number }): Reward {
@@ -203,8 +208,8 @@ export function SetupProvider({ children }: { children: ReactNode }) {
   const updateProfessionalType = useCallback((id: string, t: Partial<ProfessionalType>) => { if (t.name) updateProfessionalTypeMut.mutate({ id, name: t.name }); }, [updateProfessionalTypeMut]);
   const deleteProfessionalType = useCallback((id: string) => deleteProfessionalTypeMut.mutate(id), [deleteProfessionalTypeMut]);
 
-  const addProfessionalCategory = useCallback((c: Omit<ProfessionalCategory, 'id'>) => createProfessionalCategory.mutate({ name: c.name, condition: c.condition, days: c.daysToChange, hierarchy: c.order }), [createProfessionalCategory]);
-  const updateProfessionalCategory = useCallback((id: string, c: Partial<ProfessionalCategory>) => updateProfessionalCategoryMut.mutate({ id, name: c.name, condition: c.condition, days: c.daysToChange, hierarchy: c.order }), [updateProfessionalCategoryMut]);
+  const addProfessionalCategory = useCallback((c: Omit<ProfessionalCategory, 'id'>) => createProfessionalCategory.mutate({ name: c.name, condition: c.condition, days: c.daysToChange, hierarchy: c.order, min_percentage: c.minPercentage, max_percentage: c.maxPercentage }), [createProfessionalCategory]);
+  const updateProfessionalCategory = useCallback((id: string, c: Partial<ProfessionalCategory>) => updateProfessionalCategoryMut.mutate({ id, name: c.name, condition: c.condition, days: c.daysToChange, hierarchy: c.order, min_percentage: c.minPercentage, max_percentage: c.maxPercentage }), [updateProfessionalCategoryMut]);
   const deleteProfessionalCategory = useCallback((id: string) => deleteProfessionalCategoryMut.mutate(id), [deleteProfessionalCategoryMut]);
 
   const addReward = useCallback((r: Omit<Reward, 'id'>) => createReward.mutate({ name: r.name, cost: r.cost }), [createReward]);
