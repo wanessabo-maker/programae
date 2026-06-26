@@ -1193,6 +1193,8 @@ export type Database = {
           days: number
           hierarchy: number
           id: string
+          max_percentage: number | null
+          min_percentage: number | null
           name: string
           points: number | null
         }
@@ -1202,6 +1204,8 @@ export type Database = {
           days: number
           hierarchy?: number
           id?: string
+          max_percentage?: number | null
+          min_percentage?: number | null
           name: string
           points?: number | null
         }
@@ -1211,6 +1215,8 @@ export type Database = {
           days?: number
           hierarchy?: number
           id?: string
+          max_percentage?: number | null
+          min_percentage?: number | null
           name?: string
           points?: number | null
         }
