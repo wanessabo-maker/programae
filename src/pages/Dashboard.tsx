@@ -404,6 +404,8 @@ export default function Dashboard() {
             isMaxLimit,
             metaLabelPrefix,
             metaDisplayValue,
+            categoryMin: category?.minPercentage,
+            categoryMax: category?.maxPercentage,
           });
         }
       });
