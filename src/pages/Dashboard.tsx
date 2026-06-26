@@ -819,7 +819,7 @@ export default function Dashboard() {
                                   : metric.value}
                               </span>
                             </div>
-                            <div className="h-1.5 bg-muted rounded-sm">
+                            <div className={`h-1.5 rounded-sm ${metric.value === 0 ? 'bg-transparent' : 'bg-muted'}`}>
                               <div 
                                 className={`h-full rounded-sm transition-all ${metric.onTarget ? 'bg-success' : 'bg-destructive'}`} 
                                 style={{ width: `${Math.min(metric.percentage, 100)}%` }}
