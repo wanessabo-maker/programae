@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, Trash2, Pencil, ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Plus, Trash2, Pencil, ChevronDown, ChevronRight, ChevronLeft, Info } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useCurrentTeamMember } from '@/hooks/useCurrentTeamMember';
@@ -11,6 +11,7 @@ import { EditActionModal } from '@/components/EditActionModal';
 import { YearlyResultsBoard } from '@/components/YearlyResultsBoard';
 import { DeleteActionConfirmDialog } from '@/components/DeleteActionConfirmDialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import { 
   DashboardSkeleton, 
   LoadingTimeoutMessage,
@@ -261,6 +262,8 @@ export default function Dashboard() {
         isMaxLimit?: boolean;
         metaLabelPrefix?: string;
         metaDisplayValue?: number;
+        categoryMin?: number;
+        categoryMax?: number;
       }> = [];
 
       // Build metrics only for goals that exist AND have value > 1
@@ -401,6 +404,8 @@ export default function Dashboard() {
             isMaxLimit,
             metaLabelPrefix,
             metaDisplayValue,
+            categoryMin: category?.minPercentage,
+            categoryMax: category?.maxPercentage,
           });
         }
       });
@@ -882,7 +887,25 @@ export default function Dashboard() {
                                     // Category metrics: show category name, meta below, current % in bar
                                     <>
                                       <div className="flex flex-col gap-0.5">
-                                        <span className="text-xs text-black font-medium">{metric.label}</span>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <div className="flex items-center gap-1 cursor-help">
+                                              <span className="text-xs text-black font-medium">{metric.label}</span>
+                                              <Info className="w-3 h-3 text-black/50" />
+                                            </div>
+                                          </TooltipTrigger>
+                                          <TooltipContent side="top" className="max-w-[220px]">
+                                            <p className="text-xs">
+                                              {metric.categoryMin !== undefined && metric.categoryMin > 0 && metric.categoryMax !== undefined && metric.categoryMax > 0
+                                                ? `Meta: entre ${metric.categoryMin}% e ${metric.categoryMax}%`
+                                                : metric.categoryMin !== undefined && metric.categoryMin > 0
+                                                  ? `Meta: mais que ${metric.categoryMin}%`
+                                                  : metric.categoryMax !== undefined && metric.categoryMax > 0
+                                                    ? `Meta: menos que ${metric.categoryMax}%`
+                                                    : `Meta: ${metric.metaLabelPrefix || 'mais que'} ${Math.round(metric.metaDisplayValue ?? metric.meta)}%`}
+                                            </p>
+                                          </TooltipContent>
+                                        </Tooltip>
                                         <span className="text-[10px] text-black/70">
                                           Meta: {metric.metaLabelPrefix || 'mais que'} {Math.round(metric.metaDisplayValue ?? metric.meta)}%
                                         </span>
