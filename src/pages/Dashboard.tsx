@@ -358,24 +358,34 @@ export default function Dashboard() {
           let isMaxLimit = false;
           let onTarget: boolean;
           let barPercentage = 0;
+          let metaLabelPrefix = 'mais que';
+          let metaDisplayValue = individualMeta;
 
           if (hasMin && hasMax) {
             effectiveMeta = category.maxPercentage;
             isMaxLimit = true;
             onTarget = pct >= category.minPercentage && pct <= category.maxPercentage;
             barPercentage = category.maxPercentage > 0 ? (pct / category.maxPercentage) * 100 : 0;
+            metaLabelPrefix = 'mais que';
+            metaDisplayValue = category.minPercentage;
           } else if (hasMin) {
             effectiveMeta = category.minPercentage;
             onTarget = pct >= effectiveMeta;
             barPercentage = effectiveMeta > 0 ? (pct / effectiveMeta) * 100 : 0;
+            metaLabelPrefix = 'mais que';
+            metaDisplayValue = category.minPercentage;
           } else if (hasMax) {
             effectiveMeta = category.maxPercentage;
             isMaxLimit = true;
             onTarget = pct <= effectiveMeta;
             barPercentage = effectiveMeta > 0 ? (pct / effectiveMeta) * 100 : 0;
+            metaLabelPrefix = 'menos que';
+            metaDisplayValue = category.maxPercentage;
           } else {
             onTarget = pct >= effectiveMeta;
             barPercentage = effectiveMeta > 0 ? (pct / effectiveMeta) * 100 : 0;
+            metaLabelPrefix = 'mais que';
+            metaDisplayValue = individualMeta;
           }
 
           metricsForArea.push({
@@ -389,6 +399,8 @@ export default function Dashboard() {
             order: categoryOrder,
             onTarget,
             isMaxLimit,
+            metaLabelPrefix,
+            metaDisplayValue,
           });
         }
       });
