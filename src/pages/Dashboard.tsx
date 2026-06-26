@@ -259,6 +259,8 @@ export default function Dashboard() {
         order?: number;
         onTarget?: boolean;
         isMaxLimit?: boolean;
+        metaLabelPrefix?: string;
+        metaDisplayValue?: number;
       }> = [];
 
       // Build metrics only for goals that exist AND have value > 1
@@ -356,24 +358,34 @@ export default function Dashboard() {
           let isMaxLimit = false;
           let onTarget: boolean;
           let barPercentage = 0;
+          let metaLabelPrefix = 'mais que';
+          let metaDisplayValue = individualMeta;
 
           if (hasMin && hasMax) {
             effectiveMeta = category.maxPercentage;
             isMaxLimit = true;
             onTarget = pct >= category.minPercentage && pct <= category.maxPercentage;
             barPercentage = category.maxPercentage > 0 ? (pct / category.maxPercentage) * 100 : 0;
+            metaLabelPrefix = 'mais que';
+            metaDisplayValue = category.minPercentage;
           } else if (hasMin) {
             effectiveMeta = category.minPercentage;
             onTarget = pct >= effectiveMeta;
             barPercentage = effectiveMeta > 0 ? (pct / effectiveMeta) * 100 : 0;
+            metaLabelPrefix = 'mais que';
+            metaDisplayValue = category.minPercentage;
           } else if (hasMax) {
             effectiveMeta = category.maxPercentage;
             isMaxLimit = true;
             onTarget = pct <= effectiveMeta;
             barPercentage = effectiveMeta > 0 ? (pct / effectiveMeta) * 100 : 0;
+            metaLabelPrefix = 'menos que';
+            metaDisplayValue = category.maxPercentage;
           } else {
             onTarget = pct >= effectiveMeta;
             barPercentage = effectiveMeta > 0 ? (pct / effectiveMeta) * 100 : 0;
+            metaLabelPrefix = 'mais que';
+            metaDisplayValue = individualMeta;
           }
 
           metricsForArea.push({
@@ -387,6 +399,8 @@ export default function Dashboard() {
             order: categoryOrder,
             onTarget,
             isMaxLimit,
+            metaLabelPrefix,
+            metaDisplayValue,
           });
         }
       });
@@ -870,7 +884,7 @@ export default function Dashboard() {
                                       <div className="flex flex-col gap-0.5">
                                         <span className="text-xs text-black font-medium">{metric.label}</span>
                                         <span className="text-[10px] text-black/70">
-                                          Meta: {(metric as { isMaxLimit?: boolean }).isMaxLimit ? 'menos que' : 'mais que'} {Math.round(metric.meta)}%
+                                          Meta: {metric.metaLabelPrefix || 'mais que'} {Math.round(metric.metaDisplayValue ?? metric.meta)}%
                                         </span>
                                       </div>
                                       <div className="h-1 bg-black/20 mt-1 relative">
