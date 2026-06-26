@@ -112,7 +112,7 @@ export function useDashboardMetrics() {
       const metricsForArea: Array<{
         type: string; label: string; value: number | string; meta: number;
         percentage: number; isCurrency?: boolean; isCategory?: boolean; isPrimary?: boolean; order?: number;
-        isMaxLimit?: boolean;
+        isMaxLimit?: boolean; onTarget?: boolean;
       }> = [];
 
       areaMetas.filter(meta => meta.value > 1).forEach(meta => {
