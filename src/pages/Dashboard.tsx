@@ -258,6 +258,7 @@ export default function Dashboard() {
         isPrimary?: boolean;
         order?: number;
         onTarget?: boolean;
+        isMaxLimit?: boolean;
       }> = [];
 
       // Build metrics only for goals that exist AND have value > 1
