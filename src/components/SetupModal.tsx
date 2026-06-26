@@ -725,7 +725,9 @@ const CategoriasTab = () => {
       setForm({
         name: cat.name,
         condition: cat.condition,
-        daysToChange: cat.daysToChange
+        daysToChange: cat.daysToChange,
+        minPercentage: cat.minPercentage,
+        maxPercentage: cat.maxPercentage,
       });
       setEditingId(id);
       setFormOpen(true);
