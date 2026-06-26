@@ -699,7 +699,9 @@ const CategoriasTab = () => {
     setForm({
       name: '',
       condition: 'relacionamento',
-      daysToChange: 30
+      daysToChange: 30,
+      minPercentage: undefined,
+      maxPercentage: undefined,
     });
     setFormOpen(false);
     setEditingId(null);
