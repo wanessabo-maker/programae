@@ -112,22 +112,26 @@ export function useDashboardMetrics() {
       const metricsForArea: Array<{
         type: string; label: string; value: number | string; meta: number;
         percentage: number; isCurrency?: boolean; isCategory?: boolean; isPrimary?: boolean; order?: number;
-        isMaxLimit?: boolean;
+        isMaxLimit?: boolean; onTarget?: boolean;
       }> = [];
 
       areaMetas.filter(meta => meta.value > 1).forEach(meta => {
         const v = meta.value;
         if (meta.type === 'vendas') {
-          metricsForArea.push({ type: 'vendas', label: 'VENDAS', value: totalSales, meta: v, percentage: v > 0 ? (totalSales / v) * 100 : 0, isCurrency: true, isPrimary: true, order: 1 });
+          const percentage = v > 0 ? (totalSales / v) * 100 : 0;
+          metricsForArea.push({ type: 'vendas', label: 'VENDAS', value: totalSales, meta: v, percentage, isCurrency: true, isPrimary: true, order: 1, onTarget: totalSales >= v });
         } else if (meta.type === 'captacao') {
           const total = memberActions.filter(a => actionTypes.find(t => t.id === a.actionTypeId)?.impactsMetas.includes('captacao')).length;
-          metricsForArea.push({ type: 'captacao', label: 'CAPTAÇÃO', value: total, meta: v, percentage: v > 0 ? (total / v) * 100 : 0, isPrimary: true, order: 2 });
+          const percentage = v > 0 ? (total / v) * 100 : 0;
+          metricsForArea.push({ type: 'captacao', label: 'CAPTAÇÃO', value: total, meta: v, percentage, isPrimary: true, order: 2, onTarget: total >= v });
         } else if (meta.type === 'acoes') {
-          metricsForArea.push({ type: 'acoes', label: 'AÇÕES', value: totalAcoes, meta: v, percentage: v > 0 ? (totalAcoes / v) * 100 : 0, isPrimary: true, order: 3 });
+          const percentage = v > 0 ? (totalAcoes / v) * 100 : 0;
+          metricsForArea.push({ type: 'acoes', label: 'AÇÕES', value: totalAcoes, meta: v, percentage, isPrimary: true, order: 3, onTarget: totalAcoes >= v });
         } else if (meta.type === 'projeto') {
           const memberEnvStats = envStats?.byProjetista?.[member.id];
           const totalAmbientes = memberEnvStats ? (memberEnvStats.apresentacao || 0) + (memberEnvStats.tecnico || 0) : 0;
-          metricsForArea.push({ type: 'projeto', label: 'AMBIENTES', value: totalAmbientes, meta: v, percentage: v > 0 ? (totalAmbientes / v) * 100 : 0, isPrimary: false, order: 4 });
+          const percentage = v > 0 ? (totalAmbientes / v) * 100 : 0;
+          metricsForArea.push({ type: 'projeto', label: 'AMBIENTES', value: totalAmbientes, meta: v, percentage, isPrimary: false, order: 4, onTarget: totalAmbientes >= v });
         } else if (meta.type === 'categoria' && meta.categoryId) {
           const catCount = memberProfessionals.filter(p => p.categoryId === meta.categoryId).length;
           const pct = memberProfessionals.length > 0 ? (catCount / memberProfessionals.length) * 100 : 0;
@@ -148,6 +152,8 @@ export function useDashboardMetrics() {
               : 100;
           }
           
+          const onTarget = isMaxLimit ? pct <= effectiveMeta : pct >= effectiveMeta;
+          
           metricsForArea.push({
             type: `categoria-${meta.categoryId}`,
             label: `% ${category?.name?.toUpperCase() || 'CATEGORIA'}`,
@@ -157,7 +163,8 @@ export function useDashboardMetrics() {
             isCategory: true,
             isMaxLimit,
             isPrimary: false,
-            order: 10
+            order: 10,
+            onTarget
           });
         }
       });
