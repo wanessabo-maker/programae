@@ -368,6 +368,7 @@ export default function Dashboard() {
             isPrimary: false,
             order: categoryOrder,
             onTarget,
+            isMaxLimit,
           });
         }
       });
@@ -851,7 +852,7 @@ export default function Dashboard() {
                                       <div className="flex flex-col gap-0.5">
                                         <span className="text-xs text-black font-medium">{metric.label}</span>
                                         <span className="text-[10px] text-black/70">
-                                          Meta: {(metric as { isMaxLimit?: boolean }).isMaxLimit ? 'até' : 'mais que'} {Math.round(metric.meta)}%
+                                          Meta: {(metric as { isMaxLimit?: boolean }).isMaxLimit ? 'menos que' : 'mais que'} {Math.round(metric.meta)}%
                                         </span>
                                       </div>
                                       <div className="h-1 bg-black/20 mt-1 relative">
