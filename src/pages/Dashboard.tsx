@@ -259,6 +259,8 @@ export default function Dashboard() {
         order?: number;
         onTarget?: boolean;
         isMaxLimit?: boolean;
+        metaLabelPrefix?: string;
+        metaDisplayValue?: number;
       }> = [];
 
       // Build metrics only for goals that exist AND have value > 1
