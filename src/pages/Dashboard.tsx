@@ -350,20 +350,38 @@ export default function Dashboard() {
           else if (catName.includes('CURIOS')) categoryOrder = 11;
           else if (catName.includes('DISTANT')) categoryOrder = 12;
 
-          const isMaxLimit = category?.maxPercentage !== undefined && category.maxPercentage > 0;
-          const effectiveMeta = isMaxLimit
-            ? (category?.maxPercentage ?? individualMeta)
-            : (category?.minPercentage !== undefined && category.minPercentage > 0
-                ? category.minPercentage
-                : individualMeta);
-          const onTarget = isMaxLimit ? pct <= effectiveMeta : pct >= effectiveMeta;
+          const hasMin = category?.minPercentage !== undefined && category.minPercentage > 0;
+          const hasMax = category?.maxPercentage !== undefined && category.maxPercentage > 0;
+          let effectiveMeta = individualMeta;
+          let isMaxLimit = false;
+          let onTarget: boolean;
+          let barPercentage = 0;
+
+          if (hasMin && hasMax) {
+            effectiveMeta = category.maxPercentage;
+            isMaxLimit = true;
+            onTarget = pct >= category.minPercentage && pct <= category.maxPercentage;
+            barPercentage = category.maxPercentage > 0 ? (pct / category.maxPercentage) * 100 : 0;
+          } else if (hasMin) {
+            effectiveMeta = category.minPercentage;
+            onTarget = pct >= effectiveMeta;
+            barPercentage = effectiveMeta > 0 ? (pct / effectiveMeta) * 100 : 0;
+          } else if (hasMax) {
+            effectiveMeta = category.maxPercentage;
+            isMaxLimit = true;
+            onTarget = pct <= effectiveMeta;
+            barPercentage = effectiveMeta > 0 ? (pct / effectiveMeta) * 100 : 0;
+          } else {
+            onTarget = pct >= effectiveMeta;
+            barPercentage = effectiveMeta > 0 ? (pct / effectiveMeta) * 100 : 0;
+          }
 
           metricsForArea.push({
             type: `categoria-${meta.categoryId}`, // Unique key per category
             label: `% ${category?.name?.toUpperCase() || 'CATEGORIA'}`,
             value: `${pct.toFixed(0)}%`,
             meta: effectiveMeta,
-            percentage: effectiveMeta > 0 ? (pct / effectiveMeta) * 100 : 0,
+            percentage: barPercentage,
             isCategory: true,
             isPrimary: false,
             order: categoryOrder,
