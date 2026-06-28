@@ -1,8 +1,10 @@
 import { useState, useMemo } from 'react';
 import { format, parseISO, startOfMonth, endOfMonth, startOfYear, endOfYear, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Eye, FileText, Calendar, TrendingUp, Filter, User, DollarSign, ListChecks, Pencil, Trash2 } from 'lucide-react';
+import { Eye, FileText, Calendar, TrendingUp, Filter, User, DollarSign, ListChecks, Pencil, Trash2, ChevronDown, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useProjects, Project } from '@/hooks/useProjects';
@@ -31,7 +33,7 @@ export default function ContratosTab() {
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>('month');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
-  const [consultantFilter, setConsultantFilter] = useState<string>('all');
+  const [consultantIds, setConsultantIds] = useState<string[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -67,11 +69,11 @@ export default function ContratosTab() {
         });
       }
     }
-    if (consultantFilter !== 'all') {
-      list = list.filter(p => p.responsible_id === consultantFilter);
+    if (consultantIds.length > 0) {
+      list = list.filter(p => p.responsible_id && consultantIds.includes(p.responsible_id));
     }
     return list;
-  }, [closedProjects, periodFilter, customStart, customEnd, consultantFilter]);
+  }, [closedProjects, periodFilter, customStart, customEnd, consultantIds]);
 
   // Count number of "Apresentação de Projeto" actions per project (used to show conversion effort)
   const presentationCountByProject = useMemo(() => {
@@ -289,17 +291,53 @@ export default function ContratosTab() {
           </div>
         )}
         <div className="flex items-center gap-2 ml-auto">
-          <span className="text-xs tracking-widest uppercase text-muted-foreground">Consultor:</span>
-          <select
-            value={consultantFilter}
-            onChange={(e) => setConsultantFilter(e.target.value)}
-            className="input-flat text-sm"
-          >
-            <option value="all">Todos</option>
-            {teamMembers.filter(m => m.active).map(m => (
-              <option key={m.id} value={m.id}>{m.name}</option>
-            ))}
-          </select>
+          <span className="text-xs tracking-widest uppercase text-muted-foreground">Consultores:</span>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className="input-flat text-sm flex items-center gap-2 min-w-[180px] justify-between">
+                <span className="truncate">
+                  {consultantIds.length === 0
+                    ? 'Todos'
+                    : `${consultantIds.length} selecionado${consultantIds.length > 1 ? 's' : ''}`}
+                </span>
+                <ChevronDown className="h-3 w-3 opacity-50" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64 p-2 bg-popover" align="end">
+              <div className="flex items-center justify-between mb-2 px-2 pt-1">
+                <span className="text-xs uppercase tracking-widest text-muted-foreground">Vendedores</span>
+                {consultantIds.length > 0 && (
+                  <button
+                    onClick={() => setConsultantIds([])}
+                    className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                  >
+                    <X className="h-3 w-3" /> Limpar
+                  </button>
+                )}
+              </div>
+              <div className="max-h-64 overflow-y-auto space-y-1">
+                {teamMembers.filter(m => m.active).map(m => {
+                  const checked = consultantIds.includes(m.id);
+                  return (
+                    <label
+                      key={m.id}
+                      className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted rounded cursor-pointer text-sm"
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(v) => {
+                          setConsultantIds((prev) =>
+                            v ? [...prev, m.id] : prev.filter((id) => id !== m.id)
+                          );
+                        }}
+                      />
+                      <span className="truncate">{m.name}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
