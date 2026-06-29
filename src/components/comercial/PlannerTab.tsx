@@ -100,7 +100,7 @@ function useUpdateStatus() {
 function NovoProjetoModal({ open, onOpenChange }: { open: boolean; onOpenChange: (b: boolean) => void }) {
   const qc = useQueryClient();
   const { toast } = useToast();
-  const { user } = useAuthContext();
+  const { user, isAdmin } = useAuthContext();
   const [clienteBusca, setClienteBusca] = useState("");
   const [clienteSelecionado, setClienteSelecionado] = useState<{ id: string; name: string } | null>(null);
   const [novoCliente, setNovoCliente] = useState("");
@@ -121,9 +121,9 @@ function NovoProjetoModal({ open, onOpenChange }: { open: boolean; onOpenChange:
   });
 
   // Captações recentes (últimos 90 dias) ainda sem projeto vinculado
-  // Mostradas para qualquer cliente (existente ou novo) — vínculo é obrigatório
+  // Consultor vê apenas as próprias captações; Admin vê todas.
   const { data: captacoes = [] } = useQuery({
-    queryKey: ["planner_captacoes_disponiveis"],
+    queryKey: ["planner_captacoes_disponiveis", user?.id, isAdmin],
     queryFn: async () => {
       const cutoff = new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10);
 
@@ -134,13 +134,26 @@ function NovoProjetoModal({ open, onOpenChange }: { open: boolean; onOpenChange:
         .maybeSingle();
       if (!at?.id) return [];
 
-      const { data: acts } = await supabase
+      // Resolve current team_member id for non-admin filtering
+      let currentTmId: string | null = null;
+      if (!isAdmin && user?.id) {
+        const { data: tm } = await supabase
+          .from("team_members").select("id").eq("user_id", user.id).maybeSingle();
+        currentTmId = tm?.id ?? null;
+        if (!currentTmId) return [];
+      }
+
+      let q = supabase
         .from("actions")
-        .select("id, action_date, consultant_id, client_name, notes, focco_project_number, team_members:consultant_id(name)")
+        .select("id, action_date, consultant_id, client_name, notes, focco_project_number, professional_id, team_members:consultant_id(name), professionals:professional_id(name)")
         .eq("action_type_id", at.id)
         .gte("action_date", cutoff)
         .order("action_date", { ascending: false })
         .limit(50);
+      if (!isAdmin && currentTmId) {
+        q = q.eq("consultant_id", currentTmId);
+      }
+      const { data: acts } = await q;
       if (!acts?.length) return [];
 
       const ids = acts.map((a: any) => a.id);
@@ -288,11 +301,12 @@ function NovoProjetoModal({ open, onOpenChange }: { open: boolean; onOpenChange:
                   const data = a.action_date
                     ? new Date(`${a.action_date}T12:00:00`).toLocaleDateString("pt-BR")
                     : "";
-                  const cli = a.client_name ? ` · ${a.client_name}` : "";
+                  const cli = a.client_name ? ` · Cliente: ${a.client_name}` : "";
+                  const arq = a.professionals?.name ? ` · Arquiteto: ${a.professionals.name}` : "";
                   const focco = a.focco_project_number ? ` · FOCCO ${a.focco_project_number}` : "";
                   return (
                     <option key={a.id} value={a.id}>
-                      {data} · {consultor}{cli}{focco}
+                      {data} · {consultor}{cli}{arq}{focco}
                     </option>
                   );
                 })}
