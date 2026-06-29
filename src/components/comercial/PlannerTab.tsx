@@ -20,6 +20,7 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import { useEngenhariaMembers } from "@/hooks/useEngenhariaMembers";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import ClienteHistoryButton from "@/components/ClienteHistoryButton";
+import { createChecklistForProject } from "@/hooks/useChecklist";
 
 type PlannerStatus =
   | "AGUARDANDO_INICIO" | "INICIADO" | "CONCLUIDO" | "EM_REFORMA" | "VENDIDO" | "PERDIDO";
@@ -339,139 +340,404 @@ function NovoProjetoModal({ open, onOpenChange }: { open: boolean; onOpenChange:
 function VendidoModal({ card, onClose }: { card: PlannerCard | null; onClose: () => void }) {
   const qc = useQueryClient();
   const { toast } = useToast();
-  const [valor, setValor] = useState("");
-  const [saving, setSaving] = useState(false);
   const { dualMemberIds, engOnlyMemberIds } = useEngenhariaMembers();
-  const responsibleId = card?.responsible_id ?? null;
+
+  // Full project/client/checklist data
+  const { data: full, isLoading: loadingFull } = useQuery({
+    queryKey: ["planner_vendido_full", card?.id],
+    enabled: !!card?.id,
+    queryFn: async () => {
+      const [projRes, chkRes, encCatRes, profTypeRes] = await Promise.all([
+        supabase.from("projects").select(
+          "id, name, focco_project_number, professional_id, responsible_id, apresentacao_projetista_id, client_id, " +
+          "professionals:professional_id(id, name, consultant_id, type_id, category_id), " +
+          "clients(id, name, contract_number, phone, email, cpf_cnpj, address, city, state, age, profession)"
+        ).eq("id", card!.id).single(),
+        supabase.from("contract_checklists").select(
+          "assigned_projetista_id, assigned_logistica_id, assigned_apresentacao_projetista_id"
+        ).eq("project_id", card!.id).maybeSingle(),
+        supabase.from("professional_categories").select("id").ilike("name", "ENCANTADO").maybeSingle(),
+        supabase.from("professional_types").select("id").order("created_at").limit(1).maybeSingle(),
+      ]);
+      return {
+        project: projRes.data as any,
+        checklist: chkRes.data as any,
+        encantadoCategoryId: (encCatRes.data as any)?.id as string | undefined,
+        defaultProfTypeId: (profTypeRes.data as any)?.id as string | undefined,
+      };
+    },
+  });
+
+  // Position members (Projetista Técnico, Analista Logística, Projetista Apresentação)
+  const { data: positionMembers } = useQuery({
+    queryKey: ["planner_vendido_positions"],
+    queryFn: async () => {
+      const { data: positions } = await supabase
+        .from("positions").select("id, name").eq("is_active", true)
+        .or("name.ilike.%projetista técnico%,name.ilike.%projetista tecnico%,name.ilike.%logistica%,name.ilike.%logística%,name.ilike.%projetista de apresentação%,name.ilike.%projetista apresentação%,name.ilike.%projetista apresentacao%");
+      if (!positions?.length) return { projetista: [], logistica: [], apresentacao: [] };
+      const proj = positions.find(p => /projetista t[eé]cnico/i.test(p.name));
+      const log = positions.find(p => /log[ií]stica/i.test(p.name));
+      const apre = positions.find(p => /projetista.*apresenta[cç][aã]o/i.test(p.name));
+      const ids = [proj?.id, log?.id, apre?.id].filter(Boolean) as string[];
+      const { data: mp } = await supabase.from("team_member_positions")
+        .select("team_member_id, position_id").in("position_id", ids);
+      const allIds = [...new Set((mp ?? []).map(m => m.team_member_id))];
+      if (!allIds.length) return { projetista: [], logistica: [], apresentacao: [] };
+      const { data: members } = await supabase.from("team_members")
+        .select("id, name").in("id", allIds).eq("active", true).order("name");
+      const mems = members ?? [];
+      const inPos = (pid?: string) => (mp ?? []).filter(x => x.position_id === pid).map(x => x.team_member_id);
+      return {
+        projetista: mems.filter(m => inPos(proj?.id).includes(m.id)),
+        logistica: mems.filter(m => inPos(log?.id).includes(m.id)),
+        apresentacao: mems.filter(m => inPos(apre?.id).includes(m.id)),
+      };
+    },
+  });
+
+  const responsibleId = full?.project?.responsible_id ?? card?.responsible_id ?? null;
+
+  // Especificadores already linked to this consultant (for autocomplete)
+  const { data: profOptions = [] } = useQuery({
+    queryKey: ["planner_vendido_pros", responsibleId],
+    enabled: !!responsibleId,
+    queryFn: async () => {
+      const { data } = await supabase.from("professionals")
+        .select("id, name").eq("consultant_id", responsibleId).order("name");
+      return data ?? [];
+    },
+  });
+
   const needsChannelChoice = !!responsibleId && dualMemberIds.has(responsibleId);
   const inferredChannel: 'convencional' | 'engenharia' | '' =
     responsibleId && engOnlyMemberIds.has(responsibleId) ? 'engenharia'
-    : responsibleId && !needsChannelChoice ? 'convencional'
-    : '';
-  const [channel, setChannel] = useState<'convencional' | 'engenharia' | ''>('');
+    : responsibleId && !needsChannelChoice ? 'convencional' : '';
 
+  // Form state
+  type EspecMode = 'existing' | 'novo' | 'sem';
+  const [especMode, setEspecMode] = useState<EspecMode>('existing');
+  const [profId, setProfId] = useState('');
+  const [novoProfName, setNovoProfName] = useState('');
+  const [valor, setValor] = useState('');
+  const [focco, setFocco] = useState('');
+  const [contrato, setContrato] = useState('');
+  const [clientName, setClientName] = useState('');
+  const [clientPhone, setClientPhone] = useState('');
+  const [clientEmail, setClientEmail] = useState('');
+  const [clientCpf, setClientCpf] = useState('');
+  const [clientCity, setClientCity] = useState('');
+  const [clientState, setClientState] = useState('');
+  const [assignProj, setAssignProj] = useState('');
+  const [assignLog, setAssignLog] = useState('');
+  const [assignApre, setAssignApre] = useState('');
+  const [channel, setChannel] = useState<'convencional' | 'engenharia' | ''>('');
+  const [saving, setSaving] = useState(false);
+
+  // Prefill when full loads
   useEffect(() => {
-    // Reset when card changes
+    if (!full?.project) return;
+    const p = full.project;
+    setFocco(p.focco_project_number ?? '');
+    setContrato(p.clients?.contract_number ?? '');
+    setClientName(p.clients?.name ?? card?.name ?? '');
+    setClientPhone(p.clients?.phone ?? '');
+    setClientEmail(p.clients?.email ?? '');
+    setClientCpf(p.clients?.cpf_cnpj ?? '');
+    setClientCity(p.clients?.city ?? '');
+    setClientState(p.clients?.state ?? '');
+    setAssignProj(full.checklist?.assigned_projetista_id ?? '');
+    setAssignLog(full.checklist?.assigned_logistica_id ?? '');
+    setAssignApre(full.checklist?.assigned_apresentacao_projetista_id ?? p.apresentacao_projetista_id ?? '');
+    if (p.professional_id) { setEspecMode('existing'); setProfId(p.professional_id); }
     setChannel(needsChannelChoice ? '' : (inferredChannel || ''));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [card?.id, needsChannelChoice, inferredChannel]);
+  }, [full?.project?.id]);
 
   const handleSave = async () => {
-    if (!card) return;
-    if (needsChannelChoice && !channel) {
-      toast({ title: 'Selecione o canal', description: 'Indique se a venda é Convencional ou Engenharia.', variant: 'destructive' });
-      return;
+    if (!card || !full?.project) return;
+    // Validation
+    const valorNum = parseFloat(valor);
+    if (!valorNum || valorNum <= 0) {
+      toast({ title: 'Informe o valor da venda', variant: 'destructive' }); return;
     }
-    const closedValue = parseFloat(valor) || null;
+    if (!focco.trim()) { toast({ title: 'N° Projeto FOCCO obrigatório', variant: 'destructive' }); return; }
+    if (!contrato.trim()) { toast({ title: 'N° Contrato obrigatório', variant: 'destructive' }); return; }
+    if (!clientName.trim()) { toast({ title: 'Nome do cliente obrigatório', variant: 'destructive' }); return; }
+    if (!assignProj) { toast({ title: 'Defina o Projetista Técnico', variant: 'destructive' }); return; }
+    if (!assignLog)  { toast({ title: 'Defina o Analista de Logística', variant: 'destructive' }); return; }
+    if (!assignApre) { toast({ title: 'Defina o Projetista de Apresentação', variant: 'destructive' }); return; }
+    if (especMode === 'existing' && !profId) {
+      toast({ title: 'Selecione o Especificador', description: 'Ou marque "Novo" / "Sem Especificador".', variant: 'destructive' }); return;
+    }
+    if (especMode === 'novo' && !novoProfName.trim()) {
+      toast({ title: 'Informe o nome do Especificador', variant: 'destructive' }); return;
+    }
+    if (needsChannelChoice && !channel) {
+      toast({ title: 'Selecione o canal da venda', variant: 'destructive' }); return;
+    }
+
     const today = new Date().toISOString().slice(0, 10);
-    const effectiveChannel: 'convencional' | 'engenharia' | null =
-      channel ? channel : (inferredChannel || null);
+    const effectiveChannel = (channel || inferredChannel || null) as 'convencional' | 'engenharia' | null;
     setSaving(true);
     try {
-      // 1. Update project
-      const { error: pErr } = await supabase
-        .from("projects")
-        .update({
-          planner_status: "VENDIDO",
-          closed_value: closedValue,
-          closed_date: today,
-          stage: "closed_won",
-          status: "closed",
-        })
-        .eq("id", card.id);
-      if (pErr) throw pErr;
-
-      // 2. Update client status
-      if (card.client_id) {
-        await supabase.from("clients").update({ status: "closed" }).eq("id", card.client_id);
+      // 1) Resolve professional_id (create / promote to ENCANTADO)
+      let professionalId: string | null = null;
+      if (especMode === 'existing') professionalId = profId || null;
+      else if (especMode === 'novo') {
+        // Look up existing by name + consultant first
+        const { data: existing } = await supabase.from('professionals')
+          .select('id').eq('consultant_id', responsibleId)
+          .ilike('name', novoProfName.trim()).maybeSingle();
+        if (existing?.id) professionalId = existing.id;
+        else {
+          const { data: novo, error: pErr } = await supabase.from('professionals').insert({
+            name: novoProfName.trim(),
+            consultant_id: responsibleId,
+            type_id: full.defaultProfTypeId ?? null,
+            category_id: full.encantadoCategoryId ?? null,
+            last_action_date: today,
+            is_manual_category: false,
+          }).select('id').single();
+          if (pErr) throw pErr;
+          professionalId = novo.id;
+        }
+      }
+      // Promote existing professional to ENCANTADO immediately
+      if (professionalId && full.encantadoCategoryId) {
+        await supabase.from('professionals').update({
+          category_id: full.encantadoCategoryId,
+          last_action_date: today,
+          is_manual_category: false,
+        }).eq('id', professionalId);
       }
 
-      // 3. Find "Venda" action type
-      const { data: vendaType } = await supabase
-        .from("action_types")
-        .select("id, points, bonus_points_with_professional")
-        .eq("classification", "venda")
-        .ilike("name", "Venda")
-        .maybeSingle();
+      // 2) Update / create client
+      let clientId = full.project.client_id as string | null;
+      const clientPayload: any = {
+        name: clientName.trim(),
+        contract_number: contrato.trim() || null,
+        phone: clientPhone.trim() || null,
+        email: clientEmail.trim() || null,
+        cpf_cnpj: clientCpf.trim() || null,
+        city: clientCity.trim() || null,
+        state: clientState.trim() || null,
+        status: 'closed',
+        professional_id: professionalId,
+      };
+      if (clientId) {
+        await supabase.from('clients').update(clientPayload).eq('id', clientId);
+      } else {
+        const { data: novoCli, error: cErr } = await supabase.from('clients').insert({
+          ...clientPayload,
+          responsible_id: responsibleId,
+        }).select('id').single();
+        if (cErr) throw cErr;
+        clientId = novoCli.id;
+      }
 
-      // 4. Create the Venda action (consultant = responsible_id from card)
-      if (vendaType && card.responsible_id) {
-        const { data: actionRow, error: aErr } = await supabase
-          .from("actions")
-          .insert({
-            consultant_id: card.responsible_id,
-            action_type_id: vendaType.id,
-            action_date: today,
-            value: closedValue,
-            client_name: card.clients?.name ?? null,
-            project_id: card.id,
-            notes: "Gerada automaticamente pela mudança de card no Pipeline (VENDIDO).",
-            sales_channel: effectiveChannel,
-          })
-          .select("id")
-          .single();
-        if (aErr) console.error("Erro criando action venda", aErr);
+      // 3) Update project
+      const { error: pErr } = await supabase.from('projects').update({
+        planner_status: 'VENDIDO',
+        closed_value: valorNum,
+        estimated_value: valorNum,
+        closed_date: today,
+        stage: 'closed_won',
+        status: 'closed',
+        focco_project_number: focco.trim(),
+        professional_id: professionalId,
+        apresentacao_projetista_id: assignApre || null,
+        client_id: clientId,
+      } as any).eq('id', card.id);
+      if (pErr) throw pErr;
 
-        // 5. Programa E+ — pontos da venda
-        const points = vendaType.points || 0;
-        if (actionRow && points > 0) {
-          await supabase.from("credit_transactions").insert({
-            consultant_id: card.responsible_id,
+      // 4) Checklist (idempotent — only creates if missing)
+      await createChecklistForProject(card.id, {
+        assignedProjetistaId: assignProj,
+        assignedLogisticaId: assignLog,
+        assignedApresentacaoProjetistaId: assignApre,
+        commercialResponsibleId: responsibleId ?? undefined,
+      });
+      // If checklist already existed, update assignees
+      if (full.checklist) {
+        await supabase.from('contract_checklists').update({
+          assigned_projetista_id: assignProj,
+          assigned_logistica_id: assignLog,
+          assigned_apresentacao_projetista_id: assignApre,
+        }).eq('project_id', card.id);
+      }
+
+      // 5) Create Venda action
+      const { data: vendaType } = await supabase.from('action_types')
+        .select('id, points, bonus_points_with_professional')
+        .eq('classification', 'venda').ilike('name', 'Venda').maybeSingle();
+
+      if (vendaType && responsibleId) {
+        const { data: actionRow, error: aErr } = await supabase.from('actions').insert({
+          consultant_id: responsibleId,
+          professional_id: professionalId,
+          action_type_id: vendaType.id,
+          action_date: today,
+          value: valorNum,
+          client_name: clientName.trim(),
+          focco_project_number: focco.trim(),
+          project_id: card.id,
+          notes: 'Gerada automaticamente pela mudança de card no Pipeline (VENDIDO).',
+          sales_channel: effectiveChannel,
+        }).select('id').single();
+        if (aErr) throw aErr;
+
+        const basePts = vendaType.points || 0;
+        const bonus = (professionalId && vendaType.bonus_points_with_professional) || 0;
+        const totalPts = basePts + bonus;
+        if (actionRow && totalPts > 0) {
+          await supabase.from('credit_transactions').insert({
+            consultant_id: responsibleId,
             action_id: actionRow.id,
-            points,
-            description: `Venda — ${card.clients?.name ?? card.name}`,
+            professional_id: professionalId,
+            points: totalPts,
+            description: `Venda — ${clientName.trim()}`,
             transaction_date: today,
           });
         }
       }
 
-      qc.invalidateQueries({ queryKey: ["planner_kanban"] });
-      qc.invalidateQueries({ queryKey: ["projects"] });
-      qc.invalidateQueries({ queryKey: ["actions"] });
-      qc.invalidateQueries({ queryKey: ["credit_transactions"] });
-      qc.invalidateQueries({ queryKey: ["clients"] });
-      toast({ title: "Venda registrada", description: "Dashboard, Comercial, Projetos e Programa E+ atualizados." });
-      setValor("");
-      setChannel('');
+      qc.invalidateQueries({ queryKey: ['planner_kanban'] });
+      qc.invalidateQueries({ queryKey: ['projects'] });
+      qc.invalidateQueries({ queryKey: ['actions'] });
+      qc.invalidateQueries({ queryKey: ['credit_transactions'] });
+      qc.invalidateQueries({ queryKey: ['clients'] });
+      qc.invalidateQueries({ queryKey: ['professionals'] });
+      toast({ title: 'Venda registrada', description: 'Cliente, contrato, checklist, Programa E+ e Especificador (ENCANTADO) atualizados.' });
       onClose();
     } catch (e: any) {
-      toast({ title: "Erro", description: e.message, variant: "destructive" });
+      toast({ title: 'Erro', description: e.message, variant: 'destructive' });
     } finally {
       setSaving(false);
     }
   };
+
   return (
     <Dialog open={!!card} onOpenChange={(b) => !b && onClose()}>
-      <DialogContent className="bg-background border-border">
+      <DialogContent className="bg-background border-border max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Marcar como Vendido</DialogTitle>
-          <DialogDescription>{card?.name}</DialogDescription>
+          <DialogDescription>
+            {card?.clients?.name ?? card?.name} — preencha os dados da venda. Campos já vinculados ao projeto vêm pré-preenchidos.
+          </DialogDescription>
         </DialogHeader>
-        <div className="space-y-2 py-2">
-          <Label>Valor da venda (R$)</Label>
-          <Input type="number" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" />
-        </div>
-        {needsChannelChoice && (
-          <div className="space-y-2 py-2">
-            <Label>Canal da venda *</Label>
-            <p className="text-xs text-muted-foreground">
-              Este consultor possui os dois cargos. Indique em qual canal esta venda deve ser contabilizada.
-            </p>
-            <RadioGroup value={channel} onValueChange={(v) => setChannel(v as 'convencional' | 'engenharia')} className="flex gap-4">
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="convencional" id="ch-conv" />
-                <Label htmlFor="ch-conv" className="cursor-pointer">Convencional</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="engenharia" id="ch-eng" />
-                <Label htmlFor="ch-eng" className="cursor-pointer">Canal Engenharia</Label>
-              </div>
-            </RadioGroup>
+
+        {loadingFull ? (
+          <div className="py-8 flex items-center justify-center text-muted-foreground">
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Carregando dados do projeto…
           </div>
+        ) : (
+        <div className="space-y-5 py-2">
+          {/* Especificador */}
+          <div className="space-y-2">
+            <Label>Especificador *</Label>
+            <RadioGroup value={especMode} onValueChange={(v) => setEspecMode(v as EspecMode)} className="flex gap-4">
+              <div className="flex items-center gap-2"><RadioGroupItem value="existing" id="esp-ex" /><Label htmlFor="esp-ex" className="cursor-pointer">Existente</Label></div>
+              <div className="flex items-center gap-2"><RadioGroupItem value="novo" id="esp-nv" /><Label htmlFor="esp-nv" className="cursor-pointer">Novo</Label></div>
+              <div className="flex items-center gap-2"><RadioGroupItem value="sem" id="esp-sm" /><Label htmlFor="esp-sm" className="cursor-pointer">Sem Especificador</Label></div>
+            </RadioGroup>
+            {especMode === 'existing' && (
+              <select value={profId} onChange={(e) => setProfId(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <option value="">— Selecionar —</option>
+                {profOptions.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            )}
+            {especMode === 'novo' && (
+              <>
+                <Input placeholder="Nome do especificador" value={novoProfName} onChange={(e) => setNovoProfName(e.target.value)} />
+                <p className="text-[11px] text-muted-foreground">Será cadastrado e promovido para a categoria ENCANTADO.</p>
+              </>
+            )}
+          </div>
+
+          {/* Valor + Canal */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Valor da venda (R$) *</Label>
+              <Input type="number" step="0.01" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" />
+            </div>
+            {needsChannelChoice && (
+              <div className="space-y-2">
+                <Label>Canal *</Label>
+                <RadioGroup value={channel} onValueChange={(v) => setChannel(v as any)} className="flex gap-3 h-10 items-center">
+                  <div className="flex items-center gap-1"><RadioGroupItem value="convencional" id="ch-c" /><Label htmlFor="ch-c" className="cursor-pointer text-xs">Convencional</Label></div>
+                  <div className="flex items-center gap-1"><RadioGroupItem value="engenharia" id="ch-e" /><Label htmlFor="ch-e" className="cursor-pointer text-xs">Engenharia</Label></div>
+                </RadioGroup>
+              </div>
+            )}
+          </div>
+
+          {/* Atribuir responsáveis do checklist */}
+          <div className="border border-border rounded p-3 space-y-3">
+            <div>
+              <Label className="text-xs tracking-widest uppercase">Atribuir responsáveis do checklist *</Label>
+              <p className="text-[11px] text-muted-foreground mt-1">Profissionais técnicos e de logística deste contrato.</p>
+            </div>
+            <div className="space-y-2">
+              <Label>Projetista Técnico *</Label>
+              <select value={assignProj} onChange={(e) => setAssignProj(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <option value="">Selecione um projetista</option>
+                {(positionMembers?.projetista ?? []).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label>Analista de Logística *</Label>
+              <select value={assignLog} onChange={(e) => setAssignLog(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <option value="">Selecione um analista</option>
+                {(positionMembers?.logistica ?? []).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label>Projetista de Apresentação *</Label>
+              <select value={assignApre} onChange={(e) => setAssignApre(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <option value="">Selecione um projetista</option>
+                {(positionMembers?.apresentacao ?? []).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Dados do cliente / projeto */}
+          <div className="border border-border rounded p-3 space-y-3">
+            <Label className="text-xs tracking-widest uppercase">Dados do cliente / projeto</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>N° Projeto FOCCO *</Label>
+                <Input value={focco} onChange={(e) => setFocco(e.target.value)} placeholder="Obrigatório" />
+              </div>
+              <div className="space-y-2">
+                <Label>N° Contrato *</Label>
+                <Input value={contrato} onChange={(e) => setContrato(e.target.value)} placeholder="Obrigatório" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Nome do cliente *</Label>
+              <Input value={clientName} onChange={(e) => setClientName(e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><Label>Telefone</Label><Input value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} /></div>
+              <div className="space-y-2"><Label>E-mail</Label><Input type="email" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} /></div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-2 col-span-1"><Label>CPF/CNPJ</Label><Input value={clientCpf} onChange={(e) => setClientCpf(e.target.value)} /></div>
+              <div className="space-y-2 col-span-1"><Label>Cidade</Label><Input value={clientCity} onChange={(e) => setClientCity(e.target.value)} /></div>
+              <div className="space-y-2 col-span-1"><Label>UF</Label><Input maxLength={2} value={clientState} onChange={(e) => setClientState(e.target.value.toUpperCase())} /></div>
+            </div>
+          </div>
+        </div>
         )}
+
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={handleSave} disabled={saving}>
+          <Button variant="outline" onClick={onClose} disabled={saving}>Cancelar</Button>
+          <Button onClick={handleSave} disabled={saving || loadingFull}>
             {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Confirmar Venda
           </Button>
