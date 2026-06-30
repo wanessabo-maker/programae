@@ -64,12 +64,13 @@ export function useRelatorioExecutivo() {
   const buildRelatorio = useCallback((year: number, month: number): DadosRelatorio => {
     const activeMembers = teamMembers.filter(m => m.active);
     const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
-    // Metas ativas
+    // Metas ativas (comparar por data calendário para evitar bug de timezone)
     const activeMetas = metas.filter(m => {
       if (!m.isActive) return false;
-      if (m.endDate && new Date(m.endDate) < today) return false;
-      if (m.startDate && new Date(m.startDate) > today) return false;
+      if (m.endDate && m.endDate.slice(0, 10) < todayStr) return false;
+      if (m.startDate && m.startDate.slice(0, 10) > todayStr) return false;
       return true;
     });
 
