@@ -206,6 +206,20 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
   // Selected consultant's areas (for admin filtering action types by selected collaborator)
   const [selectedConsultantAreaIds, setSelectedConsultantAreaIds] = useState<string[]>([]);
 
+  // Map of area id -> name (used to expand Canal Engenharia → Comercial catalog)
+  const [areasById, setAreasById] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from('areas').select('id, name');
+      if (data) {
+        const map: Record<string, string> = {};
+        data.forEach((a: any) => { map[a.id] = (a.name || '').toLowerCase(); });
+        setAreasById(map);
+      }
+    })();
+  }, []);
+
   // Whether the selected consultant (when admin) is a Projetista de Apresentação
   const [isSelectedConsultantProjetista, setIsSelectedConsultantProjetista] = useState(false);
   const [isSelectedConsultantProjetistaTecnico, setIsSelectedConsultantProjetistaTecnico] = useState(false);
@@ -244,7 +258,17 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
   // Filter action types based on the SELECTED consultant's areas (not the logged-in user)
   const filteredActionTypes = useMemo(() => {
     // Determine which area IDs to use for filtering
-    const effectiveAreaIds = isAdmin ? selectedConsultantAreaIds : userAreaIds;
+    const baseAreaIds = isAdmin ? selectedConsultantAreaIds : userAreaIds;
+
+    // If the consultant belongs to "Canal Engenharia", also expose action types
+    // from the "Comercial" area (single shared catalog; canal is captured via sales_channel).
+    const hasEngenharia = baseAreaIds.some(id => areasById[id] === 'canal engenharia');
+    const comercialId = hasEngenharia
+      ? Object.keys(areasById).find(id => areasById[id] === 'comercial')
+      : undefined;
+    const effectiveAreaIds = comercialId && !baseAreaIds.includes(comercialId)
+      ? [...baseAreaIds, comercialId]
+      : baseAreaIds;
     
     // If no areas resolved (e.g. no consultant selected yet), show all
     if (effectiveAreaIds.length === 0) {
@@ -256,7 +280,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
       if (!at.areaId) return true; // Action types without area are visible to everyone
       return effectiveAreaIds.includes(at.areaId);
     });
-  }, [actionTypes, selectedConsultantAreaIds, userAreaIds, isAdmin]);
+  }, [actionTypes, selectedConsultantAreaIds, userAreaIds, isAdmin, areasById]);
 
   // Check if current user is "Projetista de Apresentação" specifically
   // They should see Commercial Consultant field instead of Especificador
