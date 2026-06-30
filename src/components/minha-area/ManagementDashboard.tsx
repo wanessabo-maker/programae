@@ -53,13 +53,14 @@ export function ManagementDashboard() {
   // Get environment stats for the current year
   const { data: envStats } = useMonthlyEnvironmentStats(targetYear, currentMonth + 1);
 
-  // Get active metas
+  // Get active metas (compare by calendar date to avoid timezone parsing bug)
   const activeMetas = useMemo(() => {
     const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     return metas.filter(m => {
       if (!m.isActive) return false;
-      if (m.endDate && new Date(m.endDate) < today) return false;
-      if (m.startDate && new Date(m.startDate) > today) return false;
+      if (m.endDate && m.endDate.slice(0, 10) < todayStr) return false;
+      if (m.startDate && m.startDate.slice(0, 10) > todayStr) return false;
       return true;
     });
   }, [metas]);
