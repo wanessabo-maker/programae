@@ -97,12 +97,16 @@ export default function Dashboard() {
   const activeMembers = teamMembers.filter(m => m.active);
 
   // Filter only active metas (within validity period)
+  // Compare by calendar date (YYYY-MM-DD) to avoid timezone issues:
+  // ISO date strings ("2026-06-30") parse as UTC midnight which can be < local "now"
+  // on the same calendar day, incorrectly excluding goals that are valid today.
   const activeMetas = useMemo(() => {
     const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     return metas.filter(m => {
       if (!m.isActive) return false;
-      if (m.endDate && new Date(m.endDate) < today) return false;
-      if (m.startDate && new Date(m.startDate) > today) return false;
+      if (m.endDate && m.endDate.slice(0, 10) < todayStr) return false;
+      if (m.startDate && m.startDate.slice(0, 10) > todayStr) return false;
       return true;
     });
   }, [metas]);
