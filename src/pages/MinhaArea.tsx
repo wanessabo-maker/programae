@@ -33,6 +33,7 @@ import {
 import { CompleteActivityModal } from '@/components/minha-area/CompleteActivityModal';
 import { ProjetistaSection } from '@/components/minha-area/ProjetistaSection';
 import { ProjetistaTecnicoProjects } from '@/components/minha-area/ProjetistaTecnicoProjects';
+import { ConsultorSection } from '@/components/minha-area/ConsultorSection';
 import { ManagementDashboard } from '@/components/minha-area/ManagementDashboard';
 import { StaleProjectsBanner } from '@/components/minha-area/StaleProjectsBanner';
 import { CleanlinessAdminPanel } from '@/components/minha-area/CleanlinessAdminPanel';
@@ -587,6 +588,14 @@ export default function MinhaArea() {
         {/* Projetista Técnico Projects - show project cards for assigned technical projects */}
         {viewMode === 'my' && currentTeamMember?.id && isProjetistaTecnico && (
           <ProjetistaTecnicoProjects teamMemberId={currentTeamMember.id} />
+        )}
+
+        {/* Consultor Comercial — painel completo com pipeline, carteira, ações e indicadores */}
+        {viewMode === 'my' && currentTeamMember?.id && allUserAreas.includes('comercial') && (
+          <ConsultorSection
+            teamMemberId={currentTeamMember.id}
+            teamMemberName={currentTeamMember.name}
+          />
         )}
 
         {/* Contract Groups */}
