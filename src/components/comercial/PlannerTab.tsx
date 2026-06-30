@@ -23,7 +23,7 @@ import ClienteHistoryButton from "@/components/ClienteHistoryButton";
 import { createChecklistForProject } from "@/hooks/useChecklist";
 
 type PlannerStatus =
-  | "AGUARDANDO_INICIO" | "INICIADO" | "CONCLUIDO" | "EM_REFORMA" | "VENDIDO" | "PERDIDO";
+  | "AGUARDANDO_INICIO" | "INICIADO" | "CONCLUIDO" | "EM_REFORMA" | "VENDIDO" | "PERDIDO" | "PAUSADO";
 
 const COLUMNS: { id: PlannerStatus; label: string; accent: string }[] = [
   { id: "AGUARDANDO_INICIO", label: "Aguardando Início", accent: "border-amber-400/60" },
@@ -31,6 +31,7 @@ const COLUMNS: { id: PlannerStatus; label: string; accent: string }[] = [
   { id: "CONCLUIDO",         label: "Concluído",         accent: "border-green-400/60" },
   { id: "EM_REFORMA",        label: "Em Reforma",        accent: "border-blue-400/60" },
   { id: "VENDIDO",           label: "Vendido",           accent: "border-green-400" },
+  { id: "PAUSADO",           label: "Pausado",           accent: "border-yellow-400/60" },
   { id: "PERDIDO",           label: "Perdido",           accent: "border-white/15" },
 ];
 
