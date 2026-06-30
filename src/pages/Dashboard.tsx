@@ -452,11 +452,6 @@ export default function Dashboard() {
 
   // Group consultants by area (only those that should be displayed)
   const consultantsByArea = useMemo(() => {
-    // DEBUG
-    try {
-      const lou = consultantMetrics.find(c => /lourival/i.test(c.name));
-      console.log('[DBG Lourival]', lou ? { name: lou.name, active: lou.active, area: lou.area, areaId: lou.areaId, hasGoals: lou.hasGoals, hasActions: lou.hasActions, shouldDisplay: lou.shouldDisplay, metrics: lou.metricsForArea.length } : 'NOT IN consultantMetrics', 'total=', consultantMetrics.length, 'activeMembers=', activeMembers.map(m=>m.name));
-    } catch(e){ console.error('DBG err', e); }
     const filtered = consultantMetrics.filter(c => c.shouldDisplay);
     const grouped: Record<string, typeof filtered> = {};
     
