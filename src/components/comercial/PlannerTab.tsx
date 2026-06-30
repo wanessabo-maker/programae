@@ -851,7 +851,25 @@ function ConcluidoModal({ card, isReforma, onClose }: { card: PlannerCard | null
         planner_status: "CONCLUIDO",
         stage: "em_negociacao",
       };
-      if (foccoNumber.trim()) projectUpdates.focco_project_number = foccoNumber.trim();
+      const foccoTrim = foccoNumber.trim();
+      if (foccoTrim) {
+        // Verifica se o FOCCO já está vinculado a outro projeto
+        const { data: existing } = await supabase
+          .from("projects")
+          .select("id, name")
+          .eq("focco_project_number", foccoTrim)
+          .maybeSingle();
+        if (existing && existing.id !== card.id) {
+          toast({
+            title: "FOCCO já cadastrado",
+            description: `O número FOCCO ${foccoTrim} já está vinculado ao projeto "${existing.name}". Use outro número ou deixe em branco.`,
+            variant: "destructive",
+          });
+          setSaving(false);
+          return;
+        }
+        projectUpdates.focco_project_number = foccoTrim;
+      }
 
       const { error: pErr } = await supabase
         .from("projects")
