@@ -350,7 +350,7 @@ export default function ProjetosTab() {
   const formatDate = (dateStr: string | null | undefined) => {
     if (!dateStr) return '—';
     try {
-      const [y, m, d] = dateStr.split('-');
+      const [y, m, d] = dateStr.slice(0, 10).split('-');
       return `${d}/${m}/${y}`;
     } catch {
       return '—';
