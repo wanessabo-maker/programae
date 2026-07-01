@@ -819,6 +819,31 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                     age: safeParseInt(form.clientAge, { min: 0, max: 150 }) ?? undefined,
                     profession: form.clientProfession.trim() || undefined,
                   });
+            } else if (form.clientName.trim()) {
+              // Project has no client yet — create and link one so contract shows the name
+              clientId = await createClientDirect({
+                name: form.clientName.trim(),
+                age: safeParseInt(form.clientAge, { min: 0, max: 150 }),
+                profession: form.clientProfession || null,
+                professional_id: professionalId || null,
+                responsible_id: projectOwnerConsultantId,
+                created_by: projectOwnerConsultantId,
+                status: isVenda ? 'closed' : 'apresentado',
+              });
+              if (clientId) {
+                await updateClientData(clientId, {
+                  cpf_cnpj: form.clientCpfCnpj.trim() || undefined,
+                  phone: form.clientPhone.trim() || undefined,
+                  email: form.clientEmail.trim() || undefined,
+                  address: form.clientAddress.trim() || undefined,
+                  city: form.clientCity.trim() || undefined,
+                  state: form.clientState.trim() || undefined,
+                });
+                await supabase
+                  .from('projects')
+                  .update({ client_id: clientId })
+                  .eq('id', existingProject.id);
+              }
             }
             toast.info(`Ação vinculada ao projeto FOCCO ${foccoNumber} existente`);
           } else {
