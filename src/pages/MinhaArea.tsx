@@ -685,9 +685,20 @@ export default function MinhaArea() {
                           ? 'Vence hoje'
                           : `${remaining} du restantes`;
                         return (
-                          <div className={`mb-4 px-3 py-2 border-l-4 ${colorClass} flex items-center justify-between text-xs font-bold`}>
-                            <span>Prazo pós Caderno Técnico (45 du)</span>
-                            <span>{label} · até {format(deadline, 'dd/MM/yyyy', { locale: ptBR })}</span>
+                          <div className={`mb-4 rounded-md border-l-4 ${colorClass} px-3 py-2.5`}>
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex flex-col min-w-0">
+                                <span className="text-[10px] font-semibold uppercase tracking-wide opacity-70">
+                                  Prazo pós Caderno Técnico
+                                </span>
+                                <span className="text-[10px] font-medium opacity-60">
+                                  45 dias úteis · vence {format(deadline, "dd 'de' MMM 'de' yyyy", { locale: ptBR })}
+                                </span>
+                              </div>
+                              <span className="text-sm font-extrabold whitespace-nowrap">
+                                {label}
+                              </span>
+                            </div>
                           </div>
                         );
                       })()}
