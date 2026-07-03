@@ -54,6 +54,7 @@ interface PlannerCard {
   client_id: string | null;
   planner_status_at: string | null;
   planner_data_aguardando: string | null;
+  closed_date: string | null;
   responsible_id: string | null;
   apresentacao_projetista_id: string | null;
   origin_type: string | null;
@@ -69,7 +70,7 @@ function useCards() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects")
-        .select("id, name, planner_status, planner_observacao, planner_link, planner_motivo_perda, closed_value, client_id, planner_status_at, planner_data_aguardando, responsible_id, apresentacao_projetista_id, origin_type, clients(id, name), responsible:team_members!projects_responsible_id_fkey(id, name), apresentacao_projetista:team_members!projects_apresentacao_projetista_id_fkey(id, name)")
+        .select("id, name, planner_status, planner_observacao, planner_link, planner_motivo_perda, closed_value, closed_date, client_id, planner_status_at, planner_data_aguardando, responsible_id, apresentacao_projetista_id, origin_type, clients(id, name), responsible:team_members!projects_responsible_id_fkey(id, name), apresentacao_projetista:team_members!projects_apresentacao_projetista_id_fkey(id, name)")
         .not("planner_status", "is", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
