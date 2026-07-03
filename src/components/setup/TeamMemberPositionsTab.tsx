@@ -216,7 +216,7 @@ export function TeamMemberPositionsTab() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setEditingMember({ id: member.id, name: member.name })}
-                    className="btn-secondary p-2"
+                    className="p-2 border border-foreground/40 text-foreground hover:bg-foreground hover:text-background transition-colors"
                     title="Editar colaborador"
                   >
                     <Pencil className="w-4 h-4" />
