@@ -1267,6 +1267,7 @@ export function PlannerTab() {
   const [approvalReason, setApprovalReason] = useState("");
   const [submittingRequest, setSubmittingRequest] = useState(false);
   const { user } = useAuthContext();
+  const [vendasMonthKey, setVendasMonthKey] = useState<string | null>(null);
 
   const grouped = COLUMNS.reduce((acc, col) => {
     const list = cards.filter((c) => {
@@ -1480,7 +1481,42 @@ export function PlannerTab() {
                       </div>
                     )}
                     <div className="space-y-2 max-h-[640px] overflow-y-auto pr-1">
-                      {grouped[col.id].map((card, i) => (
+                      {col.id === "VENDIDO" ? (
+                        (() => {
+                          const groups = new Map<string, PlannerCard[]>();
+                          for (const c of grouped[col.id]) {
+                            const d = c.closed_date || c.planner_status_at;
+                            const key = d ? d.slice(0, 7) : "sem-data";
+                            if (!groups.has(key)) groups.set(key, []);
+                            groups.get(key)!.push(c);
+                          }
+                          const sortedKeys = Array.from(groups.keys()).sort((a, b) => b.localeCompare(a));
+                          const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+                          return sortedKeys.map((key) => {
+                            const items = groups.get(key)!;
+                            const total = items.reduce((s, c) => s + (c.closed_value || 0), 0);
+                            let label = "Vendas — sem data";
+                            if (key !== "sem-data") {
+                              const [y, m] = key.split("-");
+                              label = `Vendas ${MESES[parseInt(m, 10) - 1]} ${y}`;
+                            }
+                            return (
+                              <button
+                                key={key}
+                                type="button"
+                                onClick={() => setVendasMonthKey(key)}
+                                className="w-full text-left border border-green-400/40 bg-green-500/5 hover:bg-green-500/10 rounded p-3 space-y-1 transition-colors"
+                              >
+                                <div className="text-sm font-medium text-white">{label}</div>
+                                <div className="flex items-center justify-between text-[11px] text-white/70">
+                                  <span>{items.length} venda{items.length === 1 ? "" : "s"}</span>
+                                  <span className="text-green-400">R$ {total.toLocaleString("pt-BR")}</span>
+                                </div>
+                              </button>
+                            );
+                          });
+                        })()
+                      ) : grouped[col.id].map((card, i) => (
                         <Draggable draggableId={card.id} index={i} key={card.id}>
                           {(p, snap) => (
                             <div
