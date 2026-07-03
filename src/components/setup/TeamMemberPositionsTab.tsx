@@ -217,7 +217,7 @@ export function TeamMemberPositionsTab() {
                   <button
                     onClick={() => setEditingMember({ id: member.id, name: member.name })}
                     className="btn-secondary p-2"
-                    title="Editar cargos"
+                    title="Editar colaborador"
                   >
                     <Pencil className="w-4 h-4" />
                   </button>
@@ -285,6 +285,7 @@ export function TeamMemberPositionsTab() {
         allPositions={positions}
         areas={positionAreas}
         onSave={updateMemberPositions}
+        onSaveName={(id, name) => updateTeamMember(id, { name })}
         getAreaName={getAreaName}
       />
     </div>

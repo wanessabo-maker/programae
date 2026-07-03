@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { X, Plus, Trash2, Briefcase } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Position, Area } from '@/hooks/usePositions';
 
 interface EditMemberPositionsModalProps {
@@ -12,6 +14,7 @@ interface EditMemberPositionsModalProps {
   allPositions: Position[];
   areas: Area[];
   onSave: (memberId: string, positionIds: string[]) => Promise<boolean>;
+  onSaveName?: (memberId: string, name: string) => Promise<void> | void;
   getAreaName: (areaId: string | null) => string;
 }
 
@@ -23,14 +26,17 @@ export function EditMemberPositionsModal({
   allPositions,
   areas,
   onSave,
+  onSaveName,
   getAreaName,
 }: EditMemberPositionsModalProps) {
   const [selectedPositionIds, setSelectedPositionIds] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [name, setName] = useState('');
 
   useEffect(() => {
     if (member && memberPositions) {
       setSelectedPositionIds(memberPositions.map(p => p.id));
+      setName(member.name);
     }
   }, [member, memberPositions]);
 
@@ -46,10 +52,15 @@ export function EditMemberPositionsModal({
 
   const handleSave = async () => {
     setIsSaving(true);
-    const success = await onSave(member.id, selectedPositionIds);
-    setIsSaving(false);
-    if (success) {
-      onClose();
+    try {
+      const trimmed = name.trim();
+      if (onSaveName && trimmed && trimmed !== member.name) {
+        await onSaveName(member.id, trimmed);
+      }
+      const success = await onSave(member.id, selectedPositionIds);
+      if (success) onClose();
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -71,7 +82,7 @@ export function EditMemberPositionsModal({
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-muted">
           <div>
-            <h2 className="text-lg font-semibold">Editar Cargos</h2>
+            <h2 className="text-lg font-semibold">Editar Colaborador</h2>
             <p className="text-sm text-muted-foreground">{member.name}</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-muted rounded">
@@ -81,6 +92,19 @@ export function EditMemberPositionsModal({
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* Name */}
+          <div className="space-y-2">
+            <Label htmlFor="member-name" className="text-xs uppercase tracking-widest text-muted-foreground">
+              Nome
+            </Label>
+            <Input
+              id="member-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Nome do colaborador"
+            />
+          </div>
+
           {/* Current positions summary */}
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-widest text-muted-foreground">
