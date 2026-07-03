@@ -1547,6 +1547,70 @@ export function PlannerTab() {
       <ConcluidoModal card={concluidoCard?.card ?? null} isReforma={!!concluidoCard?.isReforma} onClose={() => setConcluidoCard(null)} />
       <EditCardModal card={editCard} onClose={() => setEditCard(null)} />
 
+      <Dialog open={!!vendasMonthKey} onOpenChange={(b) => !b && setVendasMonthKey(null)}>
+        <DialogContent className="bg-background border-border max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {(() => {
+                if (!vendasMonthKey) return "Vendas";
+                if (vendasMonthKey === "sem-data") return "Vendas — sem data";
+                const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+                const [y, m] = vendasMonthKey.split("-");
+                return `Vendas ${MESES[parseInt(m, 10) - 1]} ${y}`;
+              })()}
+            </DialogTitle>
+            <DialogDescription>Clique em uma venda para editar o card do projeto.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+            {(() => {
+              if (!vendasMonthKey) return null;
+              const items = grouped["VENDIDO"].filter((c) => {
+                const d = c.closed_date || c.planner_status_at;
+                const key = d ? d.slice(0, 7) : "sem-data";
+                return key === vendasMonthKey;
+              }).sort((a, b) => {
+                const da = a.closed_date || a.planner_status_at || "";
+                const db = b.closed_date || b.planner_status_at || "";
+                return db.localeCompare(da);
+              });
+              const total = items.reduce((s, c) => s + (c.closed_value || 0), 0);
+              return (
+                <>
+                  <div className="flex items-center justify-between text-xs text-white/60 pb-2 border-b border-border">
+                    <span>{items.length} venda{items.length === 1 ? "" : "s"}</span>
+                    <span className="text-green-400 font-medium">Total: R$ {total.toLocaleString("pt-BR")}</span>
+                  </div>
+                  {items.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => { setEditCard(c); setVendasMonthKey(null); }}
+                      className="w-full text-left border border-white/10 hover:border-white/30 bg-neutral-900 rounded p-3 space-y-1 transition-colors"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-sm font-medium text-white truncate">{c.clients?.name || c.name}</div>
+                        {c.closed_value != null && (
+                          <span className="text-xs text-green-400 shrink-0">R$ {c.closed_value.toLocaleString("pt-BR")}</span>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-white/60">
+                        <span className="truncate">{c.responsible?.name || "—"}</span>
+                        <span className="shrink-0">
+                          {(() => {
+                            const d = c.closed_date || c.planner_status_at;
+                            return d ? new Date(`${d.slice(0,10)}T12:00:00`).toLocaleDateString("pt-BR") : "";
+                          })()}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </>
+              );
+            })()}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={!!deleteCard} onOpenChange={(b) => !b && setDeleteCard(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
