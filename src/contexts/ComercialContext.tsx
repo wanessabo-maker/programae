@@ -203,9 +203,13 @@ export function ComercialProvider({ children }: { children: ReactNode }) {
 
   const getConsultantBalance = useCallback((consultantId: string) => {
     const today = new Date().toISOString().split('T')[0];
+    const currentMonth = today.slice(0, 7); // YYYY-MM
     return creditTransactions.filter(t => {
       if (t.consultantId !== consultantId) return false;
-      if (t.type === 'resgate') return true;
+      if (t.type === 'resgate') {
+        // Resgates zeram na virada do mês — só contam no mês corrente
+        return t.date.slice(0, 7) === currentMonth;
+      }
       if (t.status === 'expired' || t.status === 'used') return false;
       if (t.expiresAt && t.expiresAt < today) return false;
       return true;
