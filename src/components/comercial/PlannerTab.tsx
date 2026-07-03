@@ -54,6 +54,7 @@ interface PlannerCard {
   client_id: string | null;
   planner_status_at: string | null;
   planner_data_aguardando: string | null;
+  closed_date: string | null;
   responsible_id: string | null;
   apresentacao_projetista_id: string | null;
   origin_type: string | null;
@@ -69,7 +70,7 @@ function useCards() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects")
-        .select("id, name, planner_status, planner_observacao, planner_link, planner_motivo_perda, closed_value, client_id, planner_status_at, planner_data_aguardando, responsible_id, apresentacao_projetista_id, origin_type, clients(id, name), responsible:team_members!projects_responsible_id_fkey(id, name), apresentacao_projetista:team_members!projects_apresentacao_projetista_id_fkey(id, name)")
+        .select("id, name, planner_status, planner_observacao, planner_link, planner_motivo_perda, closed_value, closed_date, client_id, planner_status_at, planner_data_aguardando, responsible_id, apresentacao_projetista_id, origin_type, clients(id, name), responsible:team_members!projects_responsible_id_fkey(id, name), apresentacao_projetista:team_members!projects_apresentacao_projetista_id_fkey(id, name)")
         .not("planner_status", "is", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -1266,6 +1267,7 @@ export function PlannerTab() {
   const [approvalReason, setApprovalReason] = useState("");
   const [submittingRequest, setSubmittingRequest] = useState(false);
   const { user } = useAuthContext();
+  const [vendasMonthKey, setVendasMonthKey] = useState<string | null>(null);
 
   const grouped = COLUMNS.reduce((acc, col) => {
     const list = cards.filter((c) => {
@@ -1479,7 +1481,42 @@ export function PlannerTab() {
                       </div>
                     )}
                     <div className="space-y-2 max-h-[640px] overflow-y-auto pr-1">
-                      {grouped[col.id].map((card, i) => (
+                      {col.id === "VENDIDO" ? (
+                        (() => {
+                          const groups = new Map<string, PlannerCard[]>();
+                          for (const c of grouped[col.id]) {
+                            const d = c.closed_date || c.planner_status_at;
+                            const key = d ? d.slice(0, 7) : "sem-data";
+                            if (!groups.has(key)) groups.set(key, []);
+                            groups.get(key)!.push(c);
+                          }
+                          const sortedKeys = Array.from(groups.keys()).sort((a, b) => b.localeCompare(a));
+                          const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+                          return sortedKeys.map((key) => {
+                            const items = groups.get(key)!;
+                            const total = items.reduce((s, c) => s + (c.closed_value || 0), 0);
+                            let label = "Vendas — sem data";
+                            if (key !== "sem-data") {
+                              const [y, m] = key.split("-");
+                              label = `Vendas ${MESES[parseInt(m, 10) - 1]} ${y}`;
+                            }
+                            return (
+                              <button
+                                key={key}
+                                type="button"
+                                onClick={() => setVendasMonthKey(key)}
+                                className="w-full text-left border border-green-400/40 bg-green-500/5 hover:bg-green-500/10 rounded p-3 space-y-1 transition-colors"
+                              >
+                                <div className="text-sm font-medium text-white">{label}</div>
+                                <div className="flex items-center justify-between text-[11px] text-white/70">
+                                  <span>{items.length} venda{items.length === 1 ? "" : "s"}</span>
+                                  <span className="text-green-400">R$ {total.toLocaleString("pt-BR")}</span>
+                                </div>
+                              </button>
+                            );
+                          });
+                        })()
+                      ) : grouped[col.id].map((card, i) => (
                         <Draggable draggableId={card.id} index={i} key={card.id}>
                           {(p, snap) => (
                             <div
@@ -1509,6 +1546,70 @@ export function PlannerTab() {
       <PerdidoModal card={perdidoCard} onClose={() => setPerdidoCard(null)} />
       <ConcluidoModal card={concluidoCard?.card ?? null} isReforma={!!concluidoCard?.isReforma} onClose={() => setConcluidoCard(null)} />
       <EditCardModal card={editCard} onClose={() => setEditCard(null)} />
+
+      <Dialog open={!!vendasMonthKey} onOpenChange={(b) => !b && setVendasMonthKey(null)}>
+        <DialogContent className="bg-background border-border max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {(() => {
+                if (!vendasMonthKey) return "Vendas";
+                if (vendasMonthKey === "sem-data") return "Vendas — sem data";
+                const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+                const [y, m] = vendasMonthKey.split("-");
+                return `Vendas ${MESES[parseInt(m, 10) - 1]} ${y}`;
+              })()}
+            </DialogTitle>
+            <DialogDescription>Clique em uma venda para editar o card do projeto.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+            {(() => {
+              if (!vendasMonthKey) return null;
+              const items = grouped["VENDIDO"].filter((c) => {
+                const d = c.closed_date || c.planner_status_at;
+                const key = d ? d.slice(0, 7) : "sem-data";
+                return key === vendasMonthKey;
+              }).sort((a, b) => {
+                const da = a.closed_date || a.planner_status_at || "";
+                const db = b.closed_date || b.planner_status_at || "";
+                return db.localeCompare(da);
+              });
+              const total = items.reduce((s, c) => s + (c.closed_value || 0), 0);
+              return (
+                <>
+                  <div className="flex items-center justify-between text-xs text-white/60 pb-2 border-b border-border">
+                    <span>{items.length} venda{items.length === 1 ? "" : "s"}</span>
+                    <span className="text-green-400 font-medium">Total: R$ {total.toLocaleString("pt-BR")}</span>
+                  </div>
+                  {items.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => { setEditCard(c); setVendasMonthKey(null); }}
+                      className="w-full text-left border border-white/10 hover:border-white/30 bg-neutral-900 rounded p-3 space-y-1 transition-colors"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-sm font-medium text-white truncate">{c.clients?.name || c.name}</div>
+                        {c.closed_value != null && (
+                          <span className="text-xs text-green-400 shrink-0">R$ {c.closed_value.toLocaleString("pt-BR")}</span>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-white/60">
+                        <span className="truncate">{c.responsible?.name || "—"}</span>
+                        <span className="shrink-0">
+                          {(() => {
+                            const d = c.closed_date || c.planner_status_at;
+                            return d ? new Date(`${d.slice(0,10)}T12:00:00`).toLocaleDateString("pt-BR") : "";
+                          })()}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </>
+              );
+            })()}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={!!deleteCard} onOpenChange={(b) => !b && setDeleteCard(null)}>
         <AlertDialogContent>
