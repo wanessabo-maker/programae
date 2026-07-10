@@ -1104,6 +1104,20 @@ function EditCardModal({ card, onClose }: { card: PlannerCard | null; onClose: (
     },
   });
 
+  const { data: history = [] } = useQuery({
+    queryKey: ["planner_status_history", card?.id],
+    enabled: !!card?.id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("planner_status_history" as any)
+        .select("id, from_status, to_status, moved_by_name, created_at")
+        .eq("project_id", card!.id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      return (data as any[]) ?? [];
+    },
+  });
+
   useEffect(() => {
     if (card) {
       setClienteNome(card.clients?.name || card.name);
@@ -1228,6 +1242,25 @@ function EditCardModal({ card, onClose }: { card: PlannerCard | null; onClose: (
             <Label>Link dados do projeto</Label>
             <Input type="url" placeholder="https://..." value={link} onChange={(e) => setLink(e.target.value)} />
           </div>
+
+          {history.length > 0 && (
+            <div className="space-y-2">
+              <Label>Histórico de movimentações</Label>
+              <div className="max-h-40 overflow-auto border border-border rounded-md divide-y divide-border">
+                {history.map((h: any) => (
+                  <div key={h.id} className="px-3 py-2 text-xs flex items-center justify-between gap-2">
+                    <span className="text-muted-foreground">
+                      {new Date(h.created_at).toLocaleString("pt-BR")}
+                    </span>
+                    <span className="flex-1 text-center">
+                      {h.from_status ?? "—"} → <strong>{h.to_status ?? "—"}</strong>
+                    </span>
+                    <span className="text-foreground/80">{h.moved_by_name ?? "Sistema"}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
