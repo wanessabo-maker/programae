@@ -1306,16 +1306,7 @@ export function PlannerTab() {
     const card = cards.find((c) => c.id === draggableId);
     if (!card) return;
 
-    // AGUARDANDO_INICIO → INICIADO: apenas o card mais antigo (último na coluna) pode iniciar
-    // sem aprovação. Qualquer outro exige liberação da Gerência (admin).
-    if (src === "AGUARDANDO_INICIO" && dest === "INICIADO") {
-      const fila = grouped["AGUARDANDO_INICIO"];
-      const oldest = fila[fila.length - 1];
-      if (oldest && oldest.id !== card.id) {
-        setManagerApproval({ card, dest });
-        return;
-      }
-    }
+    // Movimentação livre entre todas as etapas — qualquer usuário pode mover cards.
 
     // CONCLUIDO → EM_REFORMA: preserva ação, pontos e ambientes da apresentação original.
     // Apenas atualiza o status; ao voltar para CONCLUIDO (vindo de EM_REFORMA) será criada
