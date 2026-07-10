@@ -1116,6 +1116,54 @@ export type Database = {
           },
         ]
       }
+      planner_status_history: {
+        Row: {
+          created_at: string
+          from_status: string | null
+          id: string
+          moved_by_name: string | null
+          moved_by_team_member_id: string | null
+          moved_by_user_id: string | null
+          project_id: string
+          to_status: string | null
+        }
+        Insert: {
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          moved_by_name?: string | null
+          moved_by_team_member_id?: string | null
+          moved_by_user_id?: string | null
+          project_id: string
+          to_status?: string | null
+        }
+        Update: {
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          moved_by_name?: string | null
+          moved_by_team_member_id?: string | null
+          moved_by_user_id?: string | null
+          project_id?: string
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "planner_status_history_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "planner_status_history_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "vw_planner_apresentacao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       position_permissions: {
         Row: {
           created_at: string | null
