@@ -730,7 +730,7 @@ export function ATTab() {
                 value={newCase.title}
                 onChange={(e) => setNewCase({ ...newCase, title: e.target.value })}
                 placeholder="Descreva brevemente o problema"
-                className="input-flat w-full mt-1"
+                className="input-flat w-full mt-1 text-card-foreground placeholder:text-muted-foreground"
               />
             </div>
 
@@ -765,7 +765,7 @@ export function ATTab() {
                       value={newClient.name}
                       onChange={(e) => setNewClient({ ...newClient, name: e.target.value })}
                       placeholder="Nome do cliente"
-                      className="input-flat w-full mt-1"
+                      className="input-flat w-full mt-1 text-card-foreground placeholder:text-muted-foreground"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -775,7 +775,7 @@ export function ATTab() {
                         value={newClient.phone}
                         onChange={(e) => setNewClient({ ...newClient, phone: e.target.value })}
                         placeholder="(00) 00000-0000"
-                        className="input-flat w-full mt-1"
+                        className="input-flat w-full mt-1 text-card-foreground placeholder:text-muted-foreground"
                       />
                     </div>
                     <div>
@@ -785,7 +785,7 @@ export function ATTab() {
                         value={newClient.email}
                         onChange={(e) => setNewClient({ ...newClient, email: e.target.value })}
                         placeholder="email@exemplo.com"
-                        className="input-flat w-full mt-1"
+                        className="input-flat w-full mt-1 text-card-foreground placeholder:text-muted-foreground"
                       />
                     </div>
                   </div>
@@ -794,7 +794,7 @@ export function ATTab() {
                 <select
                   value={newCase.client_id}
                   onChange={(e) => setNewCase({ ...newCase, client_id: e.target.value })}
-                  className="input-flat w-full"
+                  className="input-flat w-full text-card-foreground bg-card"
                 >
                   <option value="">Selecione</option>
                   {clients.map((c) => (
@@ -812,7 +812,7 @@ export function ATTab() {
                 <select
                   value={newCase.priority}
                   onChange={(e) => setNewCase({ ...newCase, priority: e.target.value })}
-                  className="input-flat w-full mt-1"
+                  className="input-flat w-full mt-1 text-card-foreground bg-card"
                 >
                   <option value="low">Baixa</option>
                   <option value="medium">Média</option>
@@ -828,7 +828,7 @@ export function ATTab() {
                   type="date"
                   value={newCase.contact_date}
                   onChange={(e) => setNewCase({ ...newCase, contact_date: e.target.value })}
-                  className="input-flat w-full mt-1"
+                  className="input-flat w-full mt-1 text-card-foreground"
                 />
               </div>
             </div>
@@ -848,7 +848,7 @@ export function ATTab() {
                       contract_number: project?.focco_project_number || newCase.contract_number,
                     });
                   }}
-                  className="input-flat w-full mt-1"
+                  className="input-flat w-full mt-1 text-card-foreground bg-card"
                 >
                   <option value="">Selecione</option>
                   {closedProjects.map((p) => (
@@ -866,7 +866,7 @@ export function ATTab() {
                 <input
                   value={newCase.contract_number}
                   onChange={(e) => setNewCase({ ...newCase, contract_number: e.target.value })}
-                  className="input-flat w-full mt-1"
+                  className="input-flat w-full mt-1 text-card-foreground"
                 />
               </div>
             </div>
@@ -880,7 +880,7 @@ export function ATTab() {
                   type="date"
                   value={newCase.scheduled_date}
                   onChange={(e) => setNewCase({ ...newCase, scheduled_date: e.target.value })}
-                  className="input-flat w-full mt-1"
+                  className="input-flat w-full mt-1 text-card-foreground"
                 />
               </div>
             </div>
@@ -893,7 +893,7 @@ export function ATTab() {
                 <select
                   value={newCase.action_type_id}
                   onChange={(e) => setNewCase({ ...newCase, action_type_id: e.target.value })}
-                  className="input-flat w-full mt-1"
+                  className="input-flat w-full mt-1 text-card-foreground bg-card"
                 >
                   <option value="">Selecione</option>
                   {actionTypes.filter(t => t.is_active).map((t) => (
@@ -909,7 +909,7 @@ export function ATTab() {
                 <select
                   value={newCase.responsible_id}
                   onChange={(e) => setNewCase({ ...newCase, responsible_id: e.target.value })}
-                  className="input-flat w-full mt-1"
+                  className="input-flat w-full mt-1 text-card-foreground bg-card"
                 >
                   <option value="">Selecione</option>
                   {activeTeamMembers.map((m) => (
@@ -926,7 +926,7 @@ export function ATTab() {
               <textarea
                 value={newCase.description}
                 onChange={(e) => setNewCase({ ...newCase, description: e.target.value })}
-                className="input-flat w-full mt-1 h-20 resize-none"
+                className="input-flat w-full mt-1 h-20 resize-none text-card-foreground placeholder:text-muted-foreground"
                 placeholder="Detalhe o problema reportado pelo cliente"
               />
             </div>
