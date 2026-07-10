@@ -1,0 +1,1 @@
+DROP TRIGGER IF EXISTS trg_guard_planner_start_transition ON public.projects;
