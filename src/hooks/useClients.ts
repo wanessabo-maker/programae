@@ -64,7 +64,7 @@ export function useCreateClient() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (client: Omit<Client, 'id' | 'created_at' | 'updated_at' | 'professionals' | 'team_members'>) => {
-      const { data, error } = await supabase.from('clients').insert(client).select().single();
+      const { data, error } = await supabase.from('clients').insert(client as never).select().single();
       if (error) throw error;
       return data;
     },
@@ -79,7 +79,8 @@ export function useUpdateClient() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Client> & { id: string }) => {
-      const { data, error } = await supabase.from('clients').update(updates).eq('id', id).select().single();
+      const { professionals: _p, responsible: _r, ...rest } = updates as any;
+      const { data, error } = await supabase.from('clients').update(rest).eq('id', id).select().single();
       if (error) throw error;
       return data;
     },

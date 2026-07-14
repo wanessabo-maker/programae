@@ -105,9 +105,10 @@ export function useUpdateProject() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<Project> & { id: string }) => {
+      const { clients: _c, professionals: _p, responsible: _r, ...rest } = updates as any;
       const { data, error } = await supabase
         .from('projects')
-        .update(updates)
+        .update(rest)
         .eq('id', id)
         .select('*, clients(name, contract_number), responsible:team_members!projects_responsible_id_fkey(name)')
         .single();

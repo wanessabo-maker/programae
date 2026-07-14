@@ -259,9 +259,10 @@ export function useUpdateCSCase() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...updates }: { id: string } & Partial<CSCase>) => {
+      const { client_name: _cn, project_name: _pn, responsible_name: _rn, ...rest } = updates as any;
       const { data, error } = await supabase
         .from('cs_cases')
-        .update(updates)
+        .update(rest)
         .eq('id', id)
         .select()
         .single();
@@ -392,9 +393,17 @@ export function useUpdateCSAction() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...updates }: { id: string } & Partial<CSAction>) => {
+      const {
+        action_type_name: _atn,
+        case_contract_number: _ccn,
+        client_name: _cn,
+        performed_by_name: _pbn,
+        schedule_name: _sn,
+        ...rest
+      } = updates as any;
       const { data, error } = await supabase
         .from('cs_actions')
-        .update(updates)
+        .update(rest)
         .eq('id', id)
         .select()
         .single();

@@ -549,7 +549,7 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
             if (Object.keys(updateData).length > 0) {
               await supabase
                 .from('projects')
-                .update(updateData)
+                .update(updateData as never)
                 .eq('id', existingProject.id);
             }
 
