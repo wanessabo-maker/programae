@@ -832,11 +832,38 @@ function ConcluidoModal({ card, isReforma, onClose }: { card: PlannerCard | null
   const [ambientes, setAmbientes] = useState("");
   const [foccoNumber, setFoccoNumber] = useState("");
   const [saving, setSaving] = useState(false);
+  const [projetistaId, setProjetistaId] = useState<string>("");
+
+  // Reset the projetista selection whenever the card changes
+  useEffect(() => {
+    setProjetistaId(card?.apresentacao_projetista_id || "");
+  }, [card?.id, card?.apresentacao_projetista_id]);
+
+  // List of Projetistas de Apresentação (used when the card doesn't have one yet)
+  const { data: projetistasApre = [] } = useQuery({
+    queryKey: ["planner_concluido_projetistas"],
+    queryFn: async () => {
+      const { data: positions } = await supabase
+        .from("positions").select("id, name").eq("is_active", true)
+        .or("name.ilike.%projetista de apresentação%,name.ilike.%projetista apresentação%,name.ilike.%projetista apresentacao%");
+      const apre = (positions ?? []).find(p => /projetista.*apresenta[cç][aã]o/i.test(p.name));
+      if (!apre?.id) return [] as { id: string; name: string }[];
+      const { data: mp } = await supabase
+        .from("team_member_positions").select("team_member_id").eq("position_id", apre.id);
+      const ids = (mp ?? []).map(m => m.team_member_id);
+      if (!ids.length) return [];
+      const { data: mems } = await supabase
+        .from("team_members").select("id, name").in("id", ids).eq("active", true).order("name");
+      return (mems ?? []) as { id: string; name: string }[];
+    },
+    enabled: !!card,
+  });
 
   const handleSave = async () => {
     if (!card) return;
-    if (!card.apresentacao_projetista_id) {
-      toast({ title: "Sem Projetista", description: "Defina o Projetista de Apresentação antes de concluir.", variant: "destructive" });
+    const projetistaFinal = projetistaId || card.apresentacao_projetista_id;
+    if (!projetistaFinal) {
+      toast({ title: "Selecione o Projetista de Apresentação", description: "Escolha o projetista responsável pela apresentação para concluir o card.", variant: "destructive" });
       return;
     }
     const ambCount = parseInt(ambientes) || 0;
@@ -852,6 +879,10 @@ function ConcluidoModal({ card, isReforma, onClose }: { card: PlannerCard | null
         planner_status: "CONCLUIDO",
         stage: "em_negociacao",
       };
+      // Persistir o projetista de apresentação se ainda não estava definido
+      if (!card.apresentacao_projetista_id && projetistaFinal) {
+        projectUpdates.apresentacao_projetista_id = projetistaFinal;
+      }
       const foccoTrim = foccoNumber.trim();
       if (foccoTrim) {
         // Verifica se o FOCCO já está vinculado a outro projeto
@@ -899,7 +930,7 @@ function ConcluidoModal({ card, isReforma, onClose }: { card: PlannerCard | null
       const { data: actionRow, error: aErr } = await supabase
         .from("actions")
         .insert({
-          consultant_id: card.apresentacao_projetista_id,
+          consultant_id: projetistaFinal,
           action_type_id: actionType.id,
           action_date: today,
           environment_count: ambCount,
@@ -919,7 +950,7 @@ function ConcluidoModal({ card, isReforma, onClose }: { card: PlannerCard | null
         await supabase.from("project_environments").insert({
           environment_type: "apresentacao",
           environment_count: ambCount,
-          projetista_id: card.apresentacao_projetista_id,
+          projetista_id: projetistaFinal,
           consultant_id: card.responsible_id,
           project_id: card.id,
           action_id: actionRow.id,
@@ -928,7 +959,7 @@ function ConcluidoModal({ card, isReforma, onClose }: { card: PlannerCard | null
 
         // 5. Programa E+ — 1 ponto por ambiente
         await supabase.from("credit_transactions").insert({
-          consultant_id: card.apresentacao_projetista_id,
+          consultant_id: projetistaFinal,
           action_id: actionRow.id,
           points: ambCount,
           description: `${isReforma ? "Reforma - Projeto de apresentação" : "Projeto de Apresentação"} — ${card.clients?.name ?? card.name} (${ambCount} amb.)`,
@@ -962,6 +993,22 @@ function ConcluidoModal({ card, isReforma, onClose }: { card: PlannerCard | null
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3 py-2">
+          {!card?.apresentacao_projetista_id && (
+            <div className="space-y-2">
+              <Label>Projetista de Apresentação *</Label>
+              <select
+                className="input-flat w-full text-card-foreground bg-card"
+                value={projetistaId}
+                onChange={(e) => setProjetistaId(e.target.value)}
+              >
+                <option value="">Selecione o projetista</option>
+                {projetistasApre.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+              <p className="text-[11px] text-muted-foreground">Este projetista receberá os pontos do Programa E+.</p>
+            </div>
+          )}
           <div className="space-y-2">
             <Label>Quantidade de ambientes *</Label>
             <Input type="number" min="1" value={ambientes} onChange={(e) => setAmbientes(e.target.value)} placeholder="Ex: 3" />
