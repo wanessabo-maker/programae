@@ -195,9 +195,17 @@ export function useUpdateTechnicalAssistance() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ...updates }: { id: string } & Partial<TechnicalAssistance>) => {
+      const {
+        action_type_name: _atn,
+        attended_by_name: _abn,
+        client_name: _cn,
+        project_name: _pn,
+        responsible_name: _rn,
+        ...rest
+      } = updates as any;
       const { data, error } = await supabase
         .from('technical_assistance')
-        .update(updates)
+        .update(rest)
         .eq('id', id)
         .select()
         .single();

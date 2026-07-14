@@ -170,7 +170,7 @@ export async function updateClientData(
     
     const { error } = await supabase
       .from('clients')
-      .update(filteredUpdates)
+      .update(filteredUpdates as never)
       .eq('id', clientId);
     
     if (error) throw error;
