@@ -1340,12 +1340,6 @@ export function PlannerTab() {
     dest: PlannerStatus;
     from: PlannerStatus;
   } | null>(null);
-  const [managerApproval, setManagerApproval] = useState<{
-    card: PlannerCard;
-    dest: PlannerStatus;
-  } | null>(null);
-  const [approvalReason, setApprovalReason] = useState("");
-  const [submittingRequest, setSubmittingRequest] = useState(false);
   const { user } = useAuthContext();
   const [vendasMonthKey, setVendasMonthKey] = useState<string | null>(null);
 
@@ -1412,45 +1406,6 @@ export function PlannerTab() {
     if (dest === "CONCLUIDO") { setConcluidoCard({ card, isReforma: src === "EM_REFORMA" }); return; }
 
     upd.mutate({ id: draggableId, status: dest });
-  };
-
-  const handleRequestApproval = async () => {
-    if (!managerApproval || !user) return;
-    setSubmittingRequest(true);
-    try {
-      // Localiza team_member do solicitante (opcional)
-      const { data: tm } = await supabase
-        .from("team_members")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      const { error } = await supabase.from("planner_start_approvals").insert({
-        project_id: managerApproval.card.id,
-        requested_by_user_id: user.id,
-        requested_by_team_member_id: tm?.id ?? null,
-        reason: approvalReason.trim() || null,
-        status: "pending",
-      });
-      if (error) {
-        if (error.code === "23505") {
-          toast({ title: "Já existe uma solicitação pendente para este card" });
-        } else {
-          throw error;
-        }
-      } else {
-        toast({
-          title: "Solicitação enviada",
-          description: "A Gerência Comercial receberá a notificação. O card será movido automaticamente quando aprovado.",
-        });
-      }
-      setManagerApproval(null);
-      setApprovalReason("");
-    } catch (e: any) {
-      toast({ title: "Erro", description: e.message, variant: "destructive" });
-    } finally {
-      setSubmittingRequest(false);
-    }
   };
 
   const handleRevert = async () => {
@@ -1755,48 +1710,6 @@ export function PlannerTab() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setRevertConfirm(null)}>Cancelar</Button>
             <Button variant="destructive" onClick={handleRevert}>Confirmar reversão</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={!!managerApproval}
-        onOpenChange={(b) => {
-          if (!b) { setManagerApproval(null); setApprovalReason(""); }
-        }}
-      >
-        <DialogContent className="bg-background border-border">
-          <DialogHeader>
-            <DialogTitle>Liberação da Gerência necessária</DialogTitle>
-            <DialogDescription>
-              O card <strong>{managerApproval?.card.clients?.name || managerApproval?.card.name}</strong> não é o mais antigo da fila
-              <strong> Aguardando Início</strong>. Envie a solicitação para a <strong>Gerência Comercial</strong> aprovar dentro do sistema.
-              O card será movido automaticamente para <strong>Iniciado</strong> quando a solicitação for aprovada.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            <div className="space-y-2">
-              <Label>Motivo (opcional)</Label>
-              <Textarea
-                value={approvalReason}
-                onChange={(e) => setApprovalReason(e.target.value)}
-                placeholder="Ex.: cliente com urgência, projeto prioritário…"
-                rows={3}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => { setManagerApproval(null); setApprovalReason(""); }}
-              disabled={submittingRequest}
-            >
-              Cancelar
-            </Button>
-            <Button onClick={handleRequestApproval} disabled={submittingRequest}>
-              {submittingRequest && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Solicitar liberação
-            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
