@@ -1340,12 +1340,6 @@ export function PlannerTab() {
     dest: PlannerStatus;
     from: PlannerStatus;
   } | null>(null);
-  const [managerApproval, setManagerApproval] = useState<{
-    card: PlannerCard;
-    dest: PlannerStatus;
-  } | null>(null);
-  const [approvalReason, setApprovalReason] = useState("");
-  const [submittingRequest, setSubmittingRequest] = useState(false);
   const { user } = useAuthContext();
   const [vendasMonthKey, setVendasMonthKey] = useState<string | null>(null);
 
@@ -1412,45 +1406,6 @@ export function PlannerTab() {
     if (dest === "CONCLUIDO") { setConcluidoCard({ card, isReforma: src === "EM_REFORMA" }); return; }
 
     upd.mutate({ id: draggableId, status: dest });
-  };
-
-  const handleRequestApproval = async () => {
-    if (!managerApproval || !user) return;
-    setSubmittingRequest(true);
-    try {
-      // Localiza team_member do solicitante (opcional)
-      const { data: tm } = await supabase
-        .from("team_members")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      const { error } = await supabase.from("planner_start_approvals").insert({
-        project_id: managerApproval.card.id,
-        requested_by_user_id: user.id,
-        requested_by_team_member_id: tm?.id ?? null,
-        reason: approvalReason.trim() || null,
-        status: "pending",
-      });
-      if (error) {
-        if (error.code === "23505") {
-          toast({ title: "Já existe uma solicitação pendente para este card" });
-        } else {
-          throw error;
-        }
-      } else {
-        toast({
-          title: "Solicitação enviada",
-          description: "A Gerência Comercial receberá a notificação. O card será movido automaticamente quando aprovado.",
-        });
-      }
-      setManagerApproval(null);
-      setApprovalReason("");
-    } catch (e: any) {
-      toast({ title: "Erro", description: e.message, variant: "destructive" });
-    } finally {
-      setSubmittingRequest(false);
-    }
   };
 
   const handleRevert = async () => {
