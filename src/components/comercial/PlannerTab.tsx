@@ -1713,48 +1713,6 @@ export function PlannerTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <Dialog
-        open={!!managerApproval}
-        onOpenChange={(b) => {
-          if (!b) { setManagerApproval(null); setApprovalReason(""); }
-        }}
-      >
-        <DialogContent className="bg-background border-border">
-          <DialogHeader>
-            <DialogTitle>Liberação da Gerência necessária</DialogTitle>
-            <DialogDescription>
-              O card <strong>{managerApproval?.card.clients?.name || managerApproval?.card.name}</strong> não é o mais antigo da fila
-              <strong> Aguardando Início</strong>. Envie a solicitação para a <strong>Gerência Comercial</strong> aprovar dentro do sistema.
-              O card será movido automaticamente para <strong>Iniciado</strong> quando a solicitação for aprovada.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            <div className="space-y-2">
-              <Label>Motivo (opcional)</Label>
-              <Textarea
-                value={approvalReason}
-                onChange={(e) => setApprovalReason(e.target.value)}
-                placeholder="Ex.: cliente com urgência, projeto prioritário…"
-                rows={3}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => { setManagerApproval(null); setApprovalReason(""); }}
-              disabled={submittingRequest}
-            >
-              Cancelar
-            </Button>
-            <Button onClick={handleRequestApproval} disabled={submittingRequest}>
-              {submittingRequest && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Solicitar liberação
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
