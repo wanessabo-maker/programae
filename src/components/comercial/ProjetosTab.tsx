@@ -21,6 +21,7 @@ interface ProjectFormData {
   client_id: string;
   professional_id: string;
   responsible_id: string;
+  apresentacao_projetista_id: string;
 }
 
 interface PresentationActionRow {
@@ -53,6 +54,7 @@ const emptyForm: ProjectFormData = {
   client_id: '',
   professional_id: '',
   responsible_id: '',
+  apresentacao_projetista_id: '',
 };
 
 const normalizeText = (value: string | null | undefined) =>
