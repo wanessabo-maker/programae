@@ -448,6 +448,7 @@ function VendidoModal({ card, onClose }: { card: PlannerCard | null; onClose: ()
   const [assignLog, setAssignLog] = useState('');
   const [assignApre, setAssignApre] = useState('');
   const [channel, setChannel] = useState<'convencional' | 'engenharia' | ''>('');
+  const [saleDate, setSaleDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [saving, setSaving] = useState(false);
 
   // Prefill when full loads
@@ -492,8 +493,9 @@ function VendidoModal({ card, onClose }: { card: PlannerCard | null; onClose: ()
     if (needsChannelChoice && !channel) {
       toast({ title: 'Selecione o canal da venda', variant: 'destructive' }); return;
     }
+    if (!saleDate) { toast({ title: 'Informe a data da venda', variant: 'destructive' }); return; }
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = saleDate;
     const effectiveChannel = (channel || inferredChannel || null) as 'convencional' | 'engenharia' | null;
     setSaving(true);
     try {
