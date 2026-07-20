@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useComercialConsultores } from '@/hooks/useRoleFilteredMembers';
 
 interface FoccoRow {
   foccoNumber: string;
@@ -245,15 +246,7 @@ function EditFoccoProjectDialog({
     },
   });
 
-  const { data: members = [] } = useQuery({
-    queryKey: ['team-members-active'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('team_members').select('id, name, active').eq('active', true).order('name');
-      if (error) throw error;
-      return data || [];
-    },
-  });
+  const { data: members = [] } = useComercialConsultores();
 
   useEffect(() => {
     if (!row) return;
