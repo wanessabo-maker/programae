@@ -773,24 +773,29 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
               {errors.date && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
             </div>
 
-            {selectedActionType?.requiresValue && selectedActionType.requiresValue !== 'nenhum' && (
-              <div>
-                <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.value ? 'text-destructive' : 'text-muted-foreground'}`}>
-                  {selectedActionType.requiresValue === 'ambientes' ? 'Quantidade de Ambientes *' : 'Valor da Venda (R$) *'}
-                </label>
-                <input
-                  type="number"
-                  value={form.value}
-                  onChange={(e) => {
-                    setForm({ ...form, value: e.target.value });
-                    setErrors({ ...errors, value: false });
-                  }}
-                  placeholder={selectedActionType.requiresValue === 'ambientes' ? '0' : 'R$ 0,00'}
-                  className={`input-flat w-full text-card-foreground ${errors.value ? 'border-destructive ring-1 ring-destructive' : ''}`}
-                />
-                {errors.value && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
-              </div>
-            )}
+            {/* Valor sempre editável — permite corrigir qualquer registro histórico */}
+            <div>
+              <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.value ? 'text-destructive' : 'text-muted-foreground'}`}>
+                {(() => {
+                  const req = selectedActionType?.requiresValue;
+                  const required = req && req !== 'nenhum';
+                  const label = req === 'ambientes' ? 'Quantidade de Ambientes' : 'Valor (R$)';
+                  return required ? `${label} *` : label;
+                })()}
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                value={form.value}
+                onChange={(e) => {
+                  setForm({ ...form, value: e.target.value });
+                  setErrors({ ...errors, value: false });
+                }}
+                placeholder={selectedActionType?.requiresValue === 'ambientes' ? '0' : 'R$ 0,00'}
+                className={`input-flat w-full text-card-foreground ${errors.value ? 'border-destructive ring-1 ring-destructive' : ''}`}
+              />
+              {errors.value && <span className="text-xs text-destructive mt-1">Campo obrigatório</span>}
+            </div>
 
             {/* Aditivo: link to principal sale or create separate checklist */}
             {isVendaAditivo && (
