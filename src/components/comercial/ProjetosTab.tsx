@@ -616,6 +616,20 @@ export default function ProjetosTab() {
                 ))}
               </select>
             </div>
+
+            <div>
+              <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Projetista de Apresentação</label>
+              <select
+                value={form.apresentacao_projetista_id}
+                onChange={(e) => setForm({ ...form, apresentacao_projetista_id: e.target.value })}
+                className="input-flat w-full"
+              >
+                <option value="">Selecione</option>
+                {activeTeamMembers.map(m => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
+            </div>
             
             <div>
               <label className="text-xs tracking-widest uppercase text-muted-foreground block mb-2">Estágio</label>
