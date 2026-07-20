@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useComercialConsultores, useApresentacaoProjetistas } from "@/hooks/useRoleFilteredMembers";
 import { useToast } from "@/hooks/use-toast";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { Button } from "@/components/ui/button";
@@ -1145,17 +1146,8 @@ function EditCardModal({ card, onClose }: { card: PlannerCard | null; onClose: (
   const [projetistaId, setProjetistaId] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
-  const { data: teamMembers = [] } = useQuery({
-    queryKey: ["planner_team_members"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("team_members")
-        .select("id, name")
-        .eq("active", true)
-        .order("name");
-      return data ?? [];
-    },
-  });
+  const { data: consultores = [] } = useComercialConsultores();
+  const { data: projetistasApre = [] } = useApresentacaoProjetistas();
 
   const { data: history = [] } = useQuery({
     queryKey: ["planner_status_history", card?.id],
@@ -1258,7 +1250,7 @@ function EditCardModal({ card, onClose }: { card: PlannerCard | null; onClose: (
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               >
                 <option value="">— Selecionar —</option>
-                {teamMembers.map((m: any) => (
+                {consultores.map((m: any) => (
                   <option key={m.id} value={m.id}>{m.name}</option>
                 ))}
               </select>
@@ -1271,7 +1263,7 @@ function EditCardModal({ card, onClose }: { card: PlannerCard | null; onClose: (
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               >
                 <option value="">— Selecionar —</option>
-                {teamMembers.map((m: any) => (
+                {projetistasApre.map((m: any) => (
                   <option key={m.id} value={m.id}>{m.name}</option>
                 ))}
               </select>
