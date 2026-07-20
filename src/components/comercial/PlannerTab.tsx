@@ -1430,20 +1430,36 @@ export function PlannerTab() {
         await supabase.from("clients").update({ status: "active" }).eq("id", card.client_id);
       }
 
-      // Se vinha de VENDIDO/CONCLUIDO, remover Actions auto-geradas + créditos + ambientes
+      // Reverter de VENDIDO/CONCLUIDO exige remover as ações vinculadas
+      // (venda ou apresentação de projeto), independente da origem — Pipeline
+       // ou "+ Registrar Ação". Blindagem: card fora de VENDIDO não pode
+       // coexistir com ação de Venda vinculada ao mesmo projeto.
       if (from === "VENDIDO" || from === "CONCLUIDO") {
-        const tag = from === "VENDIDO" ? "%Pipeline%VENDIDO%" : "%Pipeline%CONCLUIDO%";
-        const { data: autoActions } = await supabase
-          .from("actions")
-          .select("id")
-          .eq("project_id", card.id)
-          .ilike("notes", tag);
-        const ids = (autoActions ?? []).map((a) => a.id);
-        if (ids.length) {
-          await supabase.from("credit_transactions").delete().in("action_id", ids);
-          await supabase.from("project_environments").delete().in("action_id", ids);
-          await supabase.from("project_value_history").delete().in("action_id", ids);
-          await supabase.from("actions").delete().in("id", ids);
+        const targetClassification = from === "VENDIDO" ? "venda" : "projeto";
+        const { data: types } = await supabase
+          .from("action_types")
+          .select("id, name")
+          .eq("classification", targetClassification);
+        let typeIds = (types ?? []).map((t) => t.id);
+        // Para CONCLUIDO, restringir a ações de "apresentação" (inclui reforma)
+        if (from === "CONCLUIDO") {
+          typeIds = (types ?? [])
+            .filter((t) => (t.name || "").toLowerCase().includes("apresenta"))
+            .map((t) => t.id);
+        }
+        if (typeIds.length) {
+          const { data: linkedActions } = await supabase
+            .from("actions")
+            .select("id")
+            .eq("project_id", card.id)
+            .in("action_type_id", typeIds);
+          const ids = (linkedActions ?? []).map((a) => a.id);
+          if (ids.length) {
+            await supabase.from("credit_transactions").delete().in("action_id", ids);
+            await supabase.from("project_environments").delete().in("action_id", ids);
+            await supabase.from("project_value_history").delete().in("action_id", ids);
+            await supabase.from("actions").delete().in("id", ids);
+          }
         }
       }
 
@@ -1692,15 +1708,16 @@ export function PlannerTab() {
             <DialogDescription>
               {revertConfirm?.from === "VENDIDO" ? (
                 <>
-                  Isto vai <strong>excluir a ação de Venda</strong> gerada automaticamente,
-                  remover os <strong>pontos do Programa E+</strong> dela e zerar o valor fechado do projeto.
-                  Ações de venda criadas manualmente (pelo Registro de Ação) não serão tocadas.
+                  Isto vai <strong>excluir TODAS as ações de Venda</strong> vinculadas
+                  a este projeto (Pipeline ou "+ Registrar Ação"), remover os
+                  <strong> pontos do Programa E+</strong> geradas por elas e zerar o valor
+                  fechado. Um card não pode ficar fora de VENDIDO com ação de venda ativa.
                 </>
               ) : revertConfirm?.from === "CONCLUIDO" ? (
                 <>
-                  Isto vai <strong>excluir a ação de Projeto de Apresentação</strong> gerada automaticamente,
-                  os <strong>ambientes registrados</strong> e os <strong>pontos do Programa E+</strong> dela.
-                  Registros criados manualmente não serão tocados.
+                  Isto vai <strong>excluir as ações de Projeto de Apresentação</strong>
+                  vinculadas a este projeto, os <strong>ambientes registrados</strong> e
+                  os <strong>pontos do Programa E+</strong> gerados por elas.
                 </>
               ) : (
                 <>Isto vai limpar o motivo da perda e devolver o cliente ao status ativo.</>
