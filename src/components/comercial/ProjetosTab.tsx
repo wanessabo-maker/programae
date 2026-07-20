@@ -626,7 +626,7 @@ export default function ProjetosTab() {
                 className="input-flat w-full"
               >
                 <option value="">Selecione</option>
-                {activeTeamMembers.map(m => (
+                {consultoresComerciais.map(m => (
                   <option key={m.id} value={m.id}>{m.name}</option>
                 ))}
               </select>
@@ -640,7 +640,7 @@ export default function ProjetosTab() {
                 className="input-flat w-full"
               >
                 <option value="">Selecione</option>
-                {activeTeamMembers.map(m => (
+                {projetistasApresentacao.map(m => (
                   <option key={m.id} value={m.id}>{m.name}</option>
                 ))}
               </select>
