@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useProjects, useUpdateProject, useDeleteProject, PROJECT_STAGES, Project } from '@/hooks/useProjects';
 import { useClients, useUpdateClient } from '@/hooks/useClients';
 import { useProfessionals, useTeamMembers } from '@/hooks/useDatabase';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { parseISO, isWithinInterval, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
@@ -97,6 +97,7 @@ export default function ProjetosTab() {
   const updateProject = useUpdateProject();
   const deleteProject = useDeleteProject();
   const updateClient = useUpdateClient();
+  const queryClient = useQueryClient();
 
   const activeTeamMembers = teamMembers.filter(m => m.active);
 
@@ -236,6 +237,7 @@ export default function ProjetosTab() {
       client_id: project.client_id || '',
       professional_id: project.professional_id || '',
       responsible_id: project.responsible_id || '',
+      apresentacao_projetista_id: project.apresentacao_projetista_id || '',
     });
     setEditingProject(project);
     setShowModal(true);
@@ -259,11 +261,32 @@ export default function ProjetosTab() {
       client_id: form.client_id || null,
       professional_id: form.professional_id || null,
       responsible_id: form.responsible_id || null,
+      apresentacao_projetista_id: form.apresentacao_projetista_id || null,
     };
 
     try {
       if (editingProject) {
         await updateProject.mutateAsync({ id: editingProject.id, ...projectData });
+        // Se o Valor Estimado mudou, registra no histórico para refletir imediatamente na Carteira Flutuante
+        const prevValue = editingProject.estimated_value ?? null;
+        const newValue = projectData.estimated_value;
+        if (newValue !== null && newValue !== prevValue) {
+          const { data: me } = await supabase
+            .from('team_members')
+            .select('id')
+            .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+            .maybeSingle();
+          if (me?.id) {
+            await supabase.from('project_value_history').insert({
+              project_id: editingProject.id,
+              presented_value: newValue,
+              consultant_id: me.id,
+              notes: 'Ajuste manual na Carteira Flutuante',
+            });
+          }
+        }
+        await queryClient.invalidateQueries({ queryKey: ['carteira-flutuante-value-history'] });
+        await queryClient.invalidateQueries({ queryKey: ['carteira-flutuante-presentations'] });
         toast.success('Projeto atualizado com sucesso');
       }
       setShowModal(false);
