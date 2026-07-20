@@ -776,9 +776,12 @@ export function EditActionModal({ open, onOpenChange, action }: EditActionModalP
             {/* Valor sempre editável — permite corrigir qualquer registro histórico */}
             <div>
               <label className={`text-xs tracking-widest uppercase block mb-2 ${errors.value ? 'text-destructive' : 'text-muted-foreground'}`}>
-                {selectedActionType?.requiresValue === 'ambientes'
-                  ? `Quantidade de Ambientes${selectedActionType?.requiresValue && selectedActionType.requiresValue !== 'nenhum' ? ' *' : ''}`
-                  : `Valor (R$)${selectedActionType?.requiresValue && selectedActionType.requiresValue !== 'nenhum' ? ' *' : ''}`}
+                {(() => {
+                  const req = selectedActionType?.requiresValue;
+                  const required = req && req !== 'nenhum';
+                  const label = req === 'ambientes' ? 'Quantidade de Ambientes' : 'Valor (R$)';
+                  return required ? `${label} *` : label;
+                })()}
               </label>
               <input
                 type="number"
