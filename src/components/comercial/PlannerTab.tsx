@@ -680,6 +680,10 @@ function VendidoModal({ card, onClose }: { card: PlannerCard | null; onClose: ()
               <Label>Valor da venda (R$) *</Label>
               <Input type="number" step="0.01" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0,00" />
             </div>
+            <div className="space-y-2">
+              <Label>Data da venda *</Label>
+              <Input type="date" value={saleDate} onChange={(e) => setSaleDate(e.target.value)} />
+            </div>
             {needsChannelChoice && (
               <div className="space-y-2">
                 <Label>Canal *</Label>
