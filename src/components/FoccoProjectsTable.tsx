@@ -1,13 +1,19 @@
-import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMemo, useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useProjects } from '@/hooks/useProjects';
-import { FileText, Ruler, Users } from 'lucide-react';
+import { FileText, Ruler, Users, Pencil } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -27,6 +33,8 @@ interface FoccoRow {
 
 export function FoccoProjectsTable() {
   const { data: projects = [], isLoading: projLoading } = useProjects();
+  const queryClient = useQueryClient();
+  const [editing, setEditing] = useState<FoccoRow | null>(null);
 
   // Fetch all project_environments grouped
   const { data: envData = [], isLoading: envLoading } = useQuery({
@@ -139,6 +147,7 @@ export function FoccoProjectsTable() {
   }
 
   return (
+    <>
     <div className="border border-border overflow-x-auto">
       <Table>
         <TableHeader>
@@ -158,6 +167,7 @@ export function FoccoProjectsTable() {
             <TableHead className="text-xs uppercase tracking-wider text-right">
               <span className="flex items-center gap-1 justify-end"><Ruler className="h-3 w-3" /> Amb.</span>
             </TableHead>
+            <TableHead className="text-xs uppercase tracking-wider text-right w-10"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -178,11 +188,164 @@ export function FoccoProjectsTable() {
                 <TableCell className="text-right">
                   <Badge variant="secondary" className="font-bold">{row.totalAmbientes}</Badge>
                 </TableCell>
+                <TableCell className="text-right">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditing(row)} title="Editar">
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                </TableCell>
               </TableRow>
             );
           })}
         </TableBody>
       </Table>
     </div>
+    <EditFoccoProjectDialog
+      row={editing}
+      onOpenChange={(o) => !o && setEditing(null)}
+      onSaved={() => {
+        setEditing(null);
+        queryClient.invalidateQueries({ queryKey: ['projects'] });
+        queryClient.invalidateQueries({ queryKey: ['focco-env-summary'] });
+        queryClient.invalidateQueries({ queryKey: ['focco-presentation-actions'] });
+      }}
+    />
+    </>
+  );
+}
+
+const STAGE_OPTIONS = [
+  { value: 'em_negociacao', label: 'Em Negociação' },
+  { value: 'closed_won', label: 'Vendido' },
+  { value: 'closed_lost', label: 'Perdido' },
+  { value: 'delivered', label: 'Entregue' },
+];
+
+function EditFoccoProjectDialog({
+  row,
+  onOpenChange,
+  onSaved,
+}: {
+  row: FoccoRow | null;
+  onOpenChange: (open: boolean) => void;
+  onSaved: () => void;
+}) {
+  const open = !!row;
+  const [focco, setFocco] = useState('');
+  const [clientId, setClientId] = useState<string>('');
+  const [stage, setStage] = useState<string>('');
+  const [responsibleId, setResponsibleId] = useState<string>('');
+  const [saving, setSaving] = useState(false);
+
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients-simple'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('clients').select('id, name').order('name');
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const { data: members = [] } = useQuery({
+    queryKey: ['team-members-active'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('team_members').select('id, name, active').eq('active', true).order('name');
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  useEffect(() => {
+    if (!row) return;
+    (async () => {
+      const { data } = await supabase
+        .from('projects')
+        .select('focco_project_number, client_id, stage, responsible_id')
+        .eq('id', row.projectId).maybeSingle();
+      setFocco(data?.focco_project_number || row.foccoNumber);
+      setClientId(data?.client_id || '');
+      setStage(data?.stage || row.stage || '');
+      setResponsibleId(data?.responsible_id || '');
+    })();
+  }, [row]);
+
+  const handleSave = async () => {
+    if (!row) return;
+    if (!focco.trim()) {
+      toast.error('Nº FOCCO é obrigatório');
+      return;
+    }
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({
+          focco_project_number: focco.trim(),
+          client_id: clientId || null,
+          stage: stage || null,
+          responsible_id: responsibleId || null,
+        })
+        .eq('id', row.projectId);
+      if (error) throw error;
+      toast.success('Projeto atualizado');
+      onSaved();
+    } catch (e: any) {
+      toast.error(e.message || 'Erro ao salvar');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Editar Projeto FOCCO</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-2">
+            <Label>Nº FOCCO</Label>
+            <Input value={focco} onChange={(e) => setFocco(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Cliente</Label>
+            <Select value={clientId} onValueChange={setClientId}>
+              <SelectTrigger><SelectValue placeholder="Selecionar cliente" /></SelectTrigger>
+              <SelectContent>
+                {clients.map((c: any) => (
+                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Status</Label>
+            <Select value={stage} onValueChange={setStage}>
+              <SelectTrigger><SelectValue placeholder="Selecionar status" /></SelectTrigger>
+              <SelectContent>
+                {STAGE_OPTIONS.map(s => (
+                  <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Consultor Comercial</Label>
+            <Select value={responsibleId} onValueChange={setResponsibleId}>
+              <SelectTrigger><SelectValue placeholder="Selecionar consultor" /></SelectTrigger>
+              <SelectContent>
+                {members.map((m: any) => (
+                  <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
+          <Button onClick={handleSave} disabled={saving}>{saving ? 'Salvando...' : 'Salvar'}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
