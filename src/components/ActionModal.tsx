@@ -1558,14 +1558,15 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
 
       // SYNC: When "Projeto de Apresentação" / "Apresentação de Projeto" is registered manually,
       // move the corresponding Planner card to CONCLUIDO (only if it has a planner_status).
-      if (isApresentacaoProjeto && projectId) {
+      const syncProjectId = projectId || loadedClientData?.projectId || undefined;
+      if (isApresentacaoProjeto && syncProjectId) {
         try {
           const { data: proj } = await supabase
             .from('projects')
             .select('planner_status')
-            .eq('id', projectId)
+            .eq('id', syncProjectId)
             .maybeSingle();
-          if (proj?.planner_status && proj.planner_status !== 'CONCLUIDO' && proj.planner_status !== 'VENDIDO' && proj.planner_status !== 'PERDIDO') {
+          if (proj?.planner_status && proj.planner_status !== 'CONCLUIDO' && proj.planner_status !== 'VENDIDO' && proj.planner_status !== 'PERDIDO' && proj.planner_status !== 'EM_REFORMA') {
             await supabase
               .from('projects')
               .update({
@@ -1573,11 +1574,37 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 planner_status_at: new Date().toISOString(),
                 planner_data_concluido: new Date().toISOString(),
               } as any)
-              .eq('id', projectId);
+              .eq('id', syncProjectId);
+            queryClient.invalidateQueries({ queryKey: ['planner_kanban'] });
+          }
+          // If it's already in EM_REFORMA and the action is a Reforma type, also move to CONCLUIDO
+        } catch (syncErr) {
+          console.error('Error syncing planner status:', syncErr);
+        }
+      }
+
+      // SYNC: When "Reforma - Projeto de apresentação" is registered manually,
+      // move a card in EM_REFORMA back to CONCLUIDO (mirror of Pipeline movement).
+      if (isReforma && syncProjectId) {
+        try {
+          const { data: proj } = await supabase
+            .from('projects')
+            .select('planner_status')
+            .eq('id', syncProjectId)
+            .maybeSingle();
+          if (proj?.planner_status === 'EM_REFORMA') {
+            await supabase
+              .from('projects')
+              .update({
+                planner_status: 'CONCLUIDO',
+                planner_status_at: new Date().toISOString(),
+                planner_data_concluido: new Date().toISOString(),
+              } as any)
+              .eq('id', syncProjectId);
             queryClient.invalidateQueries({ queryKey: ['planner_kanban'] });
           }
         } catch (syncErr) {
-          console.error('Error syncing planner status:', syncErr);
+          console.error('Error syncing planner status (reforma):', syncErr);
         }
       }
 
