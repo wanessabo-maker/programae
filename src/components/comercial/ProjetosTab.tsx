@@ -224,12 +224,16 @@ export default function ProjetosTab() {
     return list;
   }, [carteiraFlutuanteProjects, searchTerm, periodFilter, customStart, customEnd, consultantFilter]);
 
-  const handleEdit = (project: Project) => {
+  const getDisplayedProjectValue = (project: Project & { lastPresentedValue?: number | null }) =>
+    project.lastPresentedValue ?? project.estimated_value ?? null;
+
+  const handleEdit = (project: Project & { lastPresentedValue?: number | null }) => {
+    const displayedValue = getDisplayedProjectValue(project);
     setForm({
       name: project.name,
       description: project.description || '',
       stage: project.stage || 'lead',
-      estimated_value: project.estimated_value?.toString() || '',
+      estimated_value: displayedValue?.toString() || '',
       closed_value: project.closed_value?.toString() || '',
       start_date: project.start_date || '',
       expected_delivery: project.expected_delivery || '',
@@ -267,24 +271,35 @@ export default function ProjetosTab() {
     try {
       if (editingProject) {
         await updateProject.mutateAsync({ id: editingProject.id, ...projectData });
-        // Se o Valor Estimado mudou, registra no histórico para refletir imediatamente na Carteira Flutuante
-        const prevValue = editingProject.estimated_value ?? null;
+        // A Carteira Flutuante exibe o último valor em project_value_history.
+        // Por isso o lápis precisa comparar/gravar contra o valor exibido na tabela, não só contra projects.estimated_value.
+        const prevValue = getDisplayedProjectValue(editingProject);
         const newValue = projectData.estimated_value;
         if (newValue !== null && newValue !== prevValue) {
+          const { data: authData } = await supabase.auth.getUser();
           const { data: me } = await supabase
             .from('team_members')
             .select('id')
-            .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+            .eq('user_id', authData.user?.id)
             .maybeSingle();
-          if (me?.id) {
-            await supabase.from('project_value_history').insert({
-              project_id: editingProject.id,
-              presented_value: newValue,
-              consultant_id: me.id,
-              notes: 'Ajuste manual na Carteira Flutuante',
-            });
+
+          const consultantId = me?.id || projectData.responsible_id || editingProject.responsible_id;
+          if (!consultantId) {
+            throw new Error('Não foi possível identificar o consultor para registrar o histórico de valor.');
+          }
+
+          const { error: historyError } = await supabase.from('project_value_history').insert({
+            project_id: editingProject.id,
+            presented_value: newValue,
+            consultant_id: consultantId,
+            notes: 'Ajuste manual na Carteira Flutuante',
+          });
+
+          if (historyError) {
+            throw historyError;
           }
         }
+        await queryClient.invalidateQueries({ queryKey: ['projects'] });
         await queryClient.invalidateQueries({ queryKey: ['carteira-flutuante-value-history'] });
         await queryClient.invalidateQueries({ queryKey: ['carteira-flutuante-presentations'] });
         toast.success('Projeto atualizado com sucesso');
