@@ -7,6 +7,7 @@ import { useProfessionals, useTeamMembers } from '@/hooks/useDatabase';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useApresentacaoProjetistas, useComercialConsultores } from '@/hooks/useRoleFilteredMembers';
 import { parseISO, isWithinInterval, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
 
 interface ProjectFormData {
@@ -100,6 +101,8 @@ export default function ProjetosTab() {
   const queryClient = useQueryClient();
 
   const activeTeamMembers = teamMembers.filter(m => m.active);
+  const { data: consultoresComerciais = [] } = useComercialConsultores();
+  const { data: projetistasApresentacao = [] } = useApresentacaoProjetistas();
 
   // Fetch all presentation-related actions; filtering is finalized in the client to also cover misclassified records
   const { data: presentationActions = [] } = useQuery<PresentationActionRow[]>({
