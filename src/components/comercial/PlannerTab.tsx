@@ -910,11 +910,15 @@ function ConcluidoModal({ card, isReforma, onClose }: { card: PlannerCard | null
         projectUpdates.focco_project_number = foccoTrim;
       }
 
-      const { error: pErr } = await supabase
+      const { data: updatedRows, error: pErr } = await supabase
         .from("projects")
         .update(projectUpdates)
-        .eq("id", card.id);
+        .eq("id", card.id)
+        .select("id");
       if (pErr) throw pErr;
+      if (!updatedRows || updatedRows.length === 0) {
+        throw new Error("Não foi possível mover o card (permissão negada). Peça a um admin para verificar.");
+      }
 
       // 2. Find action type (Reforma OR padrão)
       const actionTypeName = isReforma
