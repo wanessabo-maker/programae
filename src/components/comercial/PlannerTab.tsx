@@ -1342,7 +1342,7 @@ export function PlannerTab() {
     dest: PlannerStatus;
     from: PlannerStatus;
   } | null>(null);
-  const { user } = useAuthContext();
+  const { user, isAdmin } = useAuthContext();
   const [vendasMonthKey, setVendasMonthKey] = useState<string | null>(null);
 
   const grouped = COLUMNS.reduce((acc, col) => {
@@ -1492,9 +1492,12 @@ export function PlannerTab() {
         <p className="text-xs text-white/50">
           Arraste os cards entre as colunas para mudar o status.
         </p>
-        <Button onClick={() => setNovoOpen(true)} size="sm" className="gap-2">
-          <Plus className="h-4 w-4" /> Novo projeto
-        </Button>
+        <div className="flex items-center gap-2">
+          {isAdmin && <PipelineExportButton cards={cards as any} />}
+          <Button onClick={() => setNovoOpen(true)} size="sm" className="gap-2">
+            <Plus className="h-4 w-4" /> Novo projeto
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
