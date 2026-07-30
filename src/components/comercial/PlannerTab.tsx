@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { PipelineExportButton } from "@/components/comercial/PipelineExportButton";
+import { PipelineConsistencyCheck } from "@/components/comercial/PipelineConsistencyCheck";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useComercialConsultores, useApresentacaoProjetistas } from "@/hooks/useRoleFilteredMembers";
@@ -1495,6 +1496,7 @@ export function PlannerTab() {
           Arraste os cards entre as colunas para mudar o status.
         </p>
         <div className="flex items-center gap-2">
+          {isAdmin && <PipelineConsistencyCheck />}
           {isAdmin && <PipelineExportButton cards={cards as any} />}
           <Button onClick={() => setNovoOpen(true)} size="sm" className="gap-2">
             <Plus className="h-4 w-4" /> Novo projeto
