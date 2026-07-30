@@ -698,30 +698,30 @@ function VendidoModal({ card, onClose }: { card: PlannerCard | null; onClose: ()
           {/* Atribuir responsáveis do checklist */}
           <div className="border border-border rounded p-3 space-y-3">
             <div>
-              <Label className="text-xs tracking-widest uppercase">Atribuir responsáveis do checklist *</Label>
-              <p className="text-[11px] text-muted-foreground mt-1">Profissionais técnicos e de logística deste contrato.</p>
+              <Label className="text-xs tracking-widest uppercase">Atribuir responsáveis do checklist (opcional)</Label>
+              <p className="text-[11px] text-muted-foreground mt-1">Profissionais técnicos e de logística deste contrato. Pode ficar em branco e ser definido depois.</p>
             </div>
             <div className="space-y-2">
-              <Label>Projetista Técnico *</Label>
+              <Label>Projetista Técnico</Label>
               <select value={assignProj} onChange={(e) => setAssignProj(e.target.value)}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                <option value="">Selecione um projetista</option>
+                <option value="">Sem projetista (definir depois)</option>
                 {(positionMembers?.projetista ?? []).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
               </select>
             </div>
             <div className="space-y-2">
-              <Label>Analista de Logística *</Label>
+              <Label>Analista de Logística</Label>
               <select value={assignLog} onChange={(e) => setAssignLog(e.target.value)}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                <option value="">Selecione um analista</option>
+                <option value="">Sem analista (definir depois)</option>
                 {(positionMembers?.logistica ?? []).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
               </select>
             </div>
             <div className="space-y-2">
-              <Label>Projetista de Apresentação *</Label>
+              <Label>Projetista de Apresentação</Label>
               <select value={assignApre} onChange={(e) => setAssignApre(e.target.value)}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                <option value="">Selecione um projetista</option>
+                <option value="">Sem projetista (definir depois)</option>
                 {(positionMembers?.apresentacao ?? []).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
               </select>
             </div>
