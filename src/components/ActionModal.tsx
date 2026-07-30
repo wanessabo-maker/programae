@@ -606,18 +606,8 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
       (newErrors as any).salesChannel = true;
     }
     
-    // For Venda (including Aditivo), checklist assignment is mandatory
-    // EXCEPT when Aditivo is configured to link to the existing sale's checklist
-    if (isVenda && !(isVendaAditivo && form.aditivoLinkExisting)) {
-      if (!form.assignedProjetistaId) newErrors.assignedProjetistaId = true;
-      if (!form.assignedLogisticaId) newErrors.assignedLogisticaId = true;
-      if (!form.assignedApresentacaoProjetistaId) newErrors.assignedApresentacaoProjetistaId = true;
-    }
-    
-    // For Apresentação de Projeto, Projetista de Apresentação is mandatory
-    if (isApresentacaoProjeto && !form.assignedApresentacaoProjetistaId) {
-      newErrors.assignedApresentacaoProjetistaId = true;
-    }
+    // Responsáveis do checklist / Projetista de Apresentação são OPCIONAIS.
+    // Podem ser definidos depois (venda/apresentação sem projetista inicial).
     
     // Validate all enabled fields - skip for projetistas who only see FOCCO + environments
     if (selectedActionType?.additionalFields && selectedActionType?.enabledFields && !(isEffectiveProjetista || isEffectiveProjetistaTecnico)) {
