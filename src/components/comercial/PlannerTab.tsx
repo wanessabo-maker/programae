@@ -483,9 +483,7 @@ function VendidoModal({ card, onClose }: { card: PlannerCard | null; onClose: ()
     if (!focco.trim()) { toast({ title: 'N° Projeto FOCCO obrigatório', variant: 'destructive' }); return; }
     if (!contrato.trim()) { toast({ title: 'N° Contrato obrigatório', variant: 'destructive' }); return; }
     if (!clientName.trim()) { toast({ title: 'Nome do cliente obrigatório', variant: 'destructive' }); return; }
-    if (!assignProj) { toast({ title: 'Defina o Projetista Técnico', variant: 'destructive' }); return; }
-    if (!assignLog)  { toast({ title: 'Defina o Analista de Logística', variant: 'destructive' }); return; }
-    if (!assignApre) { toast({ title: 'Defina o Projetista de Apresentação', variant: 'destructive' }); return; }
+    // Projetistas/logística são opcionais — podem ser definidos depois
     if (especMode === 'existing' && !profId) {
       toast({ title: 'Selecione o Especificador', description: 'Ou marque "Novo" / "Sem Especificador".', variant: 'destructive' }); return;
     }
@@ -573,17 +571,17 @@ function VendidoModal({ card, onClose }: { card: PlannerCard | null; onClose: ()
 
       // 4) Checklist (idempotent — only creates if missing)
       await createChecklistForProject(card.id, {
-        assignedProjetistaId: assignProj,
-        assignedLogisticaId: assignLog,
-        assignedApresentacaoProjetistaId: assignApre,
+        assignedProjetistaId: assignProj || undefined,
+        assignedLogisticaId: assignLog || undefined,
+        assignedApresentacaoProjetistaId: assignApre || undefined,
         commercialResponsibleId: responsibleId ?? undefined,
       });
       // If checklist already existed, update assignees
       if (full.checklist) {
-        await supabase.from('contract_checklists').update({
-          assigned_projetista_id: assignProj,
-          assigned_logistica_id: assignLog,
-          assigned_apresentacao_projetista_id: assignApre,
+      await supabase.from('contract_checklists').update({
+          assigned_projetista_id: assignProj || null,
+          assigned_logistica_id: assignLog || null,
+          assigned_apresentacao_projetista_id: assignApre || null,
         }).eq('project_id', card.id);
       }
 
@@ -700,30 +698,30 @@ function VendidoModal({ card, onClose }: { card: PlannerCard | null; onClose: ()
           {/* Atribuir responsáveis do checklist */}
           <div className="border border-border rounded p-3 space-y-3">
             <div>
-              <Label className="text-xs tracking-widest uppercase">Atribuir responsáveis do checklist *</Label>
-              <p className="text-[11px] text-muted-foreground mt-1">Profissionais técnicos e de logística deste contrato.</p>
+              <Label className="text-xs tracking-widest uppercase">Atribuir responsáveis do checklist (opcional)</Label>
+              <p className="text-[11px] text-muted-foreground mt-1">Profissionais técnicos e de logística deste contrato. Pode ficar em branco e ser definido depois.</p>
             </div>
             <div className="space-y-2">
-              <Label>Projetista Técnico *</Label>
+              <Label>Projetista Técnico</Label>
               <select value={assignProj} onChange={(e) => setAssignProj(e.target.value)}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                <option value="">Selecione um projetista</option>
+                <option value="">Sem projetista (definir depois)</option>
                 {(positionMembers?.projetista ?? []).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
               </select>
             </div>
             <div className="space-y-2">
-              <Label>Analista de Logística *</Label>
+              <Label>Analista de Logística</Label>
               <select value={assignLog} onChange={(e) => setAssignLog(e.target.value)}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                <option value="">Selecione um analista</option>
+                <option value="">Sem analista (definir depois)</option>
                 {(positionMembers?.logistica ?? []).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
               </select>
             </div>
             <div className="space-y-2">
-              <Label>Projetista de Apresentação *</Label>
+              <Label>Projetista de Apresentação</Label>
               <select value={assignApre} onChange={(e) => setAssignApre(e.target.value)}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                <option value="">Selecione um projetista</option>
+                <option value="">Sem projetista (definir depois)</option>
                 {(positionMembers?.apresentacao ?? []).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
               </select>
             </div>
@@ -869,11 +867,9 @@ function ConcluidoModal({ card, isReforma, onClose }: { card: PlannerCard | null
 
   const handleSave = async () => {
     if (!card) return;
-    const projetistaFinal = projetistaId || card.apresentacao_projetista_id;
-    if (!projetistaFinal) {
-      toast({ title: "Selecione o Projetista de Apresentação", description: "Escolha o projetista responsável pela apresentação para concluir o card.", variant: "destructive" });
-      return;
-    }
+    // Projetista de Apresentação é opcional — se não houver, a ação é criada sem
+    // gerar ambientes/pontos (podem ser atribuídos depois ao definir o projetista).
+    const projetistaFinal = projetistaId || card.apresentacao_projetista_id || null;
     const ambCount = parseInt(ambientes) || 0;
     if (ambCount <= 0) {
       toast({ title: "Informe a quantidade de ambientes", variant: "destructive" });
@@ -942,7 +938,7 @@ function ConcluidoModal({ card, isReforma, onClose }: { card: PlannerCard | null
       const { data: actionRow, error: aErr } = await supabase
         .from("actions")
         .insert({
-          consultant_id: projetistaFinal,
+          consultant_id: projetistaFinal ?? card.responsible_id ?? null,
           action_type_id: actionType.id,
           action_date: today,
           environment_count: ambCount,
@@ -957,7 +953,7 @@ function ConcluidoModal({ card, isReforma, onClose }: { card: PlannerCard | null
       if (aErr) throw aErr;
 
       // 4. Project environment record (1 ambiente = 1 ponto para projetista)
-      if (actionRow) {
+      if (actionRow && projetistaFinal) {
         const compMonth = today.slice(0, 8) + "01";
         await supabase.from("project_environments").insert({
           environment_type: "apresentacao",
@@ -985,7 +981,12 @@ function ConcluidoModal({ card, isReforma, onClose }: { card: PlannerCard | null
       qc.invalidateQueries({ queryKey: ["actions"] });
       qc.invalidateQueries({ queryKey: ["credit_transactions"] });
       qc.invalidateQueries({ queryKey: ["project-environments"] });
-      toast({ title: "Apresentação concluída", description: `${ambCount} ambiente(s) registrados no Programa E+.` });
+      toast({
+        title: "Apresentação concluída",
+        description: projetistaFinal
+          ? `${ambCount} ambiente(s) registrados no Programa E+.`
+          : `${ambCount} ambiente(s) registrados. Sem projetista definido — os pontos do Programa E+ serão gerados quando o projetista for atribuído.`,
+      });
       setAmbientes(""); setFoccoNumber("");
       onClose();
     } catch (e: any) {
@@ -1007,18 +1008,18 @@ function ConcluidoModal({ card, isReforma, onClose }: { card: PlannerCard | null
         <div className="space-y-3 py-2">
           {!card?.apresentacao_projetista_id && (
             <div className="space-y-2">
-              <Label>Projetista de Apresentação *</Label>
+              <Label>Projetista de Apresentação (opcional)</Label>
               <select
                 className="input-flat w-full text-card-foreground bg-card"
                 value={projetistaId}
                 onChange={(e) => setProjetistaId(e.target.value)}
               >
-                <option value="">Selecione o projetista</option>
+                <option value="">Sem projetista (definir depois)</option>
                 {projetistasApre.map((p) => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
               </select>
-              <p className="text-[11px] text-muted-foreground">Este projetista receberá os pontos do Programa E+.</p>
+              <p className="text-[11px] text-muted-foreground">Este projetista receberá os pontos do Programa E+. Sem projetista, os pontos ficam pendentes até a atribuição.</p>
             </div>
           )}
           <div className="space-y-2">
