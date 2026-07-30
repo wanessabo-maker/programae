@@ -1938,11 +1938,11 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
           {((isVenda && !(isVendaAditivo && form.aditivoLinkExisting)) || isApresentacaoProjeto) && (
             <div className={`border rounded-md p-3 space-y-3 bg-muted/30 ${errors.assignedProjetistaId || errors.assignedLogisticaId || errors.assignedApresentacaoProjetistaId ? 'border-red-500' : 'border-border'}`}>
               <label className="text-xs tracking-widest uppercase text-muted-foreground block">
-                {isVenda ? 'Atribuir Responsáveis do Checklist' : 'Projetista de Apresentação'} <span className="text-red-500">*</span>
+                {isVenda ? 'Atribuir Responsáveis do Checklist' : 'Projetista de Apresentação'} <span className="text-muted-foreground">(opcional)</span>
               </label>
               {isVenda && (
                 <p className="text-xs text-muted-foreground mb-2">
-                  Selecione os profissionais responsáveis pelas etapas técnicas e de logística deste contrato.
+                  Selecione os profissionais responsáveis pelas etapas técnicas e de logística deste contrato. Você pode deixar em branco e definir depois.
                 </p>
               )}
               
@@ -1950,7 +1950,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
               {isVenda && (
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">
-                  Projetista Técnico <span className="text-red-500">*</span>
+                  Projetista Técnico
                 </label>
                 {projetistaMembers.length > 0 ? (
                   <select
@@ -1958,7 +1958,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                     onChange={(e) => handleFieldChange('assignedProjetistaId', e.target.value)}
                     className={`input-flat w-full text-card-foreground ${errors.assignedProjetistaId ? 'border-red-500' : ''}`}
                   >
-                    <option value="">Selecione um projetista</option>
+                    <option value="">Sem projetista (definir depois)</option>
                     {projetistaMembers.map((m) => (
                       <option key={m.id} value={m.id}>{m.name}</option>
                     ))}
@@ -1975,7 +1975,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
               {isVenda && (
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">
-                  Analista de Logística <span className="text-red-500">*</span>
+                  Analista de Logística
                 </label>
                 {logisticaMembers.length > 0 ? (
                   <select
@@ -1983,7 +1983,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                     onChange={(e) => handleFieldChange('assignedLogisticaId', e.target.value)}
                     className={`input-flat w-full text-card-foreground ${errors.assignedLogisticaId ? 'border-red-500' : ''}`}
                   >
-                    <option value="">Selecione um analista</option>
+                    <option value="">Sem analista (definir depois)</option>
                     {logisticaMembers.map((m) => (
                       <option key={m.id} value={m.id}>{m.name}</option>
                     ))}
@@ -1999,7 +1999,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
               {/* Projetista de Apresentação */}
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">
-                  Projetista de Apresentação <span className="text-red-500">*</span>
+                  Projetista de Apresentação
                 </label>
                 {apresentacaoProjetistaMembers.length > 0 ? (
                   <select
@@ -2007,7 +2007,7 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                     onChange={(e) => handleFieldChange('assignedApresentacaoProjetistaId', e.target.value)}
                     className={`input-flat w-full text-card-foreground ${errors.assignedApresentacaoProjetistaId ? 'border-red-500' : ''}`}
                   >
-                    <option value="">Selecione um projetista</option>
+                    <option value="">Sem projetista (definir depois)</option>
                     {apresentacaoProjetistaMembers.map((m) => (
                       <option key={m.id} value={m.id}>{m.name}</option>
                     ))}
