@@ -867,11 +867,9 @@ function ConcluidoModal({ card, isReforma, onClose }: { card: PlannerCard | null
 
   const handleSave = async () => {
     if (!card) return;
-    const projetistaFinal = projetistaId || card.apresentacao_projetista_id;
-    if (!projetistaFinal) {
-      toast({ title: "Selecione o Projetista de Apresentação", description: "Escolha o projetista responsável pela apresentação para concluir o card.", variant: "destructive" });
-      return;
-    }
+    // Projetista de Apresentação é opcional — se não houver, a ação é criada sem
+    // gerar ambientes/pontos (podem ser atribuídos depois ao definir o projetista).
+    const projetistaFinal = projetistaId || card.apresentacao_projetista_id || null;
     const ambCount = parseInt(ambientes) || 0;
     if (ambCount <= 0) {
       toast({ title: "Informe a quantidade de ambientes", variant: "destructive" });
@@ -940,7 +938,7 @@ function ConcluidoModal({ card, isReforma, onClose }: { card: PlannerCard | null
       const { data: actionRow, error: aErr } = await supabase
         .from("actions")
         .insert({
-          consultant_id: projetistaFinal,
+          consultant_id: projetistaFinal ?? card.responsible_id ?? null,
           action_type_id: actionType.id,
           action_date: today,
           environment_count: ambCount,
@@ -955,7 +953,7 @@ function ConcluidoModal({ card, isReforma, onClose }: { card: PlannerCard | null
       if (aErr) throw aErr;
 
       // 4. Project environment record (1 ambiente = 1 ponto para projetista)
-      if (actionRow) {
+      if (actionRow && projetistaFinal) {
         const compMonth = today.slice(0, 8) + "01";
         await supabase.from("project_environments").insert({
           environment_type: "apresentacao",
@@ -983,7 +981,12 @@ function ConcluidoModal({ card, isReforma, onClose }: { card: PlannerCard | null
       qc.invalidateQueries({ queryKey: ["actions"] });
       qc.invalidateQueries({ queryKey: ["credit_transactions"] });
       qc.invalidateQueries({ queryKey: ["project-environments"] });
-      toast({ title: "Apresentação concluída", description: `${ambCount} ambiente(s) registrados no Programa E+.` });
+      toast({
+        title: "Apresentação concluída",
+        description: projetistaFinal
+          ? `${ambCount} ambiente(s) registrados no Programa E+.`
+          : `${ambCount} ambiente(s) registrados. Sem projetista definido — os pontos do Programa E+ serão gerados quando o projetista for atribuído.`,
+      });
       setAmbientes(""); setFoccoNumber("");
       onClose();
     } catch (e: any) {
