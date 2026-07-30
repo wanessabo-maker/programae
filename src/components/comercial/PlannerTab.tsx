@@ -483,9 +483,7 @@ function VendidoModal({ card, onClose }: { card: PlannerCard | null; onClose: ()
     if (!focco.trim()) { toast({ title: 'N° Projeto FOCCO obrigatório', variant: 'destructive' }); return; }
     if (!contrato.trim()) { toast({ title: 'N° Contrato obrigatório', variant: 'destructive' }); return; }
     if (!clientName.trim()) { toast({ title: 'Nome do cliente obrigatório', variant: 'destructive' }); return; }
-    if (!assignProj) { toast({ title: 'Defina o Projetista Técnico', variant: 'destructive' }); return; }
-    if (!assignLog)  { toast({ title: 'Defina o Analista de Logística', variant: 'destructive' }); return; }
-    if (!assignApre) { toast({ title: 'Defina o Projetista de Apresentação', variant: 'destructive' }); return; }
+    // Projetistas/logística são opcionais — podem ser definidos depois
     if (especMode === 'existing' && !profId) {
       toast({ title: 'Selecione o Especificador', description: 'Ou marque "Novo" / "Sem Especificador".', variant: 'destructive' }); return;
     }
