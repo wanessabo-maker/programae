@@ -952,6 +952,12 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                 .update({
                   closed_value: newClosedValue,
                   estimated_value: newClosedValue,
+                  planner_status: 'VENDIDO',
+                  planner_data_vendido: new Date().toISOString(),
+                  planner_status_at: new Date().toISOString(),
+                  closed_date: form.date,
+                  stage: 'closed_won',
+                  status: 'closed',
                 })
                 .eq('id', existingProject.id);
               
@@ -990,6 +996,9 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   closed_value: aditivoValue,
                   estimated_value: aditivoValue,
                   origin_type: 'venda_direta',
+                  planner_status: 'VENDIDO',
+                  planner_data_vendido: new Date().toISOString(),
+                  planner_status_at: new Date().toISOString(),
                   apresentacao_projetista_id: form.assignedApresentacaoProjetistaId || null,
                 } as any)
                 .select('id')
@@ -1039,6 +1048,9 @@ export function ActionModal({ open, onOpenChange }: ActionModalProps) {
                   closed_value: safeNumber(form.value, { min: 0 }),
                   estimated_value: safeNumber(form.value, { min: 0 }),
                   origin_type: 'venda_direta',
+                  planner_status: 'VENDIDO',
+                  planner_data_vendido: new Date().toISOString(),
+                  planner_status_at: new Date().toISOString(),
                   apresentacao_projetista_id: form.assignedApresentacaoProjetistaId || null,
                 } as any)
                 .select('id')
