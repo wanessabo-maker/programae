@@ -1008,18 +1008,18 @@ function ConcluidoModal({ card, isReforma, onClose }: { card: PlannerCard | null
         <div className="space-y-3 py-2">
           {!card?.apresentacao_projetista_id && (
             <div className="space-y-2">
-              <Label>Projetista de Apresentação *</Label>
+              <Label>Projetista de Apresentação (opcional)</Label>
               <select
                 className="input-flat w-full text-card-foreground bg-card"
                 value={projetistaId}
                 onChange={(e) => setProjetistaId(e.target.value)}
               >
-                <option value="">Selecione o projetista</option>
+                <option value="">Sem projetista (definir depois)</option>
                 {projetistasApre.map((p) => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
               </select>
-              <p className="text-[11px] text-muted-foreground">Este projetista receberá os pontos do Programa E+.</p>
+              <p className="text-[11px] text-muted-foreground">Este projetista receberá os pontos do Programa E+. Sem projetista, os pontos ficam pendentes até a atribuição.</p>
             </div>
           )}
           <div className="space-y-2">
