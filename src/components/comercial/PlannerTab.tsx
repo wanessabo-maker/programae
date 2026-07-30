@@ -571,17 +571,17 @@ function VendidoModal({ card, onClose }: { card: PlannerCard | null; onClose: ()
 
       // 4) Checklist (idempotent — only creates if missing)
       await createChecklistForProject(card.id, {
-        assignedProjetistaId: assignProj,
-        assignedLogisticaId: assignLog,
-        assignedApresentacaoProjetistaId: assignApre,
+        assignedProjetistaId: assignProj || undefined,
+        assignedLogisticaId: assignLog || undefined,
+        assignedApresentacaoProjetistaId: assignApre || undefined,
         commercialResponsibleId: responsibleId ?? undefined,
       });
       // If checklist already existed, update assignees
       if (full.checklist) {
-        await supabase.from('contract_checklists').update({
-          assigned_projetista_id: assignProj,
-          assigned_logistica_id: assignLog,
-          assigned_apresentacao_projetista_id: assignApre,
+      await supabase.from('contract_checklists').update({
+          assigned_projetista_id: assignProj || null,
+          assigned_logistica_id: assignLog || null,
+          assigned_apresentacao_projetista_id: assignApre || null,
         }).eq('project_id', card.id);
       }
 
