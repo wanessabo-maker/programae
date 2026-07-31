@@ -2202,6 +2202,7 @@ export type Database = {
       }
     }
     Functions: {
+      can_access_project: { Args: { _project_id: string }; Returns: boolean }
       expire_pausado_projects: { Args: never; Returns: number }
       get_current_team_member_id: { Args: never; Returns: string }
       has_role: {
