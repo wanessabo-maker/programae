@@ -546,6 +546,11 @@ export function SmartClientFields({
                         }
                       }}
                       onBlur={() => {
+                        // Normaliza gênero/plural: Médica/Médicos -> Médico (a)
+                        const canonical = normalizeProfession(formData.clientProfession);
+                        if (canonical && canonical !== formData.clientProfession) {
+                          onFieldChange('clientProfession', canonical);
+                        }
                         // Delay to allow click on suggestion
                         setTimeout(() => setShowProfessionSuggestions(false), 200);
                       }}
