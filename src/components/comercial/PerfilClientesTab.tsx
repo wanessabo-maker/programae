@@ -203,7 +203,7 @@ export default function PerfilClientesTab() {
       return buildRows(c => getAgeBucket(c.age));
     }
     if (viewMode === 'profissao') {
-      return buildRows(c => c.profession?.trim() || null);
+      return buildRows(c => normalizeProfession(c.profession));
     }
     if (viewMode === 'especificador') {
       return buildRows(c => {
