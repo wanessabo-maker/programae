@@ -4,6 +4,7 @@ import { fetchClientDataByFocco, fetchClientDataByContract, SmartClientData } fr
 import { ContractSelector } from '@/components/ContractSelector';
 import { AdditionalFieldKey } from '@/types';
 import { useProfessions } from '@/hooks/useProfessions';
+import { normalizeProfession } from '@/lib/professions';
 import { useFoccoProjects } from '@/hooks/useFoccoProjects';
 
 interface ClientFormData {
