@@ -22,6 +22,7 @@ import { TrendingUp, TrendingDown, Users, Target, ChevronDown, ChevronUp } from 
 import { useClients } from '@/hooks/useClients';
 import { useProjects } from '@/hooks/useProjects';
 import { useApp } from '@/contexts/AppContext';
+import { normalizeProfession } from '@/lib/professions';
 import { useEngenhariaMembers } from '@/hooks/useEngenhariaMembers';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
