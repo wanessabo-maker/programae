@@ -1,6 +1,12 @@
 import { useState, useMemo } from 'react';
 import { ChevronDown, ChevronUp, Trash2, Calendar, Clock, XCircle, CheckCircle, AlertCircle } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isValid } from 'date-fns';
+
+const fmtDate = (v?: string | null, pattern = 'dd/MM/yy') => {
+  if (!v) return '-';
+  const d = parseISO(v);
+  return isValid(d) ? format(d, pattern) : '-';
+};
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { CreditTransaction, ActionType, Action } from '@/types';
@@ -145,7 +151,7 @@ export default function ConsultantBalanceCard({
                       <div className="flex-1 min-w-0 space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium">
-                            {format(parseISO(transaction.date), 'dd/MM/yy')}
+                            {fmtDate(transaction.date)}
                           </span>
                           <span className="text-muted-foreground">
                             {getActionTypeName(transaction)}
@@ -156,7 +162,7 @@ export default function ConsultantBalanceCard({
                           {transaction.expiresAt && (
                             <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
                               <Clock className="w-2.5 h-2.5" />
-                              Exp: {format(parseISO(transaction.expiresAt), 'dd/MM/yy')}
+                              Exp: {fmtDate(transaction.expiresAt)}
                             </span>
                           )}
                         </div>
