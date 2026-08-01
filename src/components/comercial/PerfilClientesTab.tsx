@@ -22,6 +22,7 @@ import { TrendingUp, TrendingDown, Users, Target, ChevronDown, ChevronUp } from 
 import { useClients } from '@/hooks/useClients';
 import { useProjects } from '@/hooks/useProjects';
 import { useApp } from '@/contexts/AppContext';
+import { normalizeProfession } from '@/lib/professions';
 import { useEngenhariaMembers } from '@/hooks/useEngenhariaMembers';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -203,7 +204,7 @@ export default function PerfilClientesTab() {
       return buildRows(c => getAgeBucket(c.age));
     }
     if (viewMode === 'profissao') {
-      return buildRows(c => c.profession?.trim() || null);
+      return buildRows(c => normalizeProfession(c.profession));
     }
     if (viewMode === 'especificador') {
       return buildRows(c => {

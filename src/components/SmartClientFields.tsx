@@ -4,6 +4,7 @@ import { fetchClientDataByFocco, fetchClientDataByContract, SmartClientData } fr
 import { ContractSelector } from '@/components/ContractSelector';
 import { AdditionalFieldKey } from '@/types';
 import { useProfessions } from '@/hooks/useProfessions';
+import { normalizeProfession } from '@/lib/professions';
 import { useFoccoProjects } from '@/hooks/useFoccoProjects';
 
 interface ClientFormData {
@@ -546,6 +547,11 @@ export function SmartClientFields({
                         }
                       }}
                       onBlur={() => {
+                        // Normaliza gênero/plural: Médica/Médicos -> Médico (a)
+                        const canonical = normalizeProfession(formData.clientProfession);
+                        if (canonical && canonical !== formData.clientProfession) {
+                          onFieldChange('clientProfession', canonical);
+                        }
                         // Delay to allow click on suggestion
                         setTimeout(() => setShowProfessionSuggestions(false), 200);
                       }}

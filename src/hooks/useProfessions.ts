@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { dedupeProfessions } from '@/lib/professions';
 
 export function useProfessions() {
   const [professions, setProfessions] = useState<string[]>([]);
@@ -18,30 +19,8 @@ export function useProfessions() {
 
         if (error) throw error;
 
-        // Normalize and deduplicate professions (case-insensitive, trim whitespace)
-        const uniqueProfessions = new Map<string, string>();
-        
-        data?.forEach((client) => {
-          if (client.profession) {
-            const normalized = client.profession.trim().toLowerCase();
-            // Keep the first occurrence's original casing
-            if (!uniqueProfessions.has(normalized)) {
-              // Title case the profession for consistency
-              const titleCased = client.profession.trim()
-                .split(' ')
-                .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-                .join(' ');
-              uniqueProfessions.set(normalized, titleCased);
-            }
-          }
-        });
-
-        // Sort alphabetically
-        const sortedProfessions = Array.from(uniqueProfessions.values()).sort((a, b) => 
-          a.localeCompare(b, 'pt-BR')
-        );
-
-        setProfessions(sortedProfessions);
+        // Normaliza gênero/plural e deduplica (Médico/Médica/Médicos -> Médico (a))
+        setProfessions(dedupeProfessions((data ?? []).map(c => c.profession)));
       } catch (err) {
         console.error('Error fetching professions:', err);
       } finally {
