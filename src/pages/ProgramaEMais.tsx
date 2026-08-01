@@ -5,7 +5,18 @@ import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/hooks/useAuth';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { format, parseISO, isThisMonth } from 'date-fns';
+import { format, parseISO, isThisMonth, isValid } from 'date-fns';
+
+const safeDate = (v?: string | null) => {
+  if (!v) return null;
+  const d = parseISO(v);
+  return isValid(d) ? d : null;
+};
+const fmtDate = (v: string | null | undefined, pattern: string, opts?: any) => {
+  const d = safeDate(v);
+  return d ? format(d, pattern, opts) : '-';
+};
+
 import { ptBR } from 'date-fns/locale';
 import ConsultantBalanceCard from '@/components/ConsultantBalanceCard';
 
@@ -54,7 +65,7 @@ export default function ProgramaEMais() {
   const monthlyTransactions = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
     return creditTransactions
-      .filter(t => isThisMonth(parseISO(t.date)))
+      .filter(t => { const d = safeDate(t.date); return d ? isThisMonth(d) : false; })
       .map(t => {
         // Calculate actual status based on expiration
         let displayStatus = t.status;
@@ -70,7 +81,7 @@ export default function ProgramaEMais() {
   const pastMonthsGrouped = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
     const past = creditTransactions
-      .filter(t => !isThisMonth(parseISO(t.date)))
+      .filter(t => { const d = safeDate(t.date); return d ? !isThisMonth(d) : false; })
       .map(t => {
         let displayStatus = t.status;
         if (t.type === 'ganho' && t.status === 'active' && t.expiresAt && t.expiresAt < today) {
@@ -82,7 +93,7 @@ export default function ProgramaEMais() {
 
     const grouped: Record<string, typeof past> = {};
     past.forEach(t => {
-      const key = format(parseISO(t.date), 'yyyy-MM');
+      const key = format(safeDate(t.date)!, 'yyyy-MM');
       if (!grouped[key]) grouped[key] = [];
       grouped[key].push(t);
     });
@@ -90,7 +101,7 @@ export default function ProgramaEMais() {
     return Object.entries(grouped)
       .sort(([a], [b]) => b.localeCompare(a))
       .map(([key, transactions]) => ({
-        label: format(parseISO(key + '-01'), "MMMM 'de' yyyy", { locale: ptBR }),
+        label: fmtDate(key + '-01', "MMMM 'de' yyyy", { locale: ptBR }),
         transactions,
       }));
   }, [creditTransactions]);
@@ -229,14 +240,14 @@ export default function ProgramaEMais() {
             const consultant = teamMembers.find(m => m.id === transaction.consultantId);
             return (
               <tr key={transaction.id} className="border-b border-black/10 last:border-0">
-                <td className="p-3 text-sm">{format(parseISO(transaction.date), 'dd/MM')}</td>
+                <td className="p-3 text-sm">{fmtDate(transaction.date, 'dd/MM')}</td>
                 <td className="p-3 text-sm">{consultant?.name || '-'}</td>
                 <td className="p-3 text-sm">{transaction.description}</td>
                 <td className="p-3 text-center">
                   {transaction.type === 'ganho' ? getStatusBadge(transaction.displayStatus, transaction.expiresAt) : '-'}
                 </td>
                 <td className="p-3 text-sm text-center">
-                  {transaction.expiresAt ? format(parseISO(transaction.expiresAt), 'dd/MM/yy') : '-'}
+                  {fmtDate(transaction.expiresAt, 'dd/MM/yy')}
                 </td>
                 <td className={`p-3 text-sm text-right font-medium ${
                   transaction.type === 'ganho' ? 'text-success' : 'text-destructive'
@@ -302,7 +313,7 @@ export default function ProgramaEMais() {
                 }`}>
                   {transaction.type === 'ganho' ? '+' : '-'}{transaction.amount}
                 </span>
-                <p className="text-xs text-muted-foreground">{format(parseISO(transaction.date), 'dd/MM')}</p>
+                <p className="text-xs text-muted-foreground">{fmtDate(transaction.date, 'dd/MM')}</p>
               </div>
             </div>
             <div className="flex justify-between items-center">
@@ -311,7 +322,7 @@ export default function ProgramaEMais() {
                 {transaction.expiresAt && (
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                     <Clock className="w-3 h-3" />
-                    {format(parseISO(transaction.expiresAt), 'dd/MM/yy')}
+                    {fmtDate(transaction.expiresAt, 'dd/MM/yy')}
                   </span>
                 )}
               </div>
