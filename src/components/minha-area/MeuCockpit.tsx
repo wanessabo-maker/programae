@@ -175,15 +175,85 @@ export function MeuCockpit({ teamMemberId, teamMemberName, isProjetos, isComerci
 
   const esfriandoUrgente = esfriando.filter(e => e.isExpired || e.daysRemaining <= 7);
 
-  // ── Autogestão de tempo ───────────────────────────────────────────────────
-  const todayIso = iso(now);
-  const blockOf = (period: BlockPeriod) => timeBlocks.find(b => b.block_date === todayIso && b.period === period);
-  const totalBlocos = timeBlocks.length;
-  const blocosFim = timeBlocks.filter(b => b.block_type === 'atividade_fim').length;
-  const pctTempoFim = totalBlocos ? (blocosFim / totalBlocos) * 100 : 0;
+  // ── % da meta da semana (média das metas ativas) ───────────────────────────
+  const metaSemanaPct = useMemo(() => {
+    const pares: [number, number][] = [];
+    if (isComercial) {
+      if (metaSemana.vendas > 0) pares.push([realizado.vendasSemana, metaSemana.vendas]);
+      if (metaSemana.acoes > 0) pares.push([realizado.acoesSemana, metaSemana.acoes]);
+      if (metaSemana.captacao > 0) pares.push([realizado.prospeccaoSemana, metaSemana.captacao]);
+    }
+    if (isProjetos && metaSemana.projeto > 0) pares.push([realizado.projetosSemana, metaSemana.projeto]);
+    if (!pares.length) return null;
+    return pares.reduce((s, [d, g]) => s + Math.min(150, pct(d, g)), 0) / pares.length;
+  }, [isComercial, isProjetos, metaSemana, realizado]);
 
-  const marcar = (period: BlockPeriod, block_type: BlockType) =>
-    upsertBlock.mutate({ team_member_id: teamMemberId, block_date: todayIso, period, block_type });
+  // ── Foco do dia: até 3 prioridades derivadas dos dados do colaborador ─────
+  const focos = useMemo(() => {
+    const list: { title: string; reason: string; tag: string; urgent?: boolean }[] = [];
+
+    if (projetosParados.length > 0) {
+      list.push({
+        title: `Retomar ${projetosParados.length} projeto${projetosParados.length > 1 ? 's' : ''} parado${projetosParados.length > 1 ? 's' : ''}`,
+        reason: projetosParados.slice(0, 3).map((p: any) => `${p.clients?.name || p.name} ${p.diasParado}dc`).join(' · '),
+        tag: 'urgente',
+        urgent: true,
+      });
+    }
+
+    if (esfriandoUrgente.length > 0) {
+      list.push({
+        title: `Falar com ${esfriandoUrgente.length} especificador${esfriandoUrgente.length > 1 ? 'es' : ''}`,
+        reason: esfriandoUrgente.slice(0, 3).map(e => `${e.name} ${e.isExpired ? 'esfriou' : `${e.daysRemaining}dc`}`).join(' · '),
+        tag: 'atenção',
+      });
+    }
+
+    if (briefings.length > 0) {
+      list.push({
+        title: `Completar ${briefings.length} briefing${briefings.length > 1 ? 's' : ''}`,
+        reason: briefings.slice(0, 3).map((p: any) => `${p.clients?.name || p.name} ${p.diasParado}dc`).join(' · '),
+        tag: 'briefing',
+      });
+    }
+
+    if (isComercial && metaSemana.vendas > 0 && realizado.vendasSemana < metaSemana.vendas) {
+      list.push({
+        title: `Faltam ${fmtBRL(metaSemana.vendas - realizado.vendasSemana)} na meta da semana`,
+        reason: 'Registre a venda em “+ Registrar Ação” assim que fechar.',
+        tag: 'meta',
+      });
+    }
+
+    if (isComercial && metaSemana.captacao > 0 && realizado.prospeccaoSemana < metaSemana.captacao) {
+      const falta = Math.ceil(metaSemana.captacao - realizado.prospeccaoSemana);
+      list.push({
+        title: `Fazer ${falta} captação${falta > 1 ? 'ões' : ''} nesta semana`,
+        reason: `Realizado ${realizado.prospeccaoSemana} de ${Math.round(metaSemana.captacao)} previstos.`,
+        tag: 'captação',
+      });
+    }
+
+    if (isComercial && metaSemana.acoes > 0 && realizado.acoesSemana < metaSemana.acoes) {
+      const falta = Math.ceil(metaSemana.acoes - realizado.acoesSemana);
+      list.push({
+        title: `Registrar ${falta} ação${falta > 1 ? 'ões' : ''} para bater a semana`,
+        reason: `Realizado ${realizado.acoesSemana} de ${Math.round(metaSemana.acoes)} previstos.`,
+        tag: 'ações',
+      });
+    }
+
+    if (isProjetos && metaSemana.projeto > 0 && realizado.projetosSemana < metaSemana.projeto) {
+      const falta = Math.ceil(metaSemana.projeto - realizado.projetosSemana);
+      list.push({
+        title: `Entregar ${falta} projeto${falta > 1 ? 's' : ''} nesta semana`,
+        reason: `Realizado ${realizado.projetosSemana} de ${Math.round(metaSemana.projeto)} previstos.`,
+        tag: 'projetos',
+      });
+    }
+
+    return list.slice(0, 3);
+  }, [projetosParados, esfriandoUrgente, briefings, isComercial, isProjetos, metaSemana, realizado]);
 
   const foraDaMeta =
     (metaMes.vendas > 0 && pct(realizado.vendasMes, metaMes.vendas) < 70) ||
@@ -192,7 +262,7 @@ export function MeuCockpit({ teamMemberId, teamMemberName, isProjetos, isComerci
 
   return (
     <div className="space-y-6">
-      {/* ── Topo: tempo em atividade-fim + check-in ──────────────────────── */}
+      {/* ── Topo: foco do dia ───────────────────────────────────────────── */}
       <Card className="border-border">
         <CardContent className="p-4 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -205,52 +275,50 @@ export function MeuCockpit({ teamMemberId, teamMemberName, isProjetos, isComerci
             </div>
             <div className="text-right">
               <div className="flex items-center gap-2 justify-end">
-                <Timer className="h-4 w-4 text-muted-foreground" />
-                <span className={`text-2xl font-semibold ${lightClass(pct(pctTempoFim, TIME_TARGET))}`}>
-                  {pctTempoFim.toFixed(0)}%
+                <Target className="h-4 w-4 text-muted-foreground" />
+                <span className={`text-2xl font-semibold ${metaSemanaPct !== null ? lightClass(metaSemanaPct) : ''}`}>
+                  {metaSemanaPct !== null ? `${metaSemanaPct.toFixed(0)}%` : '—'}
                 </span>
               </div>
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                tempo em atividade-fim · meta {TIME_TARGET}%
+                meta da semana atingida
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {(['manha', 'tarde'] as BlockPeriod[]).map(period => {
-              const block = blockOf(period);
-              return (
-                <div key={period} className="border border-border rounded p-3 space-y-2">
-                  <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
-                    {period === 'manha' ? <Sun className="h-3.5 w-3.5" /> : <Sunset className="h-3.5 w-3.5" />}
-                    {period === 'manha' ? 'Manhã de hoje' : 'Tarde de hoje'}
-                    {block && (
-                      <Badge variant="secondary" className="text-[10px]">
-                        {block.block_type === 'atividade_fim' ? 'Atividade-fim' : 'Operacional'}
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant={block?.block_type === 'atividade_fim' ? 'default' : 'outline'}
-                      className={`flex-1 text-xs ${block?.block_type === 'atividade_fim' ? '' : 'bg-card text-card-foreground border-border hover:bg-muted'}`}
-                      onClick={() => marcar(period, 'atividade_fim')}
-                    >
-                      Atividade-fim
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={block?.block_type === 'operacional' ? 'default' : 'outline'}
-                      className={`flex-1 text-xs ${block?.block_type === 'operacional' ? '' : 'bg-card text-card-foreground border-border hover:bg-muted'}`}
-                      onClick={() => marcar(period, 'operacional')}
-                    >
-                      Operacional
-                    </Button>
-                  </div>
+          <div className="space-y-2">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+              <Flame className="h-3.5 w-3.5" /> Foco de hoje
+            </p>
+            {focos.length === 0 ? (
+              <div className="border border-border rounded p-3 flex items-start gap-3">
+                <CheckCircle2 className="h-4 w-4 text-success mt-0.5" />
+                <div className="text-xs">
+                  <p className="font-semibold">Semana em dia 👌</p>
+                  <p className="text-muted-foreground mt-0.5">
+                    Siga o caminho: registre novas ações em “+ Registrar Ação” para ampliar a carteira.
+                  </p>
                 </div>
-              );
-            })}
+              </div>
+            ) : (
+              <ul className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                {focos.map((f, i) => (
+                  <li
+                    key={f.title}
+                    className={`border rounded p-3 space-y-1 ${f.urgent ? 'border-destructive/60 bg-destructive/5' : 'border-border'}`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] font-bold text-muted-foreground">{i + 1}</span>
+                      <Badge variant={f.urgent ? 'destructive' : 'secondary'} className="text-[10px] uppercase">
+                        {f.tag}
+                      </Badge>
+                    </div>
+                    <p className="text-xs font-semibold leading-snug">{f.title}</p>
+                    <p className="text-[11px] text-muted-foreground leading-snug">{f.reason}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </CardContent>
       </Card>
