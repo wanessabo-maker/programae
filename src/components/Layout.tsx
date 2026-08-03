@@ -3,6 +3,7 @@ import { Link, useLocation, Navigate } from 'react-router-dom';
 import { Settings, LogOut, Menu, X } from 'lucide-react';
 import { SetupModal } from './SetupModal';
 import { useAuthContext, FunctionalArea } from '@/contexts/AuthContext';
+import { useIsManager } from '@/hooks/useIsManager';
 import { toast } from 'sonner';
 import logo from '@/assets/logo-evviva-white.png';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -22,6 +23,7 @@ const ROUTE_AREA_MAP: Record<string, FunctionalArea | null> = {
   '/minha-area': null, // Minha Área - always accessible to logged in users
   '/usuarios': null, // Admin only, handled separately
   '/gestora': null, // Admin only, handled separately
+  '/gestao': null, // Admin/gerência — validado na própria página
 };
 
 export function Layout({ children }: LayoutProps) {
@@ -29,6 +31,7 @@ export function Layout({ children }: LayoutProps) {
   const [showSetup, setShowSetup] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, isAdmin, userAreas, hasAreaAccess, signOut } = useAuthContext();
+  const { canAccessGestao } = useIsManager();
 
   // Check if user can access current route
   const canAccessCurrentRoute = useMemo(() => {
@@ -82,12 +85,15 @@ export function Layout({ children }: LayoutProps) {
     });
 
     // Add admin-only routes
+    if (canAccessGestao) {
+      filteredItems.push({ path: '/gestao', label: 'Gestão', area: null });
+    }
     if (isAdmin) {
       filteredItems.push({ path: '/usuarios', label: 'Usuários', area: null });
     }
 
     return filteredItems;
-  }, [isAdmin, hasAreaAccess]);
+  }, [isAdmin, hasAreaAccess, canAccessGestao]);
 
   const handleLogout = async () => {
     const { error } = await signOut();
