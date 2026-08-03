@@ -261,6 +261,11 @@ export function MetasTab() {
               ? meta.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
               : String(meta.value);
           }
+        } else if (col.kind === 'bigmeta') {
+          const meta = metasAnterior.find(m => m.teamMemberId === l.memberId && m.type === 'vendas');
+          if (meta?.bigValue) {
+            novoValores[col.key] = meta.bigValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          }
         } else {
           const meta = metasAnterior.find(m => m.teamMemberId === l.memberId && m.type === 'categoria' && m.categoryId === col.categoryId);
           if (meta) novoValores[col.key] = String(meta.value);
@@ -291,16 +296,22 @@ export function MetasTab() {
 
       for (const linha of linhasPendentes) {
         for (const col of colunas) {
+          if (col.kind === 'bigmeta') continue; // salvo junto com a meta de Vendas
           const rawValor = linha.valores[col.key] || '';
           const valor = (col.kind === 'meta' && col.isCurrency)
             ? parseBRL(rawValor)
             : (col.kind === 'categoria' ? parseBRL(rawValor) : parseInt(rawValor || '0', 10));
           const metaId = linha.metasExistentes[col.key];
+          const isVendas = col.kind === 'meta' && col.tipo === 'vendas';
+          const bigValor = isVendas ? parseBRL(linha.valores['vendasBig'] || '') : 0;
 
           if (valor > 0) {
             if (metaId) {
               // Atualizar existente
-              updateMeta(metaId, { value: valor, startDate: mesStart, endDate: mesEnd });
+              updateMeta(metaId, {
+                value: valor, startDate: mesStart, endDate: mesEnd,
+                ...(isVendas ? { bigValue: bigValor > 0 ? bigValor : undefined } : {}),
+              });
             } else {
               // Criar nova
               addMeta({
@@ -309,6 +320,7 @@ export function MetasTab() {
                 type: col.kind === 'meta' ? col.tipo : 'categoria',
                 categoryId: col.kind === 'categoria' ? col.categoryId : undefined,
                 value: valor,
+                bigValue: isVendas && bigValor > 0 ? bigValor : undefined,
                 validityType: 'mensal',
                 startDate: mesStart,
                 endDate: mesEnd,
