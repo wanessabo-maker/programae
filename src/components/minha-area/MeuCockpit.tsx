@@ -344,23 +344,44 @@ export function MeuCockpit({ teamMemberId, teamMemberName, isProjetos, isComerci
       {/* ── 1. MINHA META ────────────────────────────────────────────────── */}
       <section className="space-y-3">
         <h3 className="text-xs tracking-widest uppercase text-muted-foreground font-medium flex items-center gap-2">
-          <Target className="h-3.5 w-3.5" /> 1 · Minhas Metas (definidas no Setup)
+          <Target className="h-3.5 w-3.5" /> 1 · Minhas Metas
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {isComercial && (
             <>
-              <MetaCard title="Valor vendido — Mês" done={realizado.vendasMes} goal={metaMes.vendas} currency />
-              <MetaCard title="Valor vendido — Semana" done={realizado.vendasSemana} goal={metaSemana.vendas} currency />
-              <MetaCard title="Ações — Mês" done={realizado.acoesMes} goal={metaMes.acoes} />
-              <MetaCard title="Ações — Semana" done={realizado.acoesSemana} goal={metaSemana.acoes} />
-              <MetaCard title="Captações — Mês" done={realizado.captacaoMes} goal={metaMes.captacao} />
-              <MetaCard title="Captações — Semana" done={realizado.prospeccaoSemana} goal={metaSemana.captacao} />
+              <MetaCard
+                title="Valor vendido — Semana"
+                done={realizado.vendasSemana}
+                goal={metaSemana.vendas}
+                monthDone={realizado.vendasMes}
+                monthGoal={metaMes.vendas}
+                currency
+              />
+              <MetaCard
+                title="Ações — Semana"
+                done={realizado.acoesSemana}
+                goal={metaSemana.acoes}
+                monthDone={realizado.acoesMes}
+                monthGoal={metaMes.acoes}
+              />
+              <MetaCard
+                title="Captações — Semana"
+                done={realizado.prospeccaoSemana}
+                goal={metaSemana.captacao}
+                monthDone={realizado.captacaoMes}
+                monthGoal={metaMes.captacao}
+              />
             </>
           )}
           {isProjetos && (
             <>
-              <MetaCard title="Projetos — Mês" done={realizado.projetosMes} goal={metaMes.projeto} />
-              <MetaCard title="Projetos — Semana" done={realizado.projetosSemana} goal={metaSemana.projeto} />
+              <MetaCard
+                title="Projetos — Semana"
+                done={realizado.projetosSemana}
+                goal={metaSemana.projeto}
+                monthDone={realizado.projetosMes}
+                monthGoal={metaMes.projeto}
+              />
             </>
           )}
         </div>
