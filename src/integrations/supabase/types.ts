@@ -985,6 +985,47 @@ export type Database = {
           },
         ]
       }
+      daily_time_blocks: {
+        Row: {
+          activity_kind: string | null
+          block_date: string
+          block_type: string
+          created_at: string
+          id: string
+          period: string
+          team_member_id: string
+          updated_at: string
+        }
+        Insert: {
+          activity_kind?: string | null
+          block_date: string
+          block_type: string
+          created_at?: string
+          id?: string
+          period: string
+          team_member_id: string
+          updated_at?: string
+        }
+        Update: {
+          activity_kind?: string | null
+          block_date?: string
+          block_type?: string
+          created_at?: string
+          id?: string
+          period?: string
+          team_member_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_time_blocks_team_member_id_fkey"
+            columns: ["team_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goals: {
         Row: {
           area_id: string | null
