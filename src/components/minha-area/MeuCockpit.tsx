@@ -270,7 +270,8 @@ export function MeuCockpit({ teamMemberId, teamMemberName, isProjetos, isComerci
                 {format(weekStart, "dd 'de' MMM", { locale: ptBR })} — {format(weekEnd, "dd 'de' MMM", { locale: ptBR })}
               </p>
             </div>
-            <div className="text-right">
+            <div className="flex items-center gap-4">
+              <div className="text-right">
               <div className="flex items-center gap-2 justify-end">
                 <Target className="h-4 w-4 text-muted-foreground" />
                 <span className={`text-2xl font-semibold ${metaSemanaPct !== null ? lightClass(metaSemanaPct) : ''}`}>
@@ -280,6 +281,12 @@ export function MeuCockpit({ teamMemberId, teamMemberName, isProjetos, isComerci
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
                 meta da semana atingida
               </p>
+              </div>
+              {onRegistrarAcao && (
+                <Button onClick={onRegistrarAcao} className="gap-2">
+                  <Plus className="h-4 w-4" /> Registrar Ação
+                </Button>
+              )}
             </div>
           </div>
 
