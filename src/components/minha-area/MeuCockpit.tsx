@@ -85,7 +85,7 @@ export function MeuCockpit({ teamMemberId, teamMemberName, isProjetos, isComerci
   const realizado = useMemo(() => {
     const acc = {
       vendasMes: 0, vendasSemana: 0,
-      acoesMes: 0, acoesSemana: 0,
+      acoesMes: 0, acoesSemana: 0, captacaoMes: 0,
       projetosMes: 0, projetosSemana: 0,
       prospeccaoSemana: 0, relacionamentoSemana: 0, apresentacaoSemana: 0, fechamentoSemana: 0,
     };
@@ -109,6 +109,7 @@ export function MeuCockpit({ teamMemberId, teamMemberName, isProjetos, isComerci
         if (t?.impactsMetas?.includes('captacao')) acc.prospeccaoSemana += 1;
         if (t?.classification === 'relacionamento') acc.relacionamentoSemana += 1;
       }
+      if (mes && t?.impactsMetas?.includes('captacao')) acc.captacaoMes += 1;
     });
     return acc;
   }, [myActions, typeById, monthStart.getTime(), weekStart.getTime()]);
