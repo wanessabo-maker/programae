@@ -33,8 +33,8 @@ import {
 import { CompleteActivityModal } from '@/components/minha-area/CompleteActivityModal';
 import { ProjetistaSection } from '@/components/minha-area/ProjetistaSection';
 import { ProjetistaTecnicoProjects } from '@/components/minha-area/ProjetistaTecnicoProjects';
-import { ConsultorSection } from '@/components/minha-area/ConsultorSection';
 import { MeuCockpit } from '@/components/minha-area/MeuCockpit';
+import { MeuCaminho } from '@/components/minha-area/MeuCaminho';
 import { ManagementDashboard } from '@/components/minha-area/ManagementDashboard';
 import { StaleProjectsBanner } from '@/components/minha-area/StaleProjectsBanner';
 import { CleanlinessAdminPanel } from '@/components/minha-area/CleanlinessAdminPanel';
@@ -601,19 +601,38 @@ export default function MinhaArea() {
           <ProjetistaTecnicoProjects teamMemberId={currentTeamMember.id} />
         )}
 
-        {/* Consultor Comercial — painel completo com pipeline, carteira, ações e indicadores */}
-        {viewMode === 'my' && currentTeamMember?.id && allUserAreas.includes('comercial') && (
-          <ConsultorSection
+        {/* 2 · O CAMINHO — registrar ação, histórico e pipeline com meus projetos em destaque */}
+        {viewMode === 'my' && currentTeamMember?.id && (
+          <MeuCaminho
             teamMemberId={currentTeamMember.id}
-            teamMemberName={currentTeamMember.name}
+            showPipeline={allUserAreas.includes('comercial') || allUserAreas.includes('projetos')}
           />
+        )}
+
+        {/* 3 · MEUS INDICADORES — mês a mês, apenas os meus */}
+        {viewMode === 'my' && currentTeamMember?.id && allUserAreas.includes('comercial') && (
+          <section className="space-y-3">
+            <h3 className="text-xs tracking-widest uppercase text-muted-foreground font-medium flex items-center gap-2">
+              <BarChart3 className="h-3.5 w-3.5" /> 3 · Meus Indicadores
+            </h3>
+            <IndicadoresTab forceMemberId={currentTeamMember.id} />
+          </section>
         )}
 
         {/* Contract Groups */}
         <div className="space-y-4">
-          <h2 className="text-xs tracking-widest uppercase text-muted-foreground font-medium">
-            {viewMode === 'team' ? 'Contratos da Equipe' : 'Meus Contratos'} ({contractGroups.length})
-          </h2>
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="text-xs tracking-widest uppercase text-muted-foreground font-medium">
+              {viewMode === 'team'
+                ? `Contratos da Equipe (${contractGroups.length})`
+                : `4 · Minhas Pendências — Contratos & Checklist (${contractGroups.length})`}
+            </h2>
+            {contractGroups.some(g => g.hasOverdue) && (
+              <Badge variant="destructive" className="text-[10px]">
+                {contractGroups.filter(g => g.hasOverdue).length} com etapa atrasada
+              </Badge>
+            )}
+          </div>
 
           {contractGroups.length === 0 ? (
             <Card className="border-border">
