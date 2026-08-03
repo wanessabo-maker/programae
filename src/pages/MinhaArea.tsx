@@ -621,9 +621,18 @@ export default function MinhaArea() {
 
         {/* Contract Groups */}
         <div className="space-y-4">
-          <h2 className="text-xs tracking-widest uppercase text-muted-foreground font-medium">
-            {viewMode === 'team' ? 'Contratos da Equipe' : 'Meus Contratos'} ({contractGroups.length})
-          </h2>
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="text-xs tracking-widest uppercase text-muted-foreground font-medium">
+              {viewMode === 'team'
+                ? `Contratos da Equipe (${contractGroups.length})`
+                : `4 · Minhas Pendências — Contratos & Checklist (${contractGroups.length})`}
+            </h2>
+            {contractGroups.some(g => g.hasOverdue) && (
+              <Badge variant="destructive" className="text-[10px]">
+                {contractGroups.filter(g => g.hasOverdue).length} com etapa atrasada
+              </Badge>
+            )}
+          </div>
 
           {contractGroups.length === 0 ? (
             <Card className="border-border">
