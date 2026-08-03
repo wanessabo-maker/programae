@@ -1046,7 +1046,7 @@ function ConcluidoModal({ card, isReforma, onClose }: { card: PlannerCard | null
 }
 
 // ── Card ─────────────────────────────────────────────────────────────
-function Card({ card, onEdit, onDelete }: { card: PlannerCard; onEdit: (c: PlannerCard) => void; onDelete: (c: PlannerCard) => void }) {
+function Card({ card, onEdit, onDelete, highlight }: { card: PlannerCard; onEdit: (c: PlannerCard) => void; onDelete: (c: PlannerCard) => void; highlight?: boolean }) {
   const days = card.planner_status_at
     ? Math.max(0, Math.floor((Date.now() - new Date(card.planner_status_at).getTime()) / 86400000))
     : null;
@@ -1068,7 +1068,7 @@ function Card({ card, onEdit, onDelete }: { card: PlannerCard; onEdit: (c: Plann
         isCritical
           ? "bg-red-600/80 border-red-400 hover:bg-red-600"
           : "bg-neutral-900 border-white/10 hover:border-white/30"
-      }`}
+      } ${highlight ? "ring-2 ring-amber-400/80 border-amber-400/60" : ""}`}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="text-sm font-medium text-white truncate">
