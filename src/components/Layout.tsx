@@ -22,6 +22,7 @@ const ROUTE_AREA_MAP: Record<string, FunctionalArea | null> = {
   '/minha-area': null, // Minha Área - always accessible to logged in users
   '/usuarios': null, // Admin only, handled separately
   '/gestora': null, // Admin only, handled separately
+  '/gestao': null, // Admin/gerência — validado na própria página
 };
 
 export function Layout({ children }: LayoutProps) {
@@ -29,6 +30,7 @@ export function Layout({ children }: LayoutProps) {
   const [showSetup, setShowSetup] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, isAdmin, userAreas, hasAreaAccess, signOut } = useAuthContext();
+  const { canAccessGestao } = useIsManager();
 
   // Check if user can access current route
   const canAccessCurrentRoute = useMemo(() => {
@@ -87,7 +89,7 @@ export function Layout({ children }: LayoutProps) {
     }
 
     return filteredItems;
-  }, [isAdmin, hasAreaAccess]);
+  }, [isAdmin, hasAreaAccess, canAccessGestao]);
 
   const handleLogout = async () => {
     const { error } = await signOut();

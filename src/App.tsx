@@ -16,6 +16,7 @@ import Comercial from "./pages/Comercial";
 import CustomerSuccess from "./pages/CustomerSuccess";
 import Projetos from "./pages/Projetos";
 import MinhaArea from "./pages/MinhaArea";
+import Gestao from "./pages/Gestao";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
