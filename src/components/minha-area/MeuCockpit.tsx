@@ -6,7 +6,7 @@ import {
 import { ptBR } from 'date-fns/locale';
 import {
   Target, AlertTriangle, Wallet, Users, Handshake, FileText, Presentation,
-  Flame, CheckCircle2,
+  Flame, CheckCircle2, Plus,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +24,8 @@ interface Props {
   /** true quando o colaborador é da área de Projetos (mostra meta de projetos) */
   isProjetos?: boolean;
   isComercial?: boolean;
+  /** ação do botão "+ Registrar Ação" no topo do card MEU MUNDO */
+  onRegistrarAcao?: () => void;
 }
 
 const fmtBRL = (v: number) =>
@@ -48,7 +50,7 @@ function lightBg(p: number) {
   return 'bg-destructive';
 }
 
-export function MeuCockpit({ teamMemberId, teamMemberName, isProjetos, isComercial = true }: Props) {
+export function MeuCockpit({ teamMemberId, teamMemberName, isProjetos, isComercial = true, onRegistrarAcao }: Props) {
   const { metas, actionTypes, professionalCategories } = useSetup();
   const { data: allActions = [] } = useActions();
   const { data: allProjects = [] } = useProjects();
