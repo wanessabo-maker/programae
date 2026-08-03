@@ -1,36 +1,20 @@
 import { useState, useMemo } from 'react';
-import { format, parseISO, isPast, isToday, differenceInBusinessDays, addBusinessDays } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { 
-  CheckCircle2, 
-  Clock, 
-  FileText, 
-  User, 
-  Building2,
-  ChevronRight,
-  ListChecks,
-  Loader2,
-  ChevronDown,
-  Users,
-  BarChart3,
-  KanbanSquare
-} from 'lucide-react';
+import { parseISO, isPast, isToday } from 'date-fns';
+import { Clock, ListChecks, Loader2, KanbanSquare } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useCurrentTeamMember } from '@/hooks/useCurrentTeamMember';
 import { useUserAreas } from '@/hooks/useUserAreas';
 import { usePositions } from '@/hooks/usePositions';
-import { 
+import {
   useMyAllChecklistItems,
   useAllProjectChecklistItems,
-  useAllTeamChecklistItems,
-  getWorkflowStatusLabel,
-  ChecklistItemWithDetails
+  ChecklistItemWithDetails,
 } from '@/hooks/useChecklist';
+import { useContractGroups } from '@/hooks/useContractGroups';
+import { ContractGroupsGrid } from '@/components/minha-area/ContractGroupsGrid';
 import { CompleteActivityModal } from '@/components/minha-area/CompleteActivityModal';
 import { ProjetistaSection } from '@/components/minha-area/ProjetistaSection';
 import { ProjetistaTecnicoProjects } from '@/components/minha-area/ProjetistaTecnicoProjects';
@@ -39,71 +23,17 @@ import { MeuCaminho } from '@/components/minha-area/MeuCaminho';
 import { MeusIndicadoresAnuais } from '@/components/minha-area/MeusIndicadoresAnuais';
 import { PlannerTab } from '@/components/comercial/PlannerTab';
 import { ActionModal } from '@/components/ActionModal';
-import { ManagementDashboard } from '@/components/minha-area/ManagementDashboard';
 import { StaleProjectsBanner } from '@/components/minha-area/StaleProjectsBanner';
-import { CleanlinessAdminPanel } from '@/components/minha-area/CleanlinessAdminPanel';
-import GestoraDashboard from '@/pages/GestoraDashboard';
-import IndicadoresTab from '@/components/comercial/IndicadoresTab';
-import { useTeamMembers } from '@/hooks/useDatabase';
-
-interface ChecklistItemFull {
-  id: string;
-  step_order: number;
-  name: string;
-  status: string;
-  responsible_area: string;
-  due_date: string | null;
-  completed_at: string | null;
-  assigned_to: string | null;
-  checklist: {
-    id: string;
-    project_id: string;
-    workflow_status: string;
-    assigned_projetista_id: string | null;
-    assigned_logistica_id: string | null;
-    assigned_cs_id: string | null;
-  };
-}
-
-interface ContractGroup {
-  projectId: string;
-  projectName: string;
-  clientName: string | null;
-  foccoNumber: string | null;
-  contractNumber: string | null;
-  workflowStatus: string;
-  userItems: ChecklistItemWithDetails[];
-  allItems: ChecklistItemFull[];
-  activeCount: number;
-  blockedCount: number;
-  completedCount: number;
-  hasOverdue: boolean;
-}
 
 export default function MinhaArea() {
-  const { user, isAdmin } = useAuthContext();
+  const { user } = useAuthContext();
   const { data: currentTeamMember, isLoading: isLoadingMember } = useCurrentTeamMember();
   const { areas: userFunctionalAreas, isLoading: isLoadingAreas } = useUserAreas(user?.id || null);
   const { getMemberAreaIds, getAreaName, getMemberPositions } = usePositions();
-  const { data: allTeamMembersData = [] } = useTeamMembers();
-  
+
   const [selectedItem, setSelectedItem] = useState<ChecklistItemWithDetails | null>(null);
   const [completeModalOpen, setCompleteModalOpen] = useState(false);
-  const [expandedContracts, setExpandedContracts] = useState<Set<string>>(new Set());
-  const [viewMode, setViewMode] = useState<'my' | 'team'>('my');
-  const [activeTab, setActiveTab] = useState<'activities' | 'gestora'>('activities');
-  const [teamFilterMemberId, setTeamFilterMemberId] = useState<string>('');
   const [actionModalOpen, setActionModalOpen] = useState(false);
-
-  // Check if user has management position (Gerencia or Gerente)
-  const isManagement = useMemo(() => {
-    if (!currentTeamMember?.id) return false;
-    const memberPositions = getMemberPositions(currentTeamMember.id);
-    return memberPositions.some(p => 
-      p.name.toLowerCase().includes('gerencia') || 
-      p.name.toLowerCase().includes('gerente')
-    );
-  }, [currentTeamMember?.id, getMemberPositions]);
 
   // Check if user is a Projetista Técnico
   const isProjetistaTecnico = useMemo(() => {
