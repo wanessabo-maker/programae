@@ -35,6 +35,9 @@ import { ProjetistaSection } from '@/components/minha-area/ProjetistaSection';
 import { ProjetistaTecnicoProjects } from '@/components/minha-area/ProjetistaTecnicoProjects';
 import { MeuCockpit } from '@/components/minha-area/MeuCockpit';
 import { MeuCaminho } from '@/components/minha-area/MeuCaminho';
+import { MeusIndicadoresAnuais } from '@/components/minha-area/MeusIndicadoresAnuais';
+import { PlannerTab } from '@/components/comercial/PlannerTab';
+import { ActionModal } from '@/components/ActionModal';
 import { ManagementDashboard } from '@/components/minha-area/ManagementDashboard';
 import { StaleProjectsBanner } from '@/components/minha-area/StaleProjectsBanner';
 import { CleanlinessAdminPanel } from '@/components/minha-area/CleanlinessAdminPanel';
@@ -89,6 +92,7 @@ export default function MinhaArea() {
   const [viewMode, setViewMode] = useState<'my' | 'team'>('my');
   const [activeTab, setActiveTab] = useState<'activities' | 'gestora'>('activities');
   const [teamFilterMemberId, setTeamFilterMemberId] = useState<string>('');
+  const [actionModalOpen, setActionModalOpen] = useState(false);
 
   // Check if user has management position (Gerencia or Gerente)
   const isManagement = useMemo(() => {
@@ -407,14 +411,14 @@ export default function MinhaArea() {
         {/* Header */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-light tracking-tight">
-              {activeTab === 'gestora' 
-                ? 'Gestora'
-                : viewMode === 'team' 
-                  ? 'Visão Geral da Equipe' 
-                  : `Olá, ${currentTeamMember?.name?.split(' ')[0] || 'Usuário'}`}
-            </h1>
-            
+            {(activeTab === 'gestora' || viewMode === 'team') ? (
+              <h1 className="text-2xl font-light tracking-tight">
+                {activeTab === 'gestora' ? 'Gestora' : 'Visão Geral da Equipe'}
+              </h1>
+            ) : (
+              <span />
+            )}
+
             {/* Admin/Manager View Toggle - only show when on activities tab */}
             {isAdmin && activeTab === 'activities' && (
               <div className="flex gap-2">
@@ -443,13 +447,13 @@ export default function MinhaArea() {
               </div>
             )}
           </div>
-          <p className="text-muted-foreground">
-            {activeTab === 'gestora'
-              ? 'Funil do mês, alertas operacionais e indicadores anuais por colaborador'
-              : viewMode === 'team' 
-                ? 'Acompanhe o andamento de todos os contratos e checklists da equipe'
-                : 'Atividades liberadas para sua execução e aguardando liberação de outras áreas'}
-          </p>
+          {(activeTab === 'gestora' || viewMode === 'team') && (
+            <p className="text-muted-foreground">
+              {activeTab === 'gestora'
+                ? 'Funil do mês, alertas operacionais e indicadores anuais por colaborador'
+                : 'Acompanhe o andamento de todos os contratos e checklists da equipe'}
+            </p>
+          )}
         </div>
 
         {/* Main Tab Navigation for Managers/Admins */}
