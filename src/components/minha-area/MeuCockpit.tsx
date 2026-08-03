@@ -468,6 +468,18 @@ export function MeuCockpit({ teamMemberId, teamMemberName, isProjetos, isComerci
   );
 }
 
+function MetaLinha({ label, value, meta }: { label: string; value: string; meta: string }) {
+  return (
+    <div>
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-sm uppercase tracking-widest font-semibold">{label}</span>
+        <span className="text-lg font-bold">{value}</span>
+      </div>
+      <p className="text-[11px] text-muted-foreground">{meta}</p>
+    </div>
+  );
+}
+
 function MetaCard({
   title, done, goal, monthDone, monthGoal, currency,
 }: {
