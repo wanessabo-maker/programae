@@ -179,6 +179,14 @@ function AppRoutes() {
           }
         />
         <Route
+          path="/gestao"
+          element={
+            <ProtectedRoute>
+              <Gestao />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/usuarios"
           element={
           <AdminRoute>
