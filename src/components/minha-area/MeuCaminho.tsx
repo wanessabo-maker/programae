@@ -1,12 +1,9 @@
 import { useMemo, useState } from 'react';
 import { format, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Plus, ListChecks, KanbanSquare } from 'lucide-react';
+import { ListChecks } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ActionModal } from '@/components/ActionModal';
-import { PlannerTab } from '@/components/comercial/PlannerTab';
 import { useActions } from '@/hooks/useDatabase';
 
 const fmtBRL = (v: number) =>
@@ -20,12 +17,9 @@ const fmtDate = (d?: string | null) => {
 
 interface Props {
   teamMemberId: string;
-  /** mostra o Pipeline de Apresentações com os projetos do colaborador destacados */
-  showPipeline?: boolean;
 }
 
-export function MeuCaminho({ teamMemberId, showPipeline = true }: Props) {
-  const [actionOpen, setActionOpen] = useState(false);
+export function MeuCaminho({ teamMemberId }: Props) {
   const { data: allActions = [] } = useActions();
 
   const myActions = useMemo(
@@ -41,11 +35,8 @@ export function MeuCaminho({ teamMemberId, showPipeline = true }: Props) {
     <section className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-xs tracking-widest uppercase text-muted-foreground font-medium flex items-center gap-2">
-          <ListChecks className="h-3.5 w-3.5" /> 2 · O Caminho — Minhas Ações
+          <ListChecks className="h-3.5 w-3.5" /> 2 · Minhas Ações
         </h3>
-        <Button onClick={() => setActionOpen(true)} className="gap-2">
-          <Plus className="h-4 w-4" /> Registrar Ação
-        </Button>
       </div>
 
       <Card className="border-border">
@@ -84,16 +75,6 @@ export function MeuCaminho({ teamMemberId, showPipeline = true }: Props) {
         </CardContent>
       </Card>
 
-      {showPipeline && (
-        <div className="space-y-2">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-            <KanbanSquare className="h-3.5 w-3.5" /> Pipeline de Apresentações — seus projetos em destaque
-          </p>
-          <PlannerTab highlightMemberId={teamMemberId} />
-        </div>
-      )}
-
-      <ActionModal open={actionOpen} onOpenChange={setActionOpen} />
     </section>
   );
 }

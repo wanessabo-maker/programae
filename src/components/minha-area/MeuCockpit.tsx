@@ -4,10 +4,7 @@ import {
   isWithinInterval, parseISO, format, differenceInDays,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import {
-  Target, AlertTriangle, Wallet, Users, Handshake, FileText, Presentation,
-  Flame, CheckCircle2, Plus,
-} from 'lucide-react';
+import { Target, AlertTriangle, Flame, CheckCircle2, Plus } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
