@@ -392,26 +392,21 @@ export function MeuCockpit({ teamMemberId, teamMemberName, isProjetos, isComerci
         )}
       </section>
 
-      {/* ── 4. MEUS ALERTAS ──────────────────────────────────────────────── */}
+      {/* ── MEUS ALERTAS ─────────────────────────────────────────────────── */}
       <section className="space-y-3">
         <h3 className="text-xs tracking-widest uppercase text-muted-foreground font-medium flex items-center gap-2">
           <AlertTriangle className="h-3.5 w-3.5" /> Meus Alertas
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <AlertCard
-            title="Especificadores esfriando"
+            title="Especificadores esfriando — saindo de Curioso ou Encantado"
             count={esfriandoUrgente.length}
-            items={esfriandoUrgente.slice(0, 5).map(e => `${e.name} · ${e.isExpired ? 'esfriou' : `${e.daysRemaining}d`}`)}
+            items={esfriandoUrgente.slice(0, 5).map(e => `${e.name} · ${e.categoria} · ${e.isExpired ? 'esfriou' : `${e.daysRemaining}dc`}`)}
           />
           <AlertCard
-            title="Projetos parados (15d+)"
+            title="Projetos parados (15dc+)"
             count={projetosParados.length}
-            items={projetosParados.slice(0, 5).map((p: any) => `${p.clients?.name || p.name} · ${p.diasParado}d`)}
-          />
-          <AlertCard
-            title="Briefings pendentes"
-            count={briefings.length}
-            items={briefings.slice(0, 5).map((p: any) => `${p.clients?.name || p.name} · ${p.diasParado}d`)}
+            items={projetosParados.slice(0, 5).map((p: any) => `${p.clients?.name || p.name} · ${p.diasParado}dc`)}
           />
         </div>
       </section>
