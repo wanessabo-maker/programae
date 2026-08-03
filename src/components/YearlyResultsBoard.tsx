@@ -289,6 +289,47 @@ export function YearlyResultsBoard() {
               </td>
             </tr>
 
+            {/* Big Meta Vendas Row */}
+            {totalBigMeta > 0 && (
+              <tr className="border-b-2 border-foreground/40/10">
+                <td className="p-3 text-sm font-medium">Big Meta Vendas</td>
+                {monthlyBigMeta.map((meta, idx) => (
+                  <td
+                    key={idx}
+                    className={`p-2 text-center text-xs text-muted-foreground ${idx === currentMonth ? 'bg-primary/25 ring-1 ring-primary/40' : ''}`}
+                    title={formatFullCurrency(meta)}
+                  >
+                    {meta > 0 ? formatCurrency(meta) : '—'}
+                  </td>
+                ))}
+                <td className="p-2 text-center text-sm font-bold bg-foreground/10 text-muted-foreground" title={formatFullCurrency(totalBigMeta)}>
+                  {formatCurrency(totalBigMeta)}
+                </td>
+              </tr>
+            )}
+
+            {/* % da Big Meta Row */}
+            {totalBigMeta > 0 && (
+              <tr className="border-b-2 border-foreground/40/10">
+                <td className="p-3 text-sm font-medium">% da Big Meta</td>
+                {monthlyData.map((data, idx) => {
+                  const meta = monthlyBigMeta[idx];
+                  const pct = calcPct(data.valorVendido, meta);
+                  return (
+                    <td
+                      key={idx}
+                      className={`p-2 text-center text-xs font-medium ${pctClass(pct, meta > 0)} ${idx === currentMonth ? 'bg-primary/25 ring-1 ring-primary/40' : ''}`}
+                    >
+                      {meta > 0 ? `${pct.toFixed(0)}%` : '—'}
+                    </td>
+                  );
+                })}
+                <td className={`p-2 text-center text-sm font-bold bg-foreground/10 ${pctClass(calcPct(totals.valorVendido, totalBigMeta), true)}`}>
+                  {`${calcPct(totals.valorVendido, totalBigMeta).toFixed(0)}%`}
+                </td>
+              </tr>
+            )}
+
             {/* Captações Row */}
             <tr className="border-b-2 border-foreground/40/10">
               <td className="p-3 text-sm font-medium">Captações</td>
