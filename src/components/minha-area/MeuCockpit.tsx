@@ -6,7 +6,7 @@ import {
 import { ptBR } from 'date-fns/locale';
 import {
   Target, AlertTriangle, Wallet, Users, Handshake, FileText, Presentation,
-  Sun, Sunset, Timer, CheckCircle2,
+  Flame, CheckCircle2,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -16,7 +16,6 @@ import { useSetup } from '@/contexts/SetupContext';
 import { useActions, useProfessionals } from '@/hooks/useDatabase';
 import { useProjects } from '@/hooks/useProjects';
 import { calculateProfessionalCategory } from '@/hooks/useProfessionalCategory';
-import { useMyTimeBlocks, useUpsertTimeBlock, BlockPeriod, BlockType } from '@/hooks/useTimeBlocks';
 import type { Professional } from '@/types';
 
 interface Props {
@@ -31,7 +30,6 @@ const fmtBRL = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(v || 0);
 
 const ACTIVE_PIPELINE = new Set(['AGUARDANDO_INICIO', 'INICIADO', 'CONCLUIDO', 'EM_REFORMA', 'PAUSADO']);
-const TIME_TARGET = 60; // % mínimo de tempo em atividade-fim
 
 function pct(done: number, goal: number) {
   if (!goal) return 0;
@@ -55,7 +53,6 @@ export function MeuCockpit({ teamMemberId, teamMemberName, isProjetos, isComerci
   const { data: allActions = [] } = useActions();
   const { data: allProjects = [] } = useProjects();
   const { data: allProfessionals = [] } = useProfessionals();
-  const upsertBlock = useUpsertTimeBlock();
 
   const now = new Date();
   const monthStart = startOfMonth(now);
@@ -63,8 +60,6 @@ export function MeuCockpit({ teamMemberId, teamMemberName, isProjetos, isComerci
   const weekStart = startOfWeek(now, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
   const iso = (d: Date) => format(d, 'yyyy-MM-dd');
-
-  const { data: timeBlocks = [] } = useMyTimeBlocks(teamMemberId, iso(weekStart), iso(weekEnd));
 
   const weeksInMonth = useMemo(
     () => eachWeekOfInterval({ start: monthStart, end: monthEnd }, { weekStartsOn: 1 }).length || 4,
