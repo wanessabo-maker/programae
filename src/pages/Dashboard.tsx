@@ -279,6 +279,8 @@ export default function Dashboard() {
         isCurrency?: boolean;
         isCategory?: boolean;
         isPrimary?: boolean;
+        bigMeta?: number;
+        bigPercentage?: number;
         order?: number;
         onTarget?: boolean;
         isMaxLimit?: boolean;
@@ -306,12 +308,15 @@ export default function Dashboard() {
         
         if (meta.type === 'vendas') {
           const percentage = individualMeta > 0 ? (totalSales / individualMeta) * 100 : 0;
+          const bigMeta = meta.bigValue || 0;
           metricsForArea.push({
             type: 'vendas',
             label: 'VENDAS',
             value: totalSales,
             meta: individualMeta,
             percentage,
+            bigMeta,
+            bigPercentage: bigMeta > 0 ? (totalSales / bigMeta) * 100 : 0,
             isCurrency: true,
             isPrimary: true,
             order: 1,
@@ -896,6 +901,18 @@ export default function Dashboard() {
                                 {metric.percentage.toFixed(0)}%
                               </span>
                             </div>
+                            {!!metric.bigMeta && metric.bigMeta > 0 && (
+                              <div className="flex justify-between text-[10px] text-muted-foreground">
+                                <span>
+                                  Big Meta: {metric.isCurrency
+                                    ? formatCurrency(metric.bigMeta)
+                                    : Math.round(metric.bigMeta)}
+                                </span>
+                                <span className={(metric.bigPercentage ?? 0) >= 100 ? 'font-medium text-success' : 'font-medium'}>
+                                  {(metric.bigPercentage ?? 0).toFixed(0)}%
+                                </span>
+                              </div>
+                            )}
                           </div>
                         ))}
 
