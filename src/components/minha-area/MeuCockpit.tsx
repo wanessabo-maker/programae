@@ -233,7 +233,7 @@ export function MeuCockpit({ teamMemberId, teamMemberName, isProjetos, isComerci
                     <Button
                       size="sm"
                       variant={block?.block_type === 'atividade_fim' ? 'default' : 'outline'}
-                      className="flex-1 text-xs"
+                      className={`flex-1 text-xs ${block?.block_type === 'atividade_fim' ? '' : 'bg-card text-card-foreground border-border hover:bg-muted'}`}
                       onClick={() => marcar(period, 'atividade_fim')}
                     >
                       Atividade-fim
@@ -241,7 +241,7 @@ export function MeuCockpit({ teamMemberId, teamMemberName, isProjetos, isComerci
                     <Button
                       size="sm"
                       variant={block?.block_type === 'operacional' ? 'default' : 'outline'}
-                      className="flex-1 text-xs"
+                      className={`flex-1 text-xs ${block?.block_type === 'operacional' ? '' : 'bg-card text-card-foreground border-border hover:bg-muted'}`}
                       onClick={() => marcar(period, 'operacional')}
                     >
                       Operacional
