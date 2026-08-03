@@ -3,6 +3,7 @@ import { Link, useLocation, Navigate } from 'react-router-dom';
 import { Settings, LogOut, Menu, X } from 'lucide-react';
 import { SetupModal } from './SetupModal';
 import { useAuthContext, FunctionalArea } from '@/contexts/AuthContext';
+import { useIsManager } from '@/hooks/useIsManager';
 import { toast } from 'sonner';
 import logo from '@/assets/logo-evviva-white.png';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -84,6 +85,9 @@ export function Layout({ children }: LayoutProps) {
     });
 
     // Add admin-only routes
+    if (canAccessGestao) {
+      filteredItems.push({ path: '/gestao', label: 'Gestão', area: null });
+    }
     if (isAdmin) {
       filteredItems.push({ path: '/usuarios', label: 'Usuários', area: null });
     }
