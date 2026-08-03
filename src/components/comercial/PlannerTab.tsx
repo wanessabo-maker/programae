@@ -1328,7 +1328,7 @@ function EditCardModal({ card, onClose }: { card: PlannerCard | null; onClose: (
 }
 
 // ── Componente principal ─────────────────────────────────────────────
-export function PlannerTab() {
+export function PlannerTab({ highlightMemberId }: { highlightMemberId?: string } = {}) {
   const { data: cards = [], isLoading } = useCards();
   const upd = useUpdateStatus();
   const qc = useQueryClient();
@@ -1577,7 +1577,16 @@ export function PlannerTab() {
                               style={p.draggableProps.style}
                               className={snap.isDragging ? "opacity-80" : ""}
                             >
-                              <Card card={card} onEdit={setEditCard} onDelete={setDeleteCard} />
+                              <Card
+                                card={card}
+                                onEdit={setEditCard}
+                                onDelete={setDeleteCard}
+                                highlight={
+                                  !!highlightMemberId &&
+                                  (card.responsible_id === highlightMemberId ||
+                                    card.apresentacao_projetista_id === highlightMemberId)
+                                }
+                              />
                             </div>
                           )}
                         </Draggable>
