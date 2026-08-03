@@ -34,6 +34,7 @@ import { CompleteActivityModal } from '@/components/minha-area/CompleteActivityM
 import { ProjetistaSection } from '@/components/minha-area/ProjetistaSection';
 import { ProjetistaTecnicoProjects } from '@/components/minha-area/ProjetistaTecnicoProjects';
 import { ConsultorSection } from '@/components/minha-area/ConsultorSection';
+import { MeuCockpit } from '@/components/minha-area/MeuCockpit';
 import { ManagementDashboard } from '@/components/minha-area/ManagementDashboard';
 import { StaleProjectsBanner } from '@/components/minha-area/StaleProjectsBanner';
 import { CleanlinessAdminPanel } from '@/components/minha-area/CleanlinessAdminPanel';
@@ -540,6 +541,16 @@ export default function MinhaArea() {
         {/* Stale Projects Banner - Atualização Importante (only personal view) */}
         {viewMode === 'my' && currentTeamMember?.id && (
           <StaleProjectsBanner teamMemberId={currentTeamMember.id} />
+        )}
+
+        {/* Meu cockpit pessoal — metas, semana, tempo e alertas (apenas visão pessoal) */}
+        {viewMode === 'my' && currentTeamMember?.id && (
+          <MeuCockpit
+            teamMemberId={currentTeamMember.id}
+            teamMemberName={currentTeamMember.name}
+            isComercial={allUserAreas.includes('comercial')}
+            isProjetos={allUserAreas.includes('projetos')}
+          />
         )}
 
         {/* Summary Cards */}
