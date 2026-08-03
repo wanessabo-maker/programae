@@ -62,7 +62,7 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAdmin) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/minha-area" replace />;
   }
 
   return <>{children}</>;
@@ -82,7 +82,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/minha-area" replace />;
   }
 
   return <>{children}</>;
@@ -105,7 +105,7 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Layout>
-              <Index />
+              <Navigate to="/minha-area" replace />
             </Layout>
           </ProtectedRoute>
         }

@@ -59,8 +59,8 @@ export function Layout({ children }: LayoutProps) {
   // Filter nav items based on user's area access
   const navItems = useMemo(() => {
     const allItems = [
-      { path: '/', label: 'Dashboard', area: null },
       { path: '/minha-area', label: 'Minha Área', area: null },
+      { path: '/', label: 'Dashboard', area: null },
       { path: '/comercial', label: 'Comercial', area: 'comercial' as FunctionalArea },
       { path: '/projetos', label: 'Projetos', area: 'projetos' as FunctionalArea },
       { path: '/customer-success', label: 'CS & AT', area: 'customer_success' as FunctionalArea },
@@ -99,7 +99,7 @@ export function Layout({ children }: LayoutProps) {
 
   // Redirect if user doesn't have access to current route
   if (!canAccessCurrentRoute) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/minha-area" replace />;
   }
 
   return (

@@ -52,7 +52,7 @@ export default function ResetPassword() {
         toast.error(error.message);
       } else {
         toast.success('Senha alterada com sucesso!');
-        navigate('/');
+        navigate('/minha-area');
       }
     } catch {
       toast.error('Erro ao alterar senha');
