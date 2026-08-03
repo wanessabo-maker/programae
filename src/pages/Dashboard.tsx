@@ -163,11 +163,21 @@ export default function Dashboard() {
         (!m.salesChannel && !!m.teamMemberId && engOnlyMemberIds.has(m.teamMemberId))
       ))
       .reduce((sum, m) => sum + m.value, 0);
+    const salesBigMeta = activeMetas
+      .filter(m => m.type === 'vendas' && !(
+        m.salesChannel === 'engenharia' ||
+        (!m.salesChannel && !!m.teamMemberId && engOnlyMemberIds.has(m.teamMemberId))
+      ))
+      .reduce((sum, m) => sum + (m.bigValue || 0), 0);
     const captacaoMeta = activeMetas.filter(m => m.type === 'captacao').reduce((sum, m) => sum + m.value, 0);
     const acoesMeta = activeMetas.filter(m => m.type === 'acoes').reduce((sum, m) => sum + m.value, 0);
 
     return {
-      sales: { value: totalSales, meta: salesMeta, percentage: salesMeta > 0 ? (totalSales / salesMeta) * 100 : 0 },
+      sales: {
+        value: totalSales, meta: salesMeta, bigMeta: salesBigMeta,
+        percentage: salesMeta > 0 ? (totalSales / salesMeta) * 100 : 0,
+        bigPercentage: salesBigMeta > 0 ? (totalSales / salesBigMeta) * 100 : 0,
+      },
       captacoes: { value: totalCaptacoes, meta: captacaoMeta, percentage: captacaoMeta > 0 ? (totalCaptacoes / captacaoMeta) * 100 : 0 },
       acoes: { value: totalAcoes, meta: acoesMeta, percentage: acoesMeta > 0 ? (totalAcoes / acoesMeta) * 100 : 0 },
     };
@@ -189,10 +199,18 @@ export default function Dashboard() {
         (!m.salesChannel && !!m.teamMemberId && engOnlyMemberIds.has(m.teamMemberId))
       ))
       .reduce((sum, m) => sum + m.value, 0);
+    const salesBigMetaEng = activeMetas
+      .filter(m => m.type === 'vendas' && (
+        m.salesChannel === 'engenharia' ||
+        (!m.salesChannel && !!m.teamMemberId && engOnlyMemberIds.has(m.teamMemberId))
+      ))
+      .reduce((sum, m) => sum + (m.bigValue || 0), 0);
     return {
       value: totalSalesEng,
       meta: salesMetaEng,
+      bigMeta: salesBigMetaEng,
       percentage: salesMetaEng > 0 ? (totalSalesEng / salesMetaEng) * 100 : 0,
+      bigPercentage: salesBigMetaEng > 0 ? (totalSalesEng / salesBigMetaEng) * 100 : 0,
     };
   }, [actions, actionTypes, activeMetas, engOnlyMemberIds, isEngenhariaConsultant]);
 
