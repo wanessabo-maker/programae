@@ -13,7 +13,8 @@ interface LayoutProps {
 
 // Mapping between route paths and functional areas
 const ROUTE_AREA_MAP: Record<string, FunctionalArea | null> = {
-  '/': null, // Dashboard - always accessible
+  '/': null, // redirect → Minha Área
+  '/dashboard': null, // Dashboard - always accessible
   '/comercial': 'comercial',
   '/projetos': 'projetos',
   '/customer-success': 'customer_success',
@@ -60,7 +61,7 @@ export function Layout({ children }: LayoutProps) {
   const navItems = useMemo(() => {
     const allItems = [
       { path: '/minha-area', label: 'Minha Área', area: null },
-      { path: '/', label: 'Dashboard', area: null },
+      { path: '/dashboard', label: 'Dashboard', area: null },
       { path: '/comercial', label: 'Comercial', area: 'comercial' as FunctionalArea },
       { path: '/projetos', label: 'Projetos', area: 'projetos' as FunctionalArea },
       { path: '/customer-success', label: 'CS & AT', area: 'customer_success' as FunctionalArea },

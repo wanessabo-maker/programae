@@ -111,6 +111,16 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Index />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/profissionais"
         element={
           <ProtectedRoute>
