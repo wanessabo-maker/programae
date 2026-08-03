@@ -48,6 +48,7 @@ export interface Meta {
   teamMemberId?: string; // For individual goals per team member
   type: 'acoes' | 'vendas' | 'captacao' | 'projeto' | 'categoria' | 'especificador'; // especificador for backwards compatibility
   value: number;
+  bigValue?: number; // BIG META (apenas para metas de vendas)
   categoryId?: string; // For 'categoria' type metas
   validityType: 'mensal' | 'trimestral' | 'semestral' | 'anual' | 'personalizada';
   startDate?: string;

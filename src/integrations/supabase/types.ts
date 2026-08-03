@@ -988,6 +988,7 @@ export type Database = {
       goals: {
         Row: {
           area_id: string | null
+          big_value: number | null
           category_id: string | null
           created_at: string | null
           end_date: string | null
@@ -1002,6 +1003,7 @@ export type Database = {
         }
         Insert: {
           area_id?: string | null
+          big_value?: number | null
           category_id?: string | null
           created_at?: string | null
           end_date?: string | null
@@ -1016,6 +1018,7 @@ export type Database = {
         }
         Update: {
           area_id?: string | null
+          big_value?: number | null
           category_id?: string | null
           created_at?: string | null
           end_date?: string | null

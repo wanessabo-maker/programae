@@ -63,9 +63,12 @@ export function YearlyResultsBoard() {
   }, [actions, actionTypes, targetYear, isEngenhariaConsultant]);
 
   // Meta mensal de vendas por mês — soma das metas de vendas ativas, normalizadas para mensal
-  const buildMonthlyMeta = (filter: (m: Meta) => boolean) => {
+  const buildMonthlyMeta = (filter: (m: Meta) => boolean, pick: (m: Meta) => number = (m) => m.value) => {
     const result = Array.from({ length: 12 }, () => 0);
-    const vendasMetas = metas.filter(m => m.type === 'vendas' && m.isActive && filter(m));
+    const vendasMetas = metas
+      .filter(m => m.type === 'vendas' && m.isActive && filter(m))
+      .map(m => ({ ...m, value: pick(m) }))
+      .filter(m => m.value > 0);
 
     // Parse 'YYYY-MM-DD' como data LOCAL (evita shift de UTC para timezones negativos)
     const parseLocalDate = (s: string | null | undefined): Date | null => {
@@ -159,7 +162,17 @@ export function YearlyResultsBoard() {
     [metas, targetYear, engOnlyMemberIds]
   );
 
+  const monthlyBigMeta = useMemo(
+    () => buildMonthlyMeta((m) => !(
+      m.salesChannel === 'engenharia' ||
+      (!m.salesChannel && !!m.teamMemberId && engOnlyMemberIds.has(m.teamMemberId))
+    ), (m) => m.bigValue || 0),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [metas, targetYear, engOnlyMemberIds]
+  );
+
   const totalMeta = useMemo(() => monthlyMeta.reduce((a, b) => a + b, 0), [monthlyMeta]);
+  const totalBigMeta = useMemo(() => monthlyBigMeta.reduce((a, b) => a + b, 0), [monthlyBigMeta]);
   const totalMetaEng = useMemo(() => monthlyMetaEng.reduce((a, b) => a + b, 0), [monthlyMetaEng]);
 
   const calcPct = (executado: number, meta: number) => meta > 0 ? (executado / meta) * 100 : 0;
@@ -275,6 +288,47 @@ export function YearlyResultsBoard() {
                 {totalMeta > 0 ? `${calcPct(totals.valorVendido, totalMeta).toFixed(0)}%` : '—'}
               </td>
             </tr>
+
+            {/* Big Meta Vendas Row */}
+            {totalBigMeta > 0 && (
+              <tr className="border-b-2 border-foreground/40/10">
+                <td className="p-3 text-sm font-medium">Big Meta Vendas</td>
+                {monthlyBigMeta.map((meta, idx) => (
+                  <td
+                    key={idx}
+                    className={`p-2 text-center text-xs text-muted-foreground ${idx === currentMonth ? 'bg-primary/25 ring-1 ring-primary/40' : ''}`}
+                    title={formatFullCurrency(meta)}
+                  >
+                    {meta > 0 ? formatCurrency(meta) : '—'}
+                  </td>
+                ))}
+                <td className="p-2 text-center text-sm font-bold bg-foreground/10 text-muted-foreground" title={formatFullCurrency(totalBigMeta)}>
+                  {formatCurrency(totalBigMeta)}
+                </td>
+              </tr>
+            )}
+
+            {/* % da Big Meta Row */}
+            {totalBigMeta > 0 && (
+              <tr className="border-b-2 border-foreground/40/10">
+                <td className="p-3 text-sm font-medium">% da Big Meta</td>
+                {monthlyData.map((data, idx) => {
+                  const meta = monthlyBigMeta[idx];
+                  const pct = calcPct(data.valorVendido, meta);
+                  return (
+                    <td
+                      key={idx}
+                      className={`p-2 text-center text-xs font-medium ${pctClass(pct, meta > 0)} ${idx === currentMonth ? 'bg-primary/25 ring-1 ring-primary/40' : ''}`}
+                    >
+                      {meta > 0 ? `${pct.toFixed(0)}%` : '—'}
+                    </td>
+                  );
+                })}
+                <td className={`p-2 text-center text-sm font-bold bg-foreground/10 ${pctClass(calcPct(totals.valorVendido, totalBigMeta), true)}`}>
+                  {`${calcPct(totals.valorVendido, totalBigMeta).toFixed(0)}%`}
+                </td>
+              </tr>
+            )}
 
             {/* Captações Row */}
             <tr className="border-b-2 border-foreground/40/10">

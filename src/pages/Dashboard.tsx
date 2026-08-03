@@ -163,11 +163,21 @@ export default function Dashboard() {
         (!m.salesChannel && !!m.teamMemberId && engOnlyMemberIds.has(m.teamMemberId))
       ))
       .reduce((sum, m) => sum + m.value, 0);
+    const salesBigMeta = activeMetas
+      .filter(m => m.type === 'vendas' && !(
+        m.salesChannel === 'engenharia' ||
+        (!m.salesChannel && !!m.teamMemberId && engOnlyMemberIds.has(m.teamMemberId))
+      ))
+      .reduce((sum, m) => sum + (m.bigValue || 0), 0);
     const captacaoMeta = activeMetas.filter(m => m.type === 'captacao').reduce((sum, m) => sum + m.value, 0);
     const acoesMeta = activeMetas.filter(m => m.type === 'acoes').reduce((sum, m) => sum + m.value, 0);
 
     return {
-      sales: { value: totalSales, meta: salesMeta, percentage: salesMeta > 0 ? (totalSales / salesMeta) * 100 : 0 },
+      sales: {
+        value: totalSales, meta: salesMeta, bigMeta: salesBigMeta,
+        percentage: salesMeta > 0 ? (totalSales / salesMeta) * 100 : 0,
+        bigPercentage: salesBigMeta > 0 ? (totalSales / salesBigMeta) * 100 : 0,
+      },
       captacoes: { value: totalCaptacoes, meta: captacaoMeta, percentage: captacaoMeta > 0 ? (totalCaptacoes / captacaoMeta) * 100 : 0 },
       acoes: { value: totalAcoes, meta: acoesMeta, percentage: acoesMeta > 0 ? (totalAcoes / acoesMeta) * 100 : 0 },
     };
@@ -189,10 +199,18 @@ export default function Dashboard() {
         (!m.salesChannel && !!m.teamMemberId && engOnlyMemberIds.has(m.teamMemberId))
       ))
       .reduce((sum, m) => sum + m.value, 0);
+    const salesBigMetaEng = activeMetas
+      .filter(m => m.type === 'vendas' && (
+        m.salesChannel === 'engenharia' ||
+        (!m.salesChannel && !!m.teamMemberId && engOnlyMemberIds.has(m.teamMemberId))
+      ))
+      .reduce((sum, m) => sum + (m.bigValue || 0), 0);
     return {
       value: totalSalesEng,
       meta: salesMetaEng,
+      bigMeta: salesBigMetaEng,
       percentage: salesMetaEng > 0 ? (totalSalesEng / salesMetaEng) * 100 : 0,
+      bigPercentage: salesBigMetaEng > 0 ? (totalSalesEng / salesBigMetaEng) * 100 : 0,
     };
   }, [actions, actionTypes, activeMetas, engOnlyMemberIds, isEngenhariaConsultant]);
 
@@ -261,6 +279,8 @@ export default function Dashboard() {
         isCurrency?: boolean;
         isCategory?: boolean;
         isPrimary?: boolean;
+        bigMeta?: number;
+        bigPercentage?: number;
         order?: number;
         onTarget?: boolean;
         isMaxLimit?: boolean;
@@ -288,12 +308,15 @@ export default function Dashboard() {
         
         if (meta.type === 'vendas') {
           const percentage = individualMeta > 0 ? (totalSales / individualMeta) * 100 : 0;
+          const bigMeta = meta.bigValue || 0;
           metricsForArea.push({
             type: 'vendas',
             label: 'VENDAS',
             value: totalSales,
             meta: individualMeta,
             percentage,
+            bigMeta,
+            bigPercentage: bigMeta > 0 ? (totalSales / bigMeta) * 100 : 0,
             isCurrency: true,
             isPrimary: true,
             order: 1,
@@ -601,7 +624,11 @@ export default function Dashboard() {
             value={formatCurrency(monthlyMetrics.sales.value)}
             label="Valor Vendido"
             percentage={monthlyMetrics.sales.percentage}
-            subtitle={`Meta: ${formatCurrency(monthlyMetrics.sales.meta)}`}
+            subtitle={`Meta: ${formatCurrency(monthlyMetrics.sales.meta)}${
+              monthlyMetrics.sales.bigMeta > 0
+                ? ` · Big Meta: ${formatCurrency(monthlyMetrics.sales.bigMeta)} (${monthlyMetrics.sales.bigPercentage.toFixed(0)}%)`
+                : ''
+            }`}
           />
           <MetricCard
             value={monthlyMetrics.captacoes.value}
@@ -620,7 +647,11 @@ export default function Dashboard() {
               value={formatCurrency(engenhariaMetric.value)}
               label="Valor Vendido — Engenharia"
               percentage={engenhariaMetric.percentage}
-              subtitle={`Meta: ${formatCurrency(engenhariaMetric.meta)}`}
+              subtitle={`Meta: ${formatCurrency(engenhariaMetric.meta)}${
+                engenhariaMetric.bigMeta > 0
+                  ? ` · Big Meta: ${formatCurrency(engenhariaMetric.bigMeta)} (${engenhariaMetric.bigPercentage.toFixed(0)}%)`
+                  : ''
+              }`}
             />
           )}
         </div>
@@ -878,6 +909,18 @@ export default function Dashboard() {
                                 {metric.percentage.toFixed(0)}%
                               </span>
                             </div>
+                            {!!metric.bigMeta && metric.bigMeta > 0 && (
+                              <div className="flex justify-between text-[10px] text-muted-foreground">
+                                <span>
+                                  Big Meta: {metric.isCurrency
+                                    ? formatCurrency(metric.bigMeta)
+                                    : Math.round(metric.bigMeta)}
+                                </span>
+                                <span className={(metric.bigPercentage ?? 0) >= 100 ? 'font-medium text-success' : 'font-medium'}>
+                                  {(metric.bigPercentage ?? 0).toFixed(0)}%
+                                </span>
+                              </div>
+                            )}
                           </div>
                         ))}
 
