@@ -47,6 +47,18 @@ function lightBg(p: number) {
   return 'bg-destructive';
 }
 
+function MetaLinha({ label, value, meta }: { label: string; value: string; meta: string }) {
+  return (
+    <div>
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-sm uppercase tracking-widest font-semibold">{label}</span>
+        <span className="text-lg font-bold">{value}</span>
+      </div>
+      <p className="text-[11px] text-muted-foreground">{meta}</p>
+    </div>
+  );
+}
+
 export function MeuCockpit({ teamMemberId, teamMemberName, isProjetos, isComercial = true, onRegistrarAcao }: Props) {
   const { metas, actionTypes, professionalCategories } = useSetup();
   const { data: allActions = [] } = useActions();
@@ -464,18 +476,6 @@ export function MeuCockpit({ teamMemberId, teamMemberName, isProjetos, isComerci
           />
         </div>
       </section>
-    </div>
-  );
-}
-
-function MetaLinha({ label, value, meta }: { label: string; value: string; meta: string }) {
-  return (
-    <div>
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="text-sm uppercase tracking-widest font-semibold">{label}</span>
-        <span className="text-lg font-bold">{value}</span>
-      </div>
-      <p className="text-[11px] text-muted-foreground">{meta}</p>
     </div>
   );
 }
