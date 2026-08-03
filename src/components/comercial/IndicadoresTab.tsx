@@ -8,7 +8,7 @@ import { ptBR } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { RelatorioExecutivoButton } from '@/components/relatorio/RelatorioExecutivoButton';
 
-export default function IndicadoresTab() {
+export default function IndicadoresTab({ forceMemberId }: { forceMemberId?: string } = {}) {
   const { isAdmin } = useAuthContext();
   const { data: currentTeamMember } = useCurrentTeamMember();
   const { getMemberAreaIds, getAreaName } = usePositions();
@@ -21,10 +21,11 @@ export default function IndicadoresTab() {
 
   // Filter: non-admins see only their own data
   const visibleIndicators = useMemo(() => {
+    if (forceMemberId) return indicators.filter(i => i.memberId === forceMemberId);
     if (isAdmin) return indicators;
     if (!currentTeamMember) return [];
     return indicators.filter(i => i.memberId === currentTeamMember.id);
-  }, [indicators, isAdmin, currentTeamMember]);
+  }, [indicators, isAdmin, currentTeamMember, forceMemberId]);
 
   const monthLabel = format(new Date(selectedYear, selectedMonth - 1, 1), "MMMM 'de' yyyy", { locale: ptBR });
 
