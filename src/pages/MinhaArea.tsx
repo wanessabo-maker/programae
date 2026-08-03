@@ -138,37 +138,6 @@ export default function MinhaArea() {
           />
         )}
 
-        {/* Resumo de atividades */}
-        <div className="grid grid-cols-2 gap-3">
-          <Card className="border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded">
-                  <ListChecks className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-2xl font-semibold">{totalActive}</p>
-                  <p className="text-xs text-muted-foreground uppercase tracking-widest">Liberadas</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-muted rounded">
-                  <Clock className="h-5 w-5 text-muted-foreground" />
-                </div>
-                <div>
-                  <p className="text-2xl font-semibold">{totalBlocked}</p>
-                  <p className="text-xs text-muted-foreground uppercase tracking-widest">Aguardando</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
         {/* Produção de projetos, quando aplicável */}
         {currentTeamMember?.id && (
           <ProjetistaSection
