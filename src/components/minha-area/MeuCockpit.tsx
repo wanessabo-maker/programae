@@ -169,6 +169,46 @@ export function MeuCockpit({ teamMemberId, teamMemberName, isProjetos, isComerci
 
   const esfriandoUrgente = esfriando.filter(e => e.isExpired || e.daysRemaining <= 7);
 
+  // ── Perfil dos profissionais (categorias com meta de faixa) ───────────────
+  const perfil = useMemo(() => {
+    const meus = (allProfessionals || []).filter((p: any) => p.consultant_id === teamMemberId);
+    const total = meus.length;
+    const order = (n: string) => {
+      const u = (n || '').toUpperCase();
+      if (u.includes('ENCANT')) return 0;
+      if (u.includes('CURIOS')) return 1;
+      if (u.includes('DISTANT')) return 2;
+      return 3;
+    };
+    const linhas = professionalCategories
+      .map(cat => {
+        const count = meus.filter((p: any) => p.category_id === cat.id).length;
+        const p = total > 0 ? (count / total) * 100 : 0;
+        const hasMin = (cat.minPercentage ?? 0) > 0;
+        const hasMax = (cat.maxPercentage ?? 0) > 0;
+        let label = '—';
+        let alvo = 0;
+        let onTarget = true;
+        if (hasMin && hasMax) {
+          label = `mais que ${cat.minPercentage}%`;
+          alvo = cat.maxPercentage!;
+          onTarget = p >= cat.minPercentage! && p <= cat.maxPercentage!;
+        } else if (hasMin) {
+          label = `mais que ${cat.minPercentage}%`;
+          alvo = cat.minPercentage!;
+          onTarget = p >= cat.minPercentage!;
+        } else if (hasMax) {
+          label = `menos que ${cat.maxPercentage}%`;
+          alvo = cat.maxPercentage!;
+          onTarget = p <= cat.maxPercentage!;
+        }
+        const barra = alvo > 0 ? Math.min(100, (p / alvo) * 100) : 0;
+        return { id: cat.id, name: (cat.name || '').toUpperCase(), count, p, label, barra, onTarget, hasMeta: hasMin || hasMax };
+      })
+      .sort((a, b) => order(a.name) - order(b.name));
+    return { total, linhas };
+  }, [allProfessionals, teamMemberId, professionalCategories]);
+
   // ── % da meta da semana (média das metas ativas) ───────────────────────────
   const metaSemanaPct = useMemo(() => {
     const pares: [number, number][] = [];
@@ -338,55 +378,72 @@ export function MeuCockpit({ teamMemberId, teamMemberName, isProjetos, isComerci
         </Card>
       )}
 
-      {/* ── 1. MINHA META ────────────────────────────────────────────────── */}
+      {/* ── 1. MINHAS METAS ─────────────────────────────────────────────── */}
       <section className="space-y-3">
         <h3 className="text-xs tracking-widest uppercase text-muted-foreground font-medium flex items-center gap-2">
           <Target className="h-3.5 w-3.5" /> 1 · Minhas Metas
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {isComercial && (
-            <>
-              <MetaCard
-                title="Valor vendido — Semana"
-                done={realizado.vendasSemana}
-                goal={metaSemana.vendas}
-                monthDone={realizado.vendasMes}
-                monthGoal={metaMes.vendas}
-                currency
-              />
-              <MetaCard
-                title="Ações — Semana"
-                done={realizado.acoesSemana}
-                goal={metaSemana.acoes}
-                monthDone={realizado.acoesMes}
-                monthGoal={metaMes.acoes}
-              />
-              <MetaCard
-                title="Captações — Semana"
-                done={realizado.prospeccaoSemana}
-                goal={metaSemana.captacao}
-                monthDone={realizado.captacaoMes}
-                monthGoal={metaMes.captacao}
-              />
-            </>
-          )}
-          {isProjetos && (
-            <>
-              <MetaCard
-                title="Projetos — Semana"
-                done={realizado.projetosSemana}
-                goal={metaSemana.projeto}
-                monthDone={realizado.projetosMes}
-                monthGoal={metaMes.projeto}
-              />
-            </>
-          )}
-        </div>
-        {metaMes.vendas === 0 && metaMes.acoes === 0 && metaMes.projeto === 0 && metaMes.captacao === 0 && (
-          <p className="text-xs text-muted-foreground">
-            Nenhuma meta individual cadastrada para você neste mês. Peça à gestão para cadastrar em Setup → Metas.
-          </p>
-        )}
+        <Card className="border-border max-w-xl">
+          <CardContent className="p-5 space-y-4">
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="text-sm tracking-[0.15em] uppercase font-semibold">{teamMemberName}</p>
+              {isComercial && (
+                <span className="text-xs text-muted-foreground">{perfil.total} prof.</span>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              {isComercial && (
+                <>
+                  <MetaLinha label="Vendas" value={fmtBRL(realizado.vendasMes)} meta={metaMes.vendas > 0 ? `Meta: ${fmtBRL(metaMes.vendas)}` : 'Meta: —'} />
+                  <MetaLinha label="Captação" value={String(realizado.captacaoMes)} meta={metaMes.captacao > 0 ? `Meta: ${Math.round(metaMes.captacao)}` : 'Meta: —'} />
+                  <MetaLinha label="Ações" value={String(realizado.acoesMes)} meta={metaMes.acoes > 0 ? `Meta: ${Math.round(metaMes.acoes)}` : 'Meta: —'} />
+                </>
+              )}
+              {isProjetos && !isComercial && (
+                <>
+                  <MetaLinha label="Projetos" value={String(realizado.projetosMes)} meta={metaMes.projeto > 0 ? `Meta: ${Math.round(metaMes.projeto)}` : 'Meta: —'} />
+                  <MetaLinha label="Ações" value={String(realizado.acoesMes)} meta={metaMes.acoes > 0 ? `Meta: ${Math.round(metaMes.acoes)}` : 'Meta: —'} />
+                </>
+              )}
+            </div>
+
+            {isComercial && perfil.linhas.length > 0 && (
+              <div className="pt-3 border-t border-border space-y-3">
+                {perfil.linhas.map(l => (
+                  <div key={l.id} className="space-y-1">
+                    <p className="text-xs uppercase tracking-widest font-semibold">% {l.name}</p>
+                    <p className="text-[11px] text-muted-foreground">Meta: {l.label}</p>
+                    <div className="h-1.5 w-full bg-muted overflow-hidden">
+                      <div
+                        className={`h-full ${l.hasMeta ? (l.onTarget ? 'bg-success' : 'bg-destructive') : 'bg-muted-foreground'}`}
+                        style={{ width: `${Math.max(2, l.barra)}%` }}
+                      />
+                    </div>
+                    <p className="text-sm font-semibold">{l.p.toFixed(0)}%</p>
+                  </div>
+                ))}
+
+                <div className="pt-3 border-t border-border space-y-1">
+                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Categorias</p>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+                    {perfil.linhas.map(l => (
+                      <span key={l.id}>
+                        {l.name}: {l.count} <strong className="text-foreground">({l.p.toFixed(2)}%)</strong>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {metaMes.vendas === 0 && metaMes.acoes === 0 && metaMes.projeto === 0 && metaMes.captacao === 0 && (
+              <p className="text-xs text-muted-foreground">
+                Nenhuma meta individual cadastrada para você neste mês. Peça à gestão para cadastrar em Setup → Metas.
+              </p>
+            )}
+          </CardContent>
+        </Card>
       </section>
 
       {/* ── MEUS ALERTAS ─────────────────────────────────────────────────── */}
