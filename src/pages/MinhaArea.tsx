@@ -617,7 +617,7 @@ export default function MinhaArea() {
             <h2 className="text-xs tracking-widest uppercase text-muted-foreground font-medium">
               {viewMode === 'team'
                 ? `Contratos da Equipe (${contractGroups.length})`
-                : `4 · Minhas Pendências — Contratos & Checklist (${contractGroups.length})`}
+                : `3 · Meus Contratos (${contractGroups.length})`}
             </h2>
             {contractGroups.some(g => g.hasOverdue) && (
               <Badge variant="destructive" className="text-[10px]">
@@ -873,6 +873,24 @@ export default function MinhaArea() {
             </div>
           )}
         </div>
+
+        {/* 4 · PIPELINE DE APRESENTAÇÕES — meus projetos em destaque */}
+        {viewMode === 'my' && currentTeamMember?.id &&
+          (allUserAreas.includes('comercial') || allUserAreas.includes('projetos')) && (
+          <section className="space-y-3">
+            <h3 className="text-xs tracking-widest uppercase text-muted-foreground font-medium flex items-center gap-2">
+              <KanbanSquare className="h-3.5 w-3.5" /> 4 · Pipeline de Apresentações — seus projetos em destaque
+            </h3>
+            <PlannerTab highlightMemberId={currentTeamMember.id} />
+          </section>
+        )}
+
+        {/* 5 · MEUS INDICADORES — mês a mês */}
+        {viewMode === 'my' && currentTeamMember?.id && (
+          <MeusIndicadoresAnuais teamMemberId={currentTeamMember.id} />
+        )}
+
+        <ActionModal open={actionModalOpen} onOpenChange={setActionModalOpen} />
       </>
     );
   }
