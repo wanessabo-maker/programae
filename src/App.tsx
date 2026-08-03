@@ -105,7 +105,7 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Layout>
-              <Index />
+              <Navigate to="/minha-area" replace />
             </Layout>
           </ProtectedRoute>
         }
