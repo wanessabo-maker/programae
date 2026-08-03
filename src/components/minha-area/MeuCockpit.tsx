@@ -495,77 +495,54 @@ export function MeuCockpit({ teamMemberId, teamMemberName, isProjetos, isComerci
   );
 }
 
-function MetaCard({ title, done, goal, currency }: { title: string; done: number; goal: number; currency?: boolean }) {
+function MetaCard({
+  title, done, goal, monthDone, monthGoal, currency,
+}: {
+  title: string;
+  done: number;
+  goal: number;
+  monthDone: number;
+  monthGoal: number;
+  currency?: boolean;
+}) {
   const p = pct(done, goal);
+  const pMes = pct(monthDone, monthGoal);
   const falta = Math.max(0, goal - done);
   const fmt = (v: number) => (currency ? fmtBRL(v) : Math.round(v).toString());
   return (
     <Card className="border-border">
-      <CardContent className="p-4 space-y-2">
+      <CardContent className="p-4 space-y-3">
         <div className="flex items-center justify-between">
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground">{title}</p>
           <span className={`h-2 w-2 rounded-full ${goal > 0 ? lightBg(p) : 'bg-muted'}`} />
         </div>
-        <p className="text-xl font-semibold">{fmt(done)}</p>
-        <Progress value={Math.min(100, p)} className="h-1.5" />
-        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-          <span>Meta: {goal > 0 ? fmt(goal) : '—'}</span>
-          <span className={goal > 0 ? lightClass(p) : ''}>{goal > 0 ? `${p.toFixed(0)}%` : '—'}</span>
+
+        <div className="flex items-end justify-between gap-2">
+          <p className="text-xl font-semibold">{fmt(done)}</p>
+          <p className="text-[11px] text-muted-foreground">
+            de {goal > 0 ? fmt(goal) : '—'} previstos
+            {goal > 0 && <span className={`ml-1 ${lightClass(p)}`}>· {p.toFixed(0)}%</span>}
+          </p>
         </div>
+        <Progress value={Math.min(100, p)} className="h-1.5" />
         {goal > 0 && (
           <p className="text-[11px] text-muted-foreground">
-            {falta > 0 ? `Faltam ${fmt(falta)}` : 'Meta atingida 🎉'}
+            {falta > 0 ? `Faltam ${fmt(falta)} nesta semana` : 'Meta da semana atingida'}
           </p>
         )}
-      </CardContent>
-    </Card>
-  );
-}
 
-interface BlocoItem { key: string; label: string; right?: string; sub?: string; danger?: boolean }
-
-function BlocoCard({
-  icon, title, done, goal, hint, items = [],
-}: { icon: React.ReactNode; title: string; done: number; goal: number; hint?: string; items?: BlocoItem[] }) {
-  const p = pct(done, goal);
-  return (
-    <Card className="border-border">
-      <CardContent className="p-4 space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-muted rounded text-muted-foreground">{icon}</div>
-            <span className="text-xs font-bold uppercase tracking-widest">{title}</span>
+        <div className="pt-3 border-t border-border space-y-1.5">
+          <div className="flex items-center justify-between text-[10px] uppercase tracking-widest text-muted-foreground">
+            <span>Objetivo do mês</span>
+            <span className={monthGoal > 0 ? lightClass(pMes) : ''}>
+              {monthGoal > 0 ? `${pMes.toFixed(0)}%` : '—'}
+            </span>
           </div>
-          <Badge variant="secondary" className="text-[10px]">
-            {goal > 0 ? `${done} / ${Math.round(goal)}` : done}
-          </Badge>
+          <Progress value={Math.min(100, pMes)} className="h-2" />
+          <p className="text-[11px] text-muted-foreground">
+            {fmt(monthDone)} / {monthGoal > 0 ? fmt(monthGoal) : '—'}
+          </p>
         </div>
-        {goal > 0 && (
-          <>
-            <Progress value={Math.min(100, p)} className="h-1.5" />
-            <p className={`text-[11px] ${lightClass(p)}`}>
-              {p.toFixed(0)}% da meta da semana{p < 100 ? ` · faltam ${Math.max(0, Math.ceil(goal - done))}` : ''}
-            </p>
-          </>
-        )}
-        {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
-        {items.length > 0 && (
-          <ul className="space-y-1.5 max-h-52 overflow-y-auto">
-            {items.map(it => (
-              <li key={it.key} className="text-xs border border-border rounded p-2 flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="truncate font-medium">{it.label}</div>
-                  {it.sub && <div className="truncate text-[10px] text-muted-foreground">{it.sub}</div>}
-                </div>
-                {it.right && (
-                  <span className={`shrink-0 text-[11px] ${it.danger ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
-                    {it.right}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
       </CardContent>
     </Card>
   );
