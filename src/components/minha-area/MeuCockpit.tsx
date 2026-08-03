@@ -4,10 +4,7 @@ import {
   isWithinInterval, parseISO, format, differenceInDays,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import {
-  Target, AlertTriangle, Wallet, Users, Handshake, FileText, Presentation,
-  Flame, CheckCircle2,
-} from 'lucide-react';
+import { Target, AlertTriangle, Flame, CheckCircle2, Plus } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -24,6 +21,8 @@ interface Props {
   /** true quando o colaborador é da área de Projetos (mostra meta de projetos) */
   isProjetos?: boolean;
   isComercial?: boolean;
+  /** ação do botão "+ Registrar Ação" no topo do card MEU MUNDO */
+  onRegistrarAcao?: () => void;
 }
 
 const fmtBRL = (v: number) =>
@@ -48,7 +47,7 @@ function lightBg(p: number) {
   return 'bg-destructive';
 }
 
-export function MeuCockpit({ teamMemberId, teamMemberName, isProjetos, isComercial = true }: Props) {
+export function MeuCockpit({ teamMemberId, teamMemberName, isProjetos, isComercial = true, onRegistrarAcao }: Props) {
   const { metas, actionTypes, professionalCategories } = useSetup();
   const { data: allActions = [] } = useActions();
   const { data: allProjects = [] } = useProjects();
@@ -268,7 +267,8 @@ export function MeuCockpit({ teamMemberId, teamMemberName, isProjetos, isComerci
                 {format(weekStart, "dd 'de' MMM", { locale: ptBR })} — {format(weekEnd, "dd 'de' MMM", { locale: ptBR })}
               </p>
             </div>
-            <div className="text-right">
+            <div className="flex items-center gap-4">
+              <div className="text-right">
               <div className="flex items-center gap-2 justify-end">
                 <Target className="h-4 w-4 text-muted-foreground" />
                 <span className={`text-2xl font-semibold ${metaSemanaPct !== null ? lightClass(metaSemanaPct) : ''}`}>
@@ -278,6 +278,12 @@ export function MeuCockpit({ teamMemberId, teamMemberName, isProjetos, isComerci
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
                 meta da semana atingida
               </p>
+              </div>
+              {onRegistrarAcao && (
+                <Button onClick={onRegistrarAcao} className="gap-2">
+                  <Plus className="h-4 w-4" /> Registrar Ação
+                </Button>
+              )}
             </div>
           </div>
 
@@ -335,23 +341,44 @@ export function MeuCockpit({ teamMemberId, teamMemberName, isProjetos, isComerci
       {/* ── 1. MINHA META ────────────────────────────────────────────────── */}
       <section className="space-y-3">
         <h3 className="text-xs tracking-widest uppercase text-muted-foreground font-medium flex items-center gap-2">
-          <Target className="h-3.5 w-3.5" /> 1 · Minhas Metas (definidas no Setup)
+          <Target className="h-3.5 w-3.5" /> 1 · Minhas Metas
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {isComercial && (
             <>
-              <MetaCard title="Valor vendido — Mês" done={realizado.vendasMes} goal={metaMes.vendas} currency />
-              <MetaCard title="Valor vendido — Semana" done={realizado.vendasSemana} goal={metaSemana.vendas} currency />
-              <MetaCard title="Ações — Mês" done={realizado.acoesMes} goal={metaMes.acoes} />
-              <MetaCard title="Ações — Semana" done={realizado.acoesSemana} goal={metaSemana.acoes} />
-              <MetaCard title="Captações — Mês" done={realizado.captacaoMes} goal={metaMes.captacao} />
-              <MetaCard title="Captações — Semana" done={realizado.prospeccaoSemana} goal={metaSemana.captacao} />
+              <MetaCard
+                title="Valor vendido — Semana"
+                done={realizado.vendasSemana}
+                goal={metaSemana.vendas}
+                monthDone={realizado.vendasMes}
+                monthGoal={metaMes.vendas}
+                currency
+              />
+              <MetaCard
+                title="Ações — Semana"
+                done={realizado.acoesSemana}
+                goal={metaSemana.acoes}
+                monthDone={realizado.acoesMes}
+                monthGoal={metaMes.acoes}
+              />
+              <MetaCard
+                title="Captações — Semana"
+                done={realizado.prospeccaoSemana}
+                goal={metaSemana.captacao}
+                monthDone={realizado.captacaoMes}
+                monthGoal={metaMes.captacao}
+              />
             </>
           )}
           {isProjetos && (
             <>
-              <MetaCard title="Projetos — Mês" done={realizado.projetosMes} goal={metaMes.projeto} />
-              <MetaCard title="Projetos — Semana" done={realizado.projetosSemana} goal={metaSemana.projeto} />
+              <MetaCard
+                title="Projetos — Semana"
+                done={realizado.projetosSemana}
+                goal={metaSemana.projeto}
+                monthDone={realizado.projetosMes}
+                monthGoal={metaMes.projeto}
+              />
             </>
           )}
         </div>
@@ -362,102 +389,21 @@ export function MeuCockpit({ teamMemberId, teamMemberName, isProjetos, isComerci
         )}
       </section>
 
-      {/* ── 2. MINHA SEMANA ──────────────────────────────────────────────── */}
-      <section className="space-y-3">
-        <h3 className="text-xs tracking-widest uppercase text-muted-foreground font-medium flex items-center gap-2">
-          <CheckCircle2 className="h-3.5 w-3.5" /> Minha Semana
-        </h3>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          <BlocoCard
-            icon={<Users className="h-4 w-4" />}
-            title="Prospecção"
-            done={realizado.prospeccaoSemana}
-            goal={metaSemana.captacao}
-            hint="Novos especificadores e captação de projetos registrados na semana."
-          />
-          <BlocoCard
-            icon={<Handshake className="h-4 w-4" />}
-            title="Relacionamento / Ações"
-            done={realizado.relacionamentoSemana}
-            goal={metaSemana.acoes}
-            hint="Priorize quem está esfriando:"
-            items={esfriando.slice(0, 6).map(e => ({
-              key: e.id,
-              label: e.name,
-              right: e.isExpired ? 'esfriou' : `${e.daysRemaining}d`,
-              danger: e.isExpired || e.daysRemaining <= 7,
-              sub: e.categoria,
-            }))}
-          />
-          <BlocoCard
-            icon={<Wallet className="h-4 w-4" />}
-            title="Carteira Flutuante"
-            done={carteira.length}
-            goal={0}
-            hint={`${fmtBRL(carteiraValor)} em negociação — mover no pipeline:`}
-            items={carteira.slice(0, 6).map((p: any) => ({
-              key: p.id,
-              label: p.clients?.name || p.name,
-              right: `${p.diasParado}d`,
-              danger: p.diasParado >= 15,
-              sub: p.focco_project_number ? `FOCCO ${p.focco_project_number}` : fmtBRL(Number(p.estimated_value) || 0),
-            }))}
-          />
-          <BlocoCard
-            icon={<FileText className="h-4 w-4" />}
-            title="Briefing"
-            done={briefings.length}
-            goal={0}
-            hint="Projetos concluídos aguardando dados para liberar a passagem a Projetos:"
-            items={briefings.slice(0, 6).map((p: any) => ({
-              key: p.id,
-              label: p.clients?.name || p.name,
-              right: `${p.diasParado}d`,
-              danger: p.diasParado >= 10,
-              sub: p.focco_project_number ? `FOCCO ${p.focco_project_number}` : '—',
-            }))}
-          />
-          <BlocoCard
-            icon={<Presentation className="h-4 w-4" />}
-            title="Apresentações / Fechamentos"
-            done={realizado.apresentacaoSemana + realizado.fechamentoSemana}
-            goal={metaSemana.projeto}
-            hint="Projetos iniciados a apresentar nesta semana:"
-            items={apresentacoes.slice(0, 6).map((p: any) => ({
-              key: p.id,
-              label: p.clients?.name || p.name,
-              right: `${p.diasParado}d`,
-              danger: p.diasParado >= 15,
-              sub: p.focco_project_number ? `FOCCO ${p.focco_project_number}` : '—',
-            }))}
-          />
-        </div>
-        <p className="text-[10px] text-muted-foreground">
-          Registre as atividades em “+ Registrar Ação” ou movendo os cards do Pipeline — os indicadores acima
-          são alimentados automaticamente.
-        </p>
-      </section>
-
-      {/* ── 4. MEUS ALERTAS ──────────────────────────────────────────────── */}
+      {/* ── MEUS ALERTAS ─────────────────────────────────────────────────── */}
       <section className="space-y-3">
         <h3 className="text-xs tracking-widest uppercase text-muted-foreground font-medium flex items-center gap-2">
           <AlertTriangle className="h-3.5 w-3.5" /> Meus Alertas
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <AlertCard
-            title="Especificadores esfriando"
+            title="Especificadores esfriando — saindo de Curioso ou Encantado"
             count={esfriandoUrgente.length}
-            items={esfriandoUrgente.slice(0, 5).map(e => `${e.name} · ${e.isExpired ? 'esfriou' : `${e.daysRemaining}d`}`)}
+            items={esfriandoUrgente.slice(0, 5).map(e => `${e.name} · ${e.categoria} · ${e.isExpired ? 'esfriou' : `${e.daysRemaining}dc`}`)}
           />
           <AlertCard
-            title="Projetos parados (15d+)"
+            title="Projetos parados (15dc+)"
             count={projetosParados.length}
-            items={projetosParados.slice(0, 5).map((p: any) => `${p.clients?.name || p.name} · ${p.diasParado}d`)}
-          />
-          <AlertCard
-            title="Briefings pendentes"
-            count={briefings.length}
-            items={briefings.slice(0, 5).map((p: any) => `${p.clients?.name || p.name} · ${p.diasParado}d`)}
+            items={projetosParados.slice(0, 5).map((p: any) => `${p.clients?.name || p.name} · ${p.diasParado}dc`)}
           />
         </div>
       </section>
@@ -465,77 +411,54 @@ export function MeuCockpit({ teamMemberId, teamMemberName, isProjetos, isComerci
   );
 }
 
-function MetaCard({ title, done, goal, currency }: { title: string; done: number; goal: number; currency?: boolean }) {
+function MetaCard({
+  title, done, goal, monthDone, monthGoal, currency,
+}: {
+  title: string;
+  done: number;
+  goal: number;
+  monthDone: number;
+  monthGoal: number;
+  currency?: boolean;
+}) {
   const p = pct(done, goal);
+  const pMes = pct(monthDone, monthGoal);
   const falta = Math.max(0, goal - done);
   const fmt = (v: number) => (currency ? fmtBRL(v) : Math.round(v).toString());
   return (
     <Card className="border-border">
-      <CardContent className="p-4 space-y-2">
+      <CardContent className="p-4 space-y-3">
         <div className="flex items-center justify-between">
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground">{title}</p>
           <span className={`h-2 w-2 rounded-full ${goal > 0 ? lightBg(p) : 'bg-muted'}`} />
         </div>
-        <p className="text-xl font-semibold">{fmt(done)}</p>
-        <Progress value={Math.min(100, p)} className="h-1.5" />
-        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-          <span>Meta: {goal > 0 ? fmt(goal) : '—'}</span>
-          <span className={goal > 0 ? lightClass(p) : ''}>{goal > 0 ? `${p.toFixed(0)}%` : '—'}</span>
+
+        <div className="flex items-end justify-between gap-2">
+          <p className="text-xl font-semibold">{fmt(done)}</p>
+          <p className="text-[11px] text-muted-foreground">
+            de {goal > 0 ? fmt(goal) : '—'} previstos
+            {goal > 0 && <span className={`ml-1 ${lightClass(p)}`}>· {p.toFixed(0)}%</span>}
+          </p>
         </div>
+        <Progress value={Math.min(100, p)} className="h-1.5" />
         {goal > 0 && (
           <p className="text-[11px] text-muted-foreground">
-            {falta > 0 ? `Faltam ${fmt(falta)}` : 'Meta atingida 🎉'}
+            {falta > 0 ? `Faltam ${fmt(falta)} nesta semana` : 'Meta da semana atingida'}
           </p>
         )}
-      </CardContent>
-    </Card>
-  );
-}
 
-interface BlocoItem { key: string; label: string; right?: string; sub?: string; danger?: boolean }
-
-function BlocoCard({
-  icon, title, done, goal, hint, items = [],
-}: { icon: React.ReactNode; title: string; done: number; goal: number; hint?: string; items?: BlocoItem[] }) {
-  const p = pct(done, goal);
-  return (
-    <Card className="border-border">
-      <CardContent className="p-4 space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-muted rounded text-muted-foreground">{icon}</div>
-            <span className="text-xs font-bold uppercase tracking-widest">{title}</span>
+        <div className="pt-3 border-t border-border space-y-1.5">
+          <div className="flex items-center justify-between text-[10px] uppercase tracking-widest text-muted-foreground">
+            <span>Objetivo do mês</span>
+            <span className={monthGoal > 0 ? lightClass(pMes) : ''}>
+              {monthGoal > 0 ? `${pMes.toFixed(0)}%` : '—'}
+            </span>
           </div>
-          <Badge variant="secondary" className="text-[10px]">
-            {goal > 0 ? `${done} / ${Math.round(goal)}` : done}
-          </Badge>
+          <Progress value={Math.min(100, pMes)} className="h-2" />
+          <p className="text-[11px] text-muted-foreground">
+            {fmt(monthDone)} / {monthGoal > 0 ? fmt(monthGoal) : '—'}
+          </p>
         </div>
-        {goal > 0 && (
-          <>
-            <Progress value={Math.min(100, p)} className="h-1.5" />
-            <p className={`text-[11px] ${lightClass(p)}`}>
-              {p.toFixed(0)}% da meta da semana{p < 100 ? ` · faltam ${Math.max(0, Math.ceil(goal - done))}` : ''}
-            </p>
-          </>
-        )}
-        {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
-        {items.length > 0 && (
-          <ul className="space-y-1.5 max-h-52 overflow-y-auto">
-            {items.map(it => (
-              <li key={it.key} className="text-xs border border-border rounded p-2 flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="truncate font-medium">{it.label}</div>
-                  {it.sub && <div className="truncate text-[10px] text-muted-foreground">{it.sub}</div>}
-                </div>
-                {it.right && (
-                  <span className={`shrink-0 text-[11px] ${it.danger ? 'text-destructive font-bold' : 'text-muted-foreground'}`}>
-                    {it.right}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
       </CardContent>
     </Card>
   );

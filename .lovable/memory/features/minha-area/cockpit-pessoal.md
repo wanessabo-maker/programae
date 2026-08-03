@@ -1,13 +1,20 @@
 ---
 name: Cockpit pessoal da Minha Área
-description: Minha Área é o cockpit do colaborador — Minha Meta (mês/semana), Minha Semana, autogestão de tempo (check-in manhã/tarde, meta 60% atividade-fim) e Meus Alertas
+description: Minha Área em 5 blocos — card MEU MUNDO com + Registrar Ação, Minhas Metas (semana + barra do mês), Minhas Ações, Meus Contratos, Pipeline destacado e Indicadores mês a mês
 type: feature
 ---
-A Minha Área é a primeira tela do colaborador e funciona como cockpit pessoal ("meu mundo"):
+A Minha Área é a primeira tela do colaborador e funciona como cockpit pessoal ("meu mundo"). Sem título "Olá, X" nem subtítulo de atividades na visão pessoal.
 
-- **Minha Meta** — somente leitura, sempre vinda do Setup → Metas (nunca recadastrar na Minha Área). Meta semanal = meta mensal ÷ nº de semanas do mês. Semáforo: verde ≥100%, amarelo ≥70%, vermelho <70%. Abaixo de 70% exibe aviso "Atenção à meta".
-- **Minha Semana** — blocos Prospecção (ações que impactam captação), Relacionamento/Ações (prioriza especificadores esfriando por dias restantes), Carteira Flutuante (projetos ativos no pipeline com dias parados), Briefing (projetos em CONCLUIDO) e Apresentações/Fechamentos (INICIADO + vendas da semana). Nada é registrado aqui: a alimentação vem de "+ Registrar Ação" e do Pipeline.
-- **Autogestão de tempo** — tabela `daily_time_blocks` (colaborador, data, período manhã/tarde, tipo atividade_fim/operacional). % de tempo em atividade-fim da semana no topo, meta 60%.
-- **Meus Alertas** — especificadores esfriando (expirados ou ≤7d), projetos parados 15d+, briefings pendentes.
+Ordem fixa da página:
+
+- **MEU MUNDO** (card do topo) — semana corrente, % da meta da semana com semáforo, "Foco de hoje" (até 3 prioridades) e o botão **+ Registrar Ação** no canto superior direito.
+- **1 · Minhas Metas** — uma única categoria por meta (Valor vendido, Ações, Captações, Projetos): valor da semana + previsto + % + quanto falta, e abaixo a barra "Objetivo do mês". Metas somente leitura, vindas do Setup → Metas. Meta semanal = mensal ÷ nº de semanas do mês. Semáforo: verde ≥100%, amarelo ≥70%, vermelho <70%.
+- **Meus Alertas** — apenas dois: especificadores esfriando (saindo de Curioso/Encantado) e projetos parados 15dc+.
+- **2 · Minhas Ações** — histórico das ações registradas pelo colaborador.
+- **3 · Meus Contratos** — contratos ativos com o checklist, atrasados no topo.
+- **4 · Pipeline de Apresentações** — PlannerTab com os projetos do colaborador destacados.
+- **5 · Meus Indicadores** — tabela mês a mês do ano (Vendido, Captações, Ações) + total.
+
+Removidos: bloco "Minha Semana" (Prospecção/Relacionamento/Carteira/Briefing/Apresentações), alerta de briefings pendentes e o check-in de tempo manhã/tarde (`daily_time_blocks` permanece no banco, sem uso nesta tela).
 
 Consultor vê apenas os próprios dados (filtro por `team_member_id`); gestor/admin mantém a visão geral (aba Gestora / Toda Equipe).
