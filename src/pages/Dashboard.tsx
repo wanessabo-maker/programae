@@ -624,7 +624,11 @@ export default function Dashboard() {
             value={formatCurrency(monthlyMetrics.sales.value)}
             label="Valor Vendido"
             percentage={monthlyMetrics.sales.percentage}
-            subtitle={`Meta: ${formatCurrency(monthlyMetrics.sales.meta)}`}
+            subtitle={`Meta: ${formatCurrency(monthlyMetrics.sales.meta)}${
+              monthlyMetrics.sales.bigMeta > 0
+                ? ` · Big Meta: ${formatCurrency(monthlyMetrics.sales.bigMeta)} (${monthlyMetrics.sales.bigPercentage.toFixed(0)}%)`
+                : ''
+            }`}
           />
           <MetricCard
             value={monthlyMetrics.captacoes.value}
@@ -643,7 +647,11 @@ export default function Dashboard() {
               value={formatCurrency(engenhariaMetric.value)}
               label="Valor Vendido — Engenharia"
               percentage={engenhariaMetric.percentage}
-              subtitle={`Meta: ${formatCurrency(engenhariaMetric.meta)}`}
+              subtitle={`Meta: ${formatCurrency(engenhariaMetric.meta)}${
+                engenhariaMetric.bigMeta > 0
+                  ? ` · Big Meta: ${formatCurrency(engenhariaMetric.bigMeta)} (${engenhariaMetric.bigPercentage.toFixed(0)}%)`
+                  : ''
+              }`}
             />
           )}
         </div>
