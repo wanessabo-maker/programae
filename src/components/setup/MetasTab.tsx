@@ -34,6 +34,7 @@ type MetaType = 'vendas' | 'captacao' | 'acoes' | 'projeto';
 // Coluna dinâmica da tabela: meta clássica OU meta de % por categoria de especificador
 type ColunaMeta =
   | { kind: 'meta'; key: string; tipo: MetaType; label: string; placeholder: string; isCurrency?: boolean }
+  | { kind: 'bigmeta'; key: string; label: string; placeholder: string; isCurrency?: boolean }
   | { kind: 'categoria'; key: string; categoryId: string; label: string; fullLabel: string; placeholder: string };
 
 interface LinhaConsultor {
@@ -111,7 +112,15 @@ export function MetasTab() {
       placeholder: TIPO_LABELS[t].placeholder,
       isCurrency: t === 'vendas',
     }));
-    if (!isAreaComercial) return base;
+    // BIG META de vendas — logo após a coluna de Vendas (R$)
+    const withBig: ColunaMeta[] = [];
+    base.forEach(col => {
+      withBig.push(col);
+      if (col.kind === 'meta' && col.tipo === 'vendas') {
+        withBig.push({ kind: 'bigmeta', key: 'vendasBig', label: 'Big Meta (R$)', placeholder: '0,00', isCurrency: true });
+      }
+    });
+    if (!isAreaComercial) return withBig;
     const cats: ColunaMeta[] = categoriasOrdenadas.map(c => ({
       kind: 'categoria',
       key: `cat:${c.id}`,
@@ -120,7 +129,7 @@ export function MetasTab() {
       fullLabel: `% ${c.name.toUpperCase()}`,
       placeholder: '0',
     }));
-    return [...base, ...cats];
+    return [...withBig, ...cats];
   }, [isAreaComercial, categoriasOrdenadas]);
 
   // Membros da área selecionada
@@ -166,6 +175,14 @@ export function MetasTab() {
             valores[col.key] = col.isCurrency
               ? meta.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
               : String(meta.value);
+          }
+        } else if (col.kind === 'bigmeta') {
+          const meta = metasDoMes.find(m => m.teamMemberId === member.id && m.type === 'vendas');
+          if (meta) {
+            metasExistentes[col.key] = meta.id;
+            valores[col.key] = meta.bigValue
+              ? meta.bigValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+              : '';
           }
         } else {
           const meta = metasDoMes.find(m => m.teamMemberId === member.id && m.type === 'categoria' && m.categoryId === col.categoryId);
