@@ -12,7 +12,8 @@ import {
   Loader2,
   ChevronDown,
   Users,
-  BarChart3
+  BarChart3,
+  KanbanSquare
 } from 'lucide-react';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent } from '@/components/ui/card';
