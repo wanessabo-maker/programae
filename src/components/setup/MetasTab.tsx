@@ -492,7 +492,7 @@ export function MetasTab() {
                     {/* Inputs por coluna */}
                     {colunas.map(col => {
                       const temMetaExistente = !!linha.metasExistentes[col.key];
-                      const isCurrency = col.kind === 'meta' && !!col.isCurrency;
+                      const isCurrency = (col.kind === 'meta' || col.kind === 'bigmeta') && !!col.isCurrency;
                       const isPercent = col.kind === 'categoria';
                       return (
                         <td key={col.key} className="p-1">
