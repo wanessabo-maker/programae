@@ -309,46 +309,46 @@ export function MeuCockpit({ teamMemberId, teamMemberName, isProjetos, isComerci
   return (
     <div className="space-y-6">
       {/* ── Topo: foco do dia ───────────────────────────────────────────── */}
-      <Card className="border-border">
-        <CardContent className="p-4 space-y-4">
+      <Card className="border-foreground/20 shadow-sm">
+        <CardContent className="p-5 space-y-5">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Meu mundo</p>
-              <h2 className="text-lg font-semibold">{teamMemberName.split(' ')[0]}, sua semana</h2>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[10px] uppercase tracking-widest text-foreground/70 font-semibold">Meu mundo</p>
+              <h2 className="text-2xl font-bold tracking-tight">{teamMemberName.split(' ')[0]}, sua semana</h2>
+              <p className="text-xs text-foreground/80 font-medium">
                 {format(weekStart, "dd 'de' MMM", { locale: ptBR })} — {format(weekEnd, "dd 'de' MMM", { locale: ptBR })}
               </p>
             </div>
             <div className="flex items-center gap-4">
               <div className="text-right">
-              <div className="flex items-center gap-2 justify-end">
-                <Target className="h-4 w-4 text-muted-foreground" />
-                <span className={`text-2xl font-semibold ${metaSemanaPct !== null ? lightClass(metaSemanaPct) : ''}`}>
-                  {metaSemanaPct !== null ? `${metaSemanaPct.toFixed(0)}%` : '—'}
-                </span>
-              </div>
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
-                meta da semana atingida
-              </p>
+                <div className={`inline-flex items-center gap-2 px-3 py-1.5 border rounded ${metaSemanaPct !== null && metaSemanaPct >= 100 ? 'border-success/40 bg-success/10' : metaSemanaPct !== null && metaSemanaPct >= 70 ? 'border-warning/40 bg-warning/10' : 'border-destructive/40 bg-destructive/10'}`}>
+                  <Target className="h-4 w-4 text-muted-foreground" />
+                  <span className={`text-2xl font-bold ${metaSemanaPct !== null ? lightClass(metaSemanaPct) : ''}`}>
+                    {metaSemanaPct !== null ? `${metaSemanaPct.toFixed(0)}%` : '—'}
+                  </span>
+                </div>
+                <p className="text-[10px] uppercase tracking-widest text-foreground/70 mt-1 font-semibold">
+                  meta da semana atingida
+                </p>
               </div>
               {onRegistrarAcao && (
-                <Button onClick={onRegistrarAcao} className="gap-2">
+                <Button onClick={onRegistrarAcao} size="lg" className="gap-2">
                   <Plus className="h-4 w-4" /> Registrar Ação
                 </Button>
               )}
             </div>
           </div>
 
-          <div className="space-y-2">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+          <div className="space-y-3">
+            <p className="text-[10px] uppercase tracking-widest text-foreground/80 font-semibold flex items-center gap-2">
               <Flame className="h-3.5 w-3.5" /> Foco de hoje
             </p>
             {focos.length === 0 ? (
-              <div className="border border-border rounded p-3 flex items-start gap-3">
+              <div className="border border-foreground/15 rounded p-3 flex items-start gap-3 bg-card">
                 <CheckCircle2 className="h-4 w-4 text-success mt-0.5" />
                 <div className="text-xs">
                   <p className="font-semibold">Semana em dia 👌</p>
-                  <p className="text-muted-foreground mt-0.5">
+                  <p className="text-foreground/70 mt-0.5">
                     Siga o caminho: registre novas ações em “+ Registrar Ação” para ampliar a carteira.
                   </p>
                 </div>
@@ -358,16 +358,16 @@ export function MeuCockpit({ teamMemberId, teamMemberName, isProjetos, isComerci
                 {focos.map((f, i) => (
                   <li
                     key={f.title}
-                    className={`border rounded p-3 space-y-1 ${f.urgent ? 'border-destructive/60 bg-destructive/5' : 'border-border'}`}
+                    className={`border rounded p-3.5 space-y-1.5 transition-colors ${f.urgent ? 'border-destructive bg-destructive/10' : 'border-foreground/15 bg-card hover:border-foreground/30'}`}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-[10px] font-bold text-muted-foreground">{i + 1}</span>
-                      <Badge variant={f.urgent ? 'destructive' : 'secondary'} className="text-[10px] uppercase">
+                      <span className="text-[10px] font-bold text-foreground/70">{i + 1}</span>
+                      <Badge variant={f.urgent ? 'destructive' : 'default'} className="text-[10px] uppercase">
                         {f.tag}
                       </Badge>
                     </div>
-                    <p className="text-xs font-semibold leading-snug">{f.title}</p>
-                    <p className="text-[11px] text-muted-foreground leading-snug">{f.reason}</p>
+                    <p className="text-sm font-bold leading-snug">{f.title}</p>
+                    <p className="text-[11px] text-foreground/70 leading-snug">{f.reason}</p>
                   </li>
                 ))}
               </ul>
@@ -377,12 +377,12 @@ export function MeuCockpit({ teamMemberId, teamMemberName, isProjetos, isComerci
       </Card>
 
       {foraDaMeta && (
-        <Card className="border-destructive/60 bg-destructive/5">
+        <Card className="border-destructive bg-destructive/10">
           <CardContent className="p-4 flex items-start gap-3">
-            <AlertTriangle className="h-4 w-4 text-destructive mt-0.5" />
+            <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />
             <div className="text-xs">
-              <p className="font-semibold text-destructive uppercase tracking-widest">Atenção à meta</p>
-              <p className="text-muted-foreground mt-1">
+              <p className="font-bold text-destructive uppercase tracking-widest">Atenção à meta</p>
+              <p className="text-foreground/80 mt-1 font-medium">
                 Você está abaixo do ritmo necessário no mês. Priorize prospecção, relacionamento e fechamentos nesta semana.
               </p>
             </div>
