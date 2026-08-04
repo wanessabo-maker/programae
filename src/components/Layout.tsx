@@ -1,9 +1,10 @@
 import { ReactNode, useState, useMemo } from 'react';
 import { Link, useLocation, Navigate } from 'react-router-dom';
-import { Settings, LogOut, Menu, X } from 'lucide-react';
+import { Settings, LogOut, Menu, X, Contrast } from 'lucide-react';
 import { SetupModal } from './SetupModal';
 import { useAuthContext, FunctionalArea } from '@/contexts/AuthContext';
 import { useIsManager } from '@/hooks/useIsManager';
+import { useHighContrast } from '@/hooks/useHighContrast';
 import { toast } from 'sonner';
 import logo from '@/assets/logo-evviva-white.png';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -32,6 +33,7 @@ export function Layout({ children }: LayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, isAdmin, userAreas, hasAreaAccess, signOut } = useAuthContext();
   const { canAccessGestao } = useIsManager();
+  const { highContrast, toggleHighContrast } = useHighContrast();
 
   // Check if user can access current route
   const canAccessCurrentRoute = useMemo(() => {
@@ -146,6 +148,17 @@ export function Layout({ children }: LayoutProps) {
                 {isAdmin && <span className="ml-2 text-primary">(Admin)</span>}
               </span>
               <button
+                onClick={toggleHighContrast}
+                aria-pressed={highContrast}
+                aria-label={highContrast ? 'Desativar alto contraste' : 'Ativar alto contraste'}
+                title={highContrast ? 'Alto contraste: ativado' : 'Alto contraste: desativado'}
+                className={`p-2 rounded transition-colors ${
+                  highContrast ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
+                }`}
+              >
+                <Contrast className="w-4 h-4" />
+              </button>
+              <button
                 onClick={handleLogout}
                 className="p-2 hover:bg-muted rounded transition-colors"
                 title="Sair"
@@ -191,11 +204,24 @@ export function Layout({ children }: LayoutProps) {
 
                   {/* Mobile Logout */}
                   <button
+                    onClick={toggleHighContrast}
+                    aria-pressed={highContrast}
+                    className="flex items-center justify-between gap-2 px-4 py-3 text-sm tracking-widest uppercase text-foreground/80 hover:text-foreground hover:bg-muted border-t border-border mt-4"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Contrast className="w-4 h-4" />
+                      Alto contraste
+                    </span>
+                    <span className={highContrast ? 'text-success' : 'text-muted-foreground'}>
+                      {highContrast ? 'ON' : 'OFF'}
+                    </span>
+                  </button>
+                  <button
                     onClick={() => {
                       handleLogout();
                       setMobileMenuOpen(false);
                     }}
-                    className="flex items-center gap-2 px-4 py-3 text-sm tracking-widest uppercase text-foreground/80 hover:text-foreground hover:bg-muted border-t border-border mt-4"
+                    className="flex items-center gap-2 px-4 py-3 text-sm tracking-widest uppercase text-foreground/80 hover:text-foreground hover:bg-muted border-t border-border"
                   >
                     <LogOut className="w-4 h-4" />
                     Sair
