@@ -38,6 +38,7 @@ import {
 } from '@/hooks/useChecklist';
 import { useApp } from '@/contexts/AppContext';
 import { ReassignChecklistProfessionalsModal } from './ReassignChecklistProfessionalsModal';
+import { ChecklistCreditsSection } from './ChecklistCreditsSection';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -350,6 +351,11 @@ export function ContractChecklistView({ projectId }: Props) {
       </div>
 
       {/* ── Lista de etapas ─────────────────────────────────────────── */}
+      <ChecklistCreditsSection
+        projectId={projectId}
+        itemIds={items.map((i: any) => i.id)}
+      />
+
       <div className="space-y-1">
         <span className="text-[10px] tracking-widest uppercase text-neutral-400 font-medium block mb-2">
           Todas as etapas
