@@ -127,6 +127,11 @@
     --success: 142 80% 21%;
     --warning: 25 100% 25%;
   }
+
+  /* Superfícies preenchidas com destructive precisam de vermelho escuro p/ texto branco */
+  .bg-destructive {
+    --destructive: 0 72% 34%; /* ~8:1 com texto branco */
+  }
 }
 
 @layer base {
