@@ -99,6 +99,37 @@
 }
 
 @layer base {
+  /*
+   * Superfícies claras (cards/popovers) herdam tokens pensados para fundo preto.
+   * Redefinimos as variáveis dentro dessas superfícies para garantir WCAG 2.1 AA
+   * (>= 4.5:1 em texto normal, >= 3:1 em texto grande e bordas).
+   */
+  .bg-card,
+  .bg-popover,
+  .card-flat {
+    --muted-foreground: 0 0% 38%; /* ~5.9:1 sobre branco */
+    --border: 0 0% 45%;
+    --secondary-foreground: 0 0% 15%;
+    --destructive: 0 75% 38%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 142 72% 26%;
+    --success-foreground: 0 0% 100%;
+    --warning: 30 100% 28%;
+    --warning-foreground: 0 0% 100%;
+  }
+
+  .high-contrast .bg-card,
+  .high-contrast .bg-popover,
+  .high-contrast .card-flat {
+    --muted-foreground: 0 0% 25%; /* ~9.7:1 sobre branco */
+    --border: 0 0% 0%;
+    --destructive: 0 85% 32%;
+    --success: 142 80% 21%;
+    --warning: 25 100% 25%;
+  }
+}
+
+@layer base {
   * {
     @apply border-border;
   }
