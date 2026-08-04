@@ -886,7 +886,6 @@ export function useCompleteChecklistItem() {
       if (data?.closingBonusPoints > 0) {
         toast.success(`🏆 Bônus checklist 100% no prazo — +${data.closingBonusPoints} pontos distribuídos`, { duration: 6000 });
       }
-      }
     },
     onError: (error: any) => {
       console.error('Error completing checklist item:', error);
