@@ -1125,7 +1125,7 @@ function Card({ card, onEdit, onDelete, highlight }: { card: PlannerCard; onEdit
           target="_blank"
           rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className="flex items-center gap-1.5 text-xs text-amber-300 hover:underline truncate"
+          className="flex items-center gap-1.5 text-xs text-amber-200 hover:underline truncate"
         >
           <ExternalLink className="h-3 w-3 shrink-0" />
           <span className="truncate">Dados do projeto</span>
