@@ -86,9 +86,9 @@ export function MeusIndicadoresAnuais({ teamMemberId, year = new Date().getFullY
   const calcPct = (feito: number, meta: number) => (meta > 0 ? (feito / meta) * 100 : 0);
   const pctClass = (pct: number, hasMeta: boolean) => {
     if (!hasMeta) return 'text-muted-foreground';
-    if (pct >= 100) return 'text-green-400';
-    if (pct >= 70) return 'text-amber-400';
-    return 'text-red-400';
+    if (pct >= 100) return 'text-success';
+    if (pct >= 70) return 'text-warning';
+    return 'text-destructive';
   };
 
   const cellCls = (idx: number, extra = '') =>
@@ -188,7 +188,7 @@ export function MeusIndicadoresAnuais({ teamMemberId, year = new Date().getFullY
                         : row.muted
                           ? 'text-muted-foreground'
                           : idx > currentMonth && currentMonth >= 0
-                            ? 'text-muted-foreground/70'
+                            ? 'text-muted-foreground'
                             : ''
                     )}
                   >
