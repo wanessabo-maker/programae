@@ -1066,7 +1066,7 @@ function Card({ card, onEdit, onDelete, highlight }: { card: PlannerCard; onEdit
       onClick={() => onEdit(card)}
       className={`border rounded p-3 space-y-2 transition-colors cursor-pointer ${
         isCritical
-          ? "bg-red-600/80 border-red-400 hover:bg-red-600"
+          ? "bg-red-700 border-red-300 hover:bg-red-800"
           : "bg-neutral-900 border-white/10 hover:border-white/30"
       } ${highlight ? "ring-2 ring-amber-400/80 border-amber-400/60" : ""}`}
     >
@@ -1080,10 +1080,10 @@ function Card({ card, onEdit, onDelete, highlight }: { card: PlannerCard; onEdit
           <span
             className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded shrink-0 ${
               isCritical
-                ? "bg-red-500/15 text-red-400 border border-red-500/40"
+                ? "bg-white/20 text-white border border-white/60"
                 : isLate
                 ? "bg-amber-400/15 text-amber-400 border border-amber-400/40"
-                : "bg-white/5 text-white/50 border border-white/10"
+                : "bg-white/10 text-white/80 border border-white/20"
             }`}
             title={`Nesta coluna há ${days} dia(s) corridos`}
           >
@@ -1095,26 +1095,26 @@ function Card({ card, onEdit, onDelete, highlight }: { card: PlannerCard; onEdit
             type="button"
             onClick={(e) => { e.stopPropagation(); onDelete(card); }}
             title="Excluir card"
-            className="p-1 rounded text-white/40 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+            className="p-1 rounded text-white/70 hover:text-red-300 hover:bg-red-500/10 transition-colors"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
       {card.responsible?.name && (
-        <div className="flex items-center gap-1.5 text-[11px] text-white/70">
+        <div className="flex items-center gap-1.5 text-[11px] text-white/90">
           <User className="h-3 w-3 shrink-0" />
           <span className="truncate">{card.responsible.name}</span>
         </div>
       )}
       {showProjetista && card.apresentacao_projetista?.name && (
-        <div className="flex items-center gap-1.5 text-[11px] text-white/70">
+        <div className="flex items-center gap-1.5 text-[11px] text-white/90">
           <Palette className="h-3 w-3 shrink-0" />
           <span className="truncate">{card.apresentacao_projetista.name}</span>
         </div>
       )}
       {card.planner_observacao && (
-        <div className="flex items-start gap-1.5 text-xs text-white/60">
+        <div className="flex items-start gap-1.5 text-xs text-white/85">
           <MessageSquare className="h-3 w-3 mt-0.5 shrink-0" />
           <span className="line-clamp-2">{card.planner_observacao}</span>
         </div>
@@ -1135,7 +1135,7 @@ function Card({ card, onEdit, onDelete, highlight }: { card: PlannerCard; onEdit
         <div className="text-xs text-green-400">R$ {card.closed_value.toLocaleString("pt-BR")}</div>
       )}
       {card.planner_status === "PERDIDO" && card.planner_motivo_perda && (
-        <div className="text-xs text-white/40 italic line-clamp-2">{card.planner_motivo_perda}</div>
+        <div className="text-xs text-white/75 italic line-clamp-2">{card.planner_motivo_perda}</div>
       )}
     </div>
   );
@@ -1505,7 +1505,7 @@ export function PlannerTab({ highlightMemberId }: { highlightMemberId?: string }
       </div>
 
       {isLoading ? (
-        <div className="text-center text-white/40 py-12">Carregando...</div>
+        <div className="text-center text-white/70 py-12">Carregando...</div>
       ) : (
         <DragDropContext onDragEnd={handleDragEnd}>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
@@ -1523,7 +1523,7 @@ export function PlannerTab({ highlightMemberId }: { highlightMemberId?: string }
                       <h3 className="text-[10px] tracking-widest uppercase text-white/70 font-medium">
                         {col.label}
                       </h3>
-                      <span className="text-xs text-white/40">{grouped[col.id].length}</span>
+                      <span className="text-xs text-white/70">{grouped[col.id].length}</span>
                     </div>
                     {avgDaysByColumn[col.id] !== null && (
                       <div className="flex items-center gap-1 px-1 pb-2 text-[10px] text-white/50">
@@ -1559,7 +1559,7 @@ export function PlannerTab({ highlightMemberId }: { highlightMemberId?: string }
                                 className="w-full text-left border border-green-400/40 bg-green-500/5 hover:bg-green-500/10 rounded p-3 space-y-1 transition-colors"
                               >
                                 <div className="text-sm font-medium text-white">{label}</div>
-                                <div className="flex items-center justify-between text-[11px] text-white/70">
+                                <div className="flex items-center justify-between text-[11px] text-white/90">
                                   <span>{items.length} venda{items.length === 1 ? "" : "s"}</span>
                                   <span className="text-green-400">R$ {total.toLocaleString("pt-BR")}</span>
                                 </div>
