@@ -562,6 +562,7 @@ export type Database = {
           assigned_cs_id: string | null
           assigned_logistica_id: string | null
           assigned_projetista_id: string | null
+          closing_bonus_awarded: boolean
           completed_at: string | null
           created_at: string | null
           current_step: number | null
@@ -578,6 +579,7 @@ export type Database = {
           assigned_cs_id?: string | null
           assigned_logistica_id?: string | null
           assigned_projetista_id?: string | null
+          closing_bonus_awarded?: boolean
           completed_at?: string | null
           created_at?: string | null
           current_step?: number | null
@@ -594,6 +596,7 @@ export type Database = {
           assigned_cs_id?: string | null
           assigned_logistica_id?: string | null
           assigned_projetista_id?: string | null
+          closing_bonus_awarded?: boolean
           completed_at?: string | null
           created_at?: string | null
           current_step?: number | null
