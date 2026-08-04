@@ -6,6 +6,138 @@ import { format, startOfMonth } from 'date-fns';
 
 const PROJETISTA_AREA = 'projetista_tecnico';
 
+// ── PONTUALIDADE DO CHECKLIST (Programa E+) ─────────────────────────────────
+// Créditos gravados em credit_transactions, usando checklist_item_id como
+// chave de idempotência. Como credit_transactions não tem coluna de categoria,
+// o tipo do crédito é identificado pelo prefixo da description.
+const PUNCTUALITY_PREFIX = 'Checklist no prazo: ';
+const CLOSING_BONUS_PREFIX = 'Bônus checklist 100% no prazo';
+const PUNCTUALITY_POINTS = 2;
+const CLOSING_BONUS_POINTS = 10;
+
+/** Validade mensal: último dia do mês da data da transação (regra 'mensal'). */
+function monthlyExpiration(transactionDate: string): string {
+  const [y, m] = transactionDate.split('-');
+  const lastDay = new Date(Number(y), Number(m), 0).getDate();
+  return `${y}-${m}-${String(lastDay).padStart(2, '0')}`;
+}
+
+/** completed_at <= due_date (comparando só a DATA). due_date nulo = no prazo. */
+function isOnTime(completedAt: string, dueDate: string | null): boolean {
+  if (!dueDate) return true;
+  return completedAt.split('T')[0] <= dueDate.split('T')[0];
+}
+
+/** Já existe crédito desse tipo para a etapa? (idempotência) */
+async function hasCreditFor(itemId: string, prefix: string): Promise<boolean> {
+  const { data } = await supabase
+    .from('credit_transactions')
+    .select('id')
+    .eq('checklist_item_id', itemId)
+    .like('description', `${prefix}%`)
+    .limit(1);
+  return (data?.length || 0) > 0;
+}
+
+/**
+ * Credita 2 pontos de pontualidade pela etapa concluída no prazo.
+ * Beneficiário: assigned_to da etapa; se nulo, completed_by.
+ */
+async function awardPunctualityCredit(item: {
+  id: string;
+  name: string;
+  due_date: string | null;
+  assigned_to: string | null;
+}, completedAt: string, completedBy: string): Promise<number> {
+  if (!isOnTime(completedAt, item.due_date)) return 0;
+
+  const beneficiary = item.assigned_to || completedBy;
+  if (!beneficiary) return 0;
+
+  if (await hasCreditFor(item.id, PUNCTUALITY_PREFIX)) return 0;
+
+  const transactionDate = completedAt.split('T')[0];
+  const { error } = await supabase.from('credit_transactions').insert({
+    consultant_id: beneficiary,
+    points: PUNCTUALITY_POINTS,
+    description: `${PUNCTUALITY_PREFIX}${item.name}`,
+    transaction_date: transactionDate,
+    checklist_item_id: item.id,
+    status: 'active',
+    expires_at: monthlyExpiration(transactionDate),
+  });
+  if (error) {
+    console.error('Erro ao creditar pontualidade do checklist:', error);
+    return 0;
+  }
+  return PUNCTUALITY_POINTS;
+}
+
+/**
+ * Bônus colaborativo de fechamento: +10 pontos por responsável DISTINTO quando
+ * TODAS as etapas estão completed/skipped e NENHUMA foi concluída com atraso.
+ * Idempotente via contract_checklists.closing_bonus_awarded.
+ */
+async function awardClosingBonusIfEligible(checklistId: string): Promise<number> {
+  const { data: checklist } = await supabase
+    .from('contract_checklists')
+    .select('id, closing_bonus_awarded')
+    .eq('id', checklistId)
+    .maybeSingle();
+
+  if (!checklist || checklist.closing_bonus_awarded) return 0;
+
+  const { data: items } = await supabase
+    .from('checklist_items')
+    .select('id, status, due_date, completed_at, assigned_to, completed_by')
+    .eq('checklist_id', checklistId);
+
+  if (!items || items.length === 0) return 0;
+
+  const allDone = items.every(i => i.status === 'completed' || i.status === 'skipped');
+  if (!allDone) return 0;
+
+  const anyLate = items.some(
+    i => i.status === 'completed' && i.completed_at && !isOnTime(i.completed_at, i.due_date)
+  );
+  if (anyLate) return 0;
+
+  const beneficiaries = Array.from(
+    new Set(items.map(i => i.assigned_to).filter((v): v is string => !!v))
+  );
+  if (beneficiaries.length === 0) return 0;
+
+  // Marca antes de inserir para evitar concessão dupla em execuções concorrentes.
+  const { error: markError } = await supabase
+    .from('contract_checklists')
+    .update({ closing_bonus_awarded: true })
+    .eq('id', checklistId)
+    .eq('closing_bonus_awarded', false);
+  if (markError) return 0;
+
+  const transactionDate = new Date().toISOString().split('T')[0];
+  const { error } = await supabase.from('credit_transactions').insert(
+    beneficiaries.map(id => ({
+      consultant_id: id,
+      points: CLOSING_BONUS_POINTS,
+      description: CLOSING_BONUS_PREFIX,
+      transaction_date: transactionDate,
+      status: 'active',
+      expires_at: monthlyExpiration(transactionDate),
+    }))
+  );
+  if (error) {
+    console.error('Erro ao creditar bônus de fechamento do checklist:', error);
+    // Libera para nova tentativa numa próxima conclusão.
+    await supabase
+      .from('contract_checklists')
+      .update({ closing_bonus_awarded: false })
+      .eq('id', checklistId);
+    return 0;
+  }
+  return CLOSING_BONUS_POINTS * beneficiaries.length;
+}
+
 export interface ChecklistTemplate {
   id: string;
   step_order: number;
@@ -534,17 +666,30 @@ export function useCompleteChecklistItem() {
       }
 
       // Update the current item as completed
+      const completedAt = new Date().toISOString();
       const { error: updateError } = await supabase
         .from('checklist_items')
         .update({
           status: 'completed',
-          completed_at: new Date().toISOString(),
+          completed_at: completedAt,
           completed_by: completedBy,
           notes: notes || currentItem.notes,
         })
         .eq('id', itemId);
 
       if (updateError) throw updateError;
+
+      // ── CRÉDITO DE PONTUALIDADE (2 pts por etapa no prazo) ────────────────
+      const punctualityPoints = await awardPunctualityCredit(
+        {
+          id: itemId,
+          name: currentItem.name,
+          due_date: currentItem.due_date,
+          assigned_to: currentItem.assigned_to,
+        },
+        completedAt,
+        completedBy
+      );
 
       // Add to history
       await supabase.from('checklist_history').insert({
@@ -654,9 +799,10 @@ export function useCompleteChecklistItem() {
           .from('credit_transactions')
           .select('id')
           .eq('checklist_item_id', itemId)
-          .maybeSingle();
+          .like('description', `${tpl.name}%`)
+          .limit(1);
 
-        if (!existingCredit) {
+        if (!existingCredit || existingCredit.length === 0) {
           const { data: environments } = await supabase
             .from('project_environments')
             .select('environment_count')
@@ -700,7 +846,17 @@ export function useCompleteChecklistItem() {
         }
       }
 
-      return { success: true, pointsAwarded, ambientesUsados, stepName: tpl?.name };
+      // ── BÔNUS DE FECHAMENTO (checklist 100% no prazo) ─────────────────────
+      const closingBonusPoints = await awardClosingBonusIfEligible(currentItem.checklist_id);
+
+      return {
+        success: true,
+        pointsAwarded,
+        ambientesUsados,
+        stepName: tpl?.name,
+        punctualityPoints,
+        closingBonusPoints,
+      };
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['contract-checklist'] });
@@ -722,6 +878,13 @@ export function useCompleteChecklistItem() {
         );
       } else {
         toast.success('Atividade concluída com sucesso!');
+      }
+
+      if (data?.punctualityPoints > 0) {
+        toast.success(`+${data.punctualityPoints} pontos — etapa concluída no prazo`, { duration: 4000 });
+      }
+      if (data?.closingBonusPoints > 0) {
+        toast.success(`🏆 Bônus checklist 100% no prazo — +${data.closingBonusPoints} pontos distribuídos`, { duration: 6000 });
       }
     },
     onError: (error: any) => {
