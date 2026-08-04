@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
 import { parseISO, isValid } from 'date-fns';
 import { BarChart3 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/contexts/AppContext';
 
 const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -22,6 +24,62 @@ export function MeusIndicadoresAnuais({ teamMemberId, year = new Date().getFullY
   const { actions, actionTypes, metas } = useApp();
 
   const typeById = useMemo(() => new Map(actionTypes.map(t => [t.id, t])), [actionTypes]);
+
+  // Histórico complementar do colaborador (não vem de `actions`)
+  const { data: extras } = useQuery({
+    queryKey: ['meus-indicadores-extras', teamMemberId, year],
+    enabled: !!teamMemberId,
+    queryFn: async () => {
+      const from = `${year}-01-01`;
+      const to = `${year}-12-31`;
+
+      const [envs, steps, credits] = await Promise.all([
+        supabase
+          .from('project_environments')
+          .select('competence_month, environment_count, projetista_id, consultant_id')
+          .gte('competence_month', from)
+          .lte('competence_month', to)
+          .or(`projetista_id.eq.${teamMemberId},consultant_id.eq.${teamMemberId}`),
+        supabase
+          .from('checklist_items')
+          .select('completed_at, status, assigned_to, completed_by')
+          .eq('status', 'completed')
+          .not('completed_at', 'is', null)
+          .or(`assigned_to.eq.${teamMemberId},completed_by.eq.${teamMemberId}`),
+        supabase
+          .from('credit_transactions')
+          .select('transaction_date, points, consultant_id')
+          .eq('consultant_id', teamMemberId)
+          .gte('transaction_date', from)
+          .lte('transaction_date', to),
+      ]);
+
+      const ambientes = MESES.map(() => 0);
+      const etapas = MESES.map(() => 0);
+      const pontos = MESES.map(() => 0);
+
+      (envs.data || []).forEach(e => {
+        const d = parseISO(e.competence_month as string);
+        if (isValid(d) && d.getFullYear() === year) {
+          ambientes[d.getMonth()] += e.environment_count || 0;
+        }
+      });
+      (steps.data || []).forEach(s => {
+        const d = parseISO(s.completed_at as string);
+        if (isValid(d) && d.getFullYear() === year) etapas[d.getMonth()] += 1;
+      });
+      (credits.data || []).forEach(c => {
+        const d = parseISO(c.transaction_date as string);
+        if (isValid(d) && d.getFullYear() === year) pontos[d.getMonth()] += c.points || 0;
+      });
+
+      return { ambientes, etapas, pontos };
+    },
+  });
+
+  const ambientes = extras?.ambientes || MESES.map(() => 0);
+  const etapas = extras?.etapas || MESES.map(() => 0);
+  const pontos = extras?.pontos || MESES.map(() => 0);
 
   const data = useMemo(() => {
     const base = MESES.map(() => ({ vendido: 0, captacoes: 0, acoes: 0, especificador: 0 }));
@@ -80,6 +138,9 @@ export function MeusIndicadoresAnuais({ teamMemberId, year = new Date().getFullY
     metaVendas: sum(metaVendas),
     metaCaptacao: sum(metaCaptacao),
     metaAcoes: sum(metaAcoes),
+    ambientes: sum(ambientes),
+    etapas: sum(etapas),
+    pontos: sum(pontos),
   };
 
   const currentMonth = new Date().getFullYear() === year ? new Date().getMonth() : -1;
@@ -139,6 +200,24 @@ export function MeusIndicadoresAnuais({ teamMemberId, year = new Date().getFullY
       label: 'Ações c/ Especificador',
       values: data.map(d => d.especificador),
       total: totals.especificador,
+      kind: 'count',
+    },
+    {
+      label: 'Ambientes de Projeto',
+      values: ambientes,
+      total: totals.ambientes,
+      kind: 'count',
+    },
+    {
+      label: 'Etapas de Checklist',
+      values: etapas,
+      total: totals.etapas,
+      kind: 'count',
+    },
+    {
+      label: 'Pontos E+',
+      values: pontos,
+      total: totals.pontos,
       kind: 'count',
     },
   ];
