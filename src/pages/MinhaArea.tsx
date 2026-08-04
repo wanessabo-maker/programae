@@ -214,7 +214,7 @@ export default function MinhaArea() {
               <h3 className="text-xs tracking-widest uppercase text-muted-foreground font-medium flex items-center gap-2">
                 <KanbanSquare className="h-3.5 w-3.5" /> 4 · Pipeline de Apresentações — seus projetos em destaque
               </h3>
-              <PlannerTab highlightMemberId={currentTeamMember.id} />
+              <PlannerTab highlightMemberId={currentTeamMember.id} onlyMemberId={currentTeamMember.id} />
             </section>
           )}
 
