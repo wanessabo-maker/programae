@@ -107,6 +107,11 @@
   .bg-card,
   .bg-popover,
   .card-flat {
+    /* Texto padrão dentro de superfícies claras precisa ser escuro */
+    --foreground: 0 0% 0%;
+    --primary: 0 0% 0%;
+    --primary-foreground: 0 0% 100%;
+    --ring: 0 0% 0%;
     --muted-foreground: 0 0% 38%; /* ~5.9:1 sobre branco */
     --border: 0 0% 45%;
     --secondary-foreground: 0 0% 15%;
@@ -121,6 +126,9 @@
   .high-contrast .bg-card,
   .high-contrast .bg-popover,
   .high-contrast .card-flat {
+    --foreground: 0 0% 0%;
+    --primary: 0 0% 0%;
+    --primary-foreground: 0 0% 100%;
     --muted-foreground: 0 0% 25%; /* ~9.7:1 sobre branco */
     --border: 0 0% 0%;
     --destructive: 0 85% 32%;
