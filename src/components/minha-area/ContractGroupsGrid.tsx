@@ -25,7 +25,7 @@ export function getDueDateStatus(dueDate: string | null) {
   if (isPast(date) && !isToday(date)) {
     return { status: 'overdue', label: `Atrasado (${Math.abs(daysUntil)} du)`, color: 'text-destructive' };
   }
-  if (isToday(date)) return { status: 'today', label: 'Hoje', color: 'text-orange-600' };
+  if (isToday(date)) return { status: 'today', label: 'Hoje', color: 'text-orange-800' };
   if (daysUntil <= 2) return { status: 'soon', label: `${daysUntil} du`, color: 'text-orange-500' };
   return { status: 'ok', label: format(date, 'dd/MM', { locale: ptBR }), color: 'text-muted-foreground' };
 }
