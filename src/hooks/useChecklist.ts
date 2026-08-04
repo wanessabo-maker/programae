@@ -879,6 +879,14 @@ export function useCompleteChecklistItem() {
       } else {
         toast.success('Atividade concluída com sucesso!');
       }
+
+      if (data?.punctualityPoints > 0) {
+        toast.success(`+${data.punctualityPoints} pontos — etapa concluída no prazo`, { duration: 4000 });
+      }
+      if (data?.closingBonusPoints > 0) {
+        toast.success(`🏆 Bônus checklist 100% no prazo — +${data.closingBonusPoints} pontos distribuídos`, { duration: 6000 });
+      }
+      }
     },
     onError: (error: any) => {
       console.error('Error completing checklist item:', error);
