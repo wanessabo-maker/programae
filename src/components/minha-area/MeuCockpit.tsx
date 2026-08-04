@@ -133,7 +133,15 @@ export function MeuCockpit({ teamMemberId, teamMemberName, isProjetos, isComerci
       return s <= monthEnd && e >= monthStart;
     });
     const sum = (type: string) => relevantes.filter(m => m.type === type).reduce((a, m) => a + Number(m.value || 0), 0);
-    return { vendas: sum('vendas'), acoes: sum('acoes'), projeto: sum('projeto'), captacao: sum('captacao') };
+    const sumBig = (type: string) =>
+      relevantes.filter(m => m.type === type).reduce((a, m) => a + Number(m.bigValue || 0), 0);
+    return {
+      vendas: sum('vendas'),
+      vendasBig: sumBig('vendas'),
+      acoes: sum('acoes'),
+      projeto: sum('projeto'),
+      captacao: sum('captacao'),
+    };
   }, [metas, teamMemberId, monthStart.getTime(), monthEnd.getTime()]);
 
   const metaSemana = {
@@ -410,7 +418,12 @@ export function MeuCockpit({ teamMemberId, teamMemberName, isProjetos, isComerci
             <div className="space-y-3">
               {isComercial && (
                 <>
-                  <MetaLinha label="Vendas" value={fmtBRL(realizado.vendasMes)} meta={metaMes.vendas > 0 ? `Meta: ${fmtBRL(metaMes.vendas)}` : 'Meta: —'} />
+                  <MetaLinha
+                    label="Vendas"
+                    value={fmtBRL(realizado.vendasMes)}
+                    meta={metaMes.vendas > 0 ? `Meta: ${fmtBRL(metaMes.vendas)}${metaMes.vendas > 0 ? ` · ${pct(realizado.vendasMes, metaMes.vendas).toFixed(0)}%` : ''}` : 'Meta: —'}
+                    bigMeta={metaMes.vendasBig > 0 ? `Big Meta: ${fmtBRL(metaMes.vendasBig)} · ${pct(realizado.vendasMes, metaMes.vendasBig).toFixed(0)}%` : 'Big Meta: —'}
+                  />
                   <MetaLinha label="Captação" value={String(realizado.captacaoMes)} meta={metaMes.captacao > 0 ? `Meta: ${Math.round(metaMes.captacao)}` : 'Meta: —'} />
                   <MetaLinha label="Ações" value={String(realizado.acoesMes)} meta={metaMes.acoes > 0 ? `Meta: ${Math.round(metaMes.acoes)}` : 'Meta: —'} />
                 </>
