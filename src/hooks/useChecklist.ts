@@ -666,17 +666,30 @@ export function useCompleteChecklistItem() {
       }
 
       // Update the current item as completed
+      const completedAt = new Date().toISOString();
       const { error: updateError } = await supabase
         .from('checklist_items')
         .update({
           status: 'completed',
-          completed_at: new Date().toISOString(),
+          completed_at: completedAt,
           completed_by: completedBy,
           notes: notes || currentItem.notes,
         })
         .eq('id', itemId);
 
       if (updateError) throw updateError;
+
+      // ── CRÉDITO DE PONTUALIDADE (2 pts por etapa no prazo) ────────────────
+      const punctualityPoints = await awardPunctualityCredit(
+        {
+          id: itemId,
+          name: currentItem.name,
+          due_date: currentItem.due_date,
+          assigned_to: currentItem.assigned_to,
+        },
+        completedAt,
+        completedBy
+      );
 
       // Add to history
       await supabase.from('checklist_history').insert({
@@ -786,9 +799,10 @@ export function useCompleteChecklistItem() {
           .from('credit_transactions')
           .select('id')
           .eq('checklist_item_id', itemId)
-          .maybeSingle();
+          .like('description', `${tpl.name}%`)
+          .limit(1);
 
-        if (!existingCredit) {
+        if (!existingCredit || existingCredit.length === 0) {
           const { data: environments } = await supabase
             .from('project_environments')
             .select('environment_count')
@@ -832,7 +846,17 @@ export function useCompleteChecklistItem() {
         }
       }
 
-      return { success: true, pointsAwarded, ambientesUsados, stepName: tpl?.name };
+      // ── BÔNUS DE FECHAMENTO (checklist 100% no prazo) ─────────────────────
+      const closingBonusPoints = await awardClosingBonusIfEligible(currentItem.checklist_id);
+
+      return {
+        success: true,
+        pointsAwarded,
+        ambientesUsados,
+        stepName: tpl?.name,
+        punctualityPoints,
+        closingBonusPoints,
+      };
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['contract-checklist'] });
