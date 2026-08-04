@@ -3,9 +3,11 @@ interface MetricCardProps {
   label: string;
   percentage?: number;
   subtitle?: string;
+  /** segunda linha (ex.: Big Meta), destacada */
+  bigSubtitle?: string;
 }
 
-export function MetricCard({ value, label, percentage, subtitle }: MetricCardProps) {
+export function MetricCard({ value, label, percentage, subtitle, bigSubtitle }: MetricCardProps) {
   return (
     <div className="card-flat">
       <div className="metric-value">{value}</div>
@@ -22,6 +24,9 @@ export function MetricCard({ value, label, percentage, subtitle }: MetricCardPro
         </div>
       )}
       {subtitle && <div className="text-xs text-muted-foreground mt-1">{subtitle}</div>}
+      {bigSubtitle && (
+        <div className="text-xs text-muted-foreground font-semibold mt-0.5">{bigSubtitle}</div>
+      )}
     </div>
   );
 }
