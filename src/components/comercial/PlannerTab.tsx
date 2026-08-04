@@ -1328,8 +1328,16 @@ function EditCardModal({ card, onClose }: { card: PlannerCard | null; onClose: (
 }
 
 // ── Componente principal ─────────────────────────────────────────────
-export function PlannerTab({ highlightMemberId }: { highlightMemberId?: string } = {}) {
-  const { data: cards = [], isLoading } = useCards();
+export function PlannerTab({ highlightMemberId, onlyMemberId }: { highlightMemberId?: string; onlyMemberId?: string } = {}) {
+  const { data: allCards = [], isLoading } = useCards();
+  const cards = onlyMemberId
+    ? allCards.filter(
+        (c) =>
+          c.responsible_id === onlyMemberId ||
+          c.apresentacao_projetista_id === onlyMemberId ||
+          (c as any).created_by === onlyMemberId
+      )
+    : allCards;
   const upd = useUpdateStatus();
   const qc = useQueryClient();
   const { toast } = useToast();
