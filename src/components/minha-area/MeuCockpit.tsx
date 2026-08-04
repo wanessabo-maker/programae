@@ -47,7 +47,7 @@ function lightBg(p: number) {
   return 'bg-destructive';
 }
 
-function MetaLinha({ label, value, meta }: { label: string; value: string; meta: string }) {
+function MetaLinha({ label, value, meta, bigMeta }: { label: string; value: string; meta: string; bigMeta?: string }) {
   return (
     <div>
       <div className="flex items-baseline justify-between gap-3">
@@ -55,6 +55,9 @@ function MetaLinha({ label, value, meta }: { label: string; value: string; meta:
         <span className="text-lg font-bold">{value}</span>
       </div>
       <p className="text-[11px] text-muted-foreground">{meta}</p>
+      {bigMeta && (
+        <p className="text-[11px] text-muted-foreground font-semibold">{bigMeta}</p>
+      )}
     </div>
   );
 }
