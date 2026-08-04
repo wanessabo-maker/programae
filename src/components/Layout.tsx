@@ -122,7 +122,7 @@ export function Layout({ children }: LayoutProps) {
               <img 
                 src={logo} 
                 alt="Evviva Logo" 
-                className="h-12 sm:h-15 w-auto object-scale-down"
+                className="h-16 sm:h-22 w-auto object-scale-down"
               />
             </div>
             
