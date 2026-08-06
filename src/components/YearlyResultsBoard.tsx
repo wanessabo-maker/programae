@@ -153,15 +153,6 @@ export function YearlyResultsBoard() {
     [metas, targetYear, engOnlyMemberIds]
   );
 
-  const monthlyMetaEng = useMemo(
-    () => buildMonthlyMeta((m) => (
-      m.salesChannel === 'engenharia' ||
-      (!m.salesChannel && !!m.teamMemberId && engOnlyMemberIds.has(m.teamMemberId))
-    )),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [metas, targetYear, engOnlyMemberIds]
-  );
-
   const monthlyBigMeta = useMemo(
     () => buildMonthlyMeta((m) => !(
       m.salesChannel === 'engenharia' ||
@@ -173,7 +164,6 @@ export function YearlyResultsBoard() {
 
   const totalMeta = useMemo(() => monthlyMeta.reduce((a, b) => a + b, 0), [monthlyMeta]);
   const totalBigMeta = useMemo(() => monthlyBigMeta.reduce((a, b) => a + b, 0), [monthlyBigMeta]);
-  const totalMetaEng = useMemo(() => monthlyMetaEng.reduce((a, b) => a + b, 0), [monthlyMetaEng]);
 
   const calcPct = (executado: number, meta: number) => meta > 0 ? (executado / meta) * 100 : 0;
   const pctClass = (pct: number, hasMeta: boolean) => {
